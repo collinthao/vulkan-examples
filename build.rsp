@@ -17,6 +17,7 @@ C:\Users\colli\projects\vulkan-learnopengl-modules\engine\engine.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\pipeline\pipeline.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\renderer\vulkanApp.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\renderer\vulkanRenderer.cpp
+C:\Users\colli\projects\vulkan-learnopengl-modules\vulkanImage\vulkanImage.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\windowContext\glfwWindowContext.cpp
 /link
 "C:\vcpkg\packages\glfw3_x64-windows\lib\glfw3dll.lib"

@@ -32,6 +32,7 @@
 #include <gtc/matrix_transform.hpp>
 #include "../camera.h"
 #include "../pipeline/pipelineBuilder.h"
+#include "../vulkanImage/vulkanImageBuilder.h"
 
 namespace fs = std::filesystem;
 
