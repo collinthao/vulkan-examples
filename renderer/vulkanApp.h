@@ -144,17 +144,6 @@ struct SwapChainSupportDetails
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct QueueFamilyIndices
-{
-	std::optional<uint32_t> graphicsAndComputeFamily;
-	std::optional<uint32_t> presentFamily;
-
-	bool isComplete()
-	{
-		return graphicsAndComputeFamily.has_value() && presentFamily.has_value();
-	}
-};
-
 const std::vector<const char*> validationLayers =
 {
 	"VK_LAYER_KHRONOS_validation"
@@ -219,7 +208,6 @@ class VulkanApp
 	Pipeline postProcessingPipeline;
 
 	VkPipeline computePipeline;
-	VkCommandPool commandPool;
 
 	VkImage cubemapImage;
 	VkImageView cubemapImageView;
@@ -317,7 +305,6 @@ class VulkanApp
 	std::vector<Vertex> modelVertices;
 	std::vector<uint32_t> indices;
 
-	std::vector<VkCommandBuffer> commandBuffers;
 	std::vector<VkCommandBuffer> computeCommandBuffers;
 	
 	std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -326,8 +313,6 @@ class VulkanApp
 	
 	std::vector<VkFence> computeInFlightFences;
 	std::vector<VkSemaphore> computeFinishedSemaphores;
-
-
 
 	PointLight pointLights[4];
 
@@ -367,10 +352,7 @@ class VulkanApp
 	void createComputeDescriptorSetLayout();
 	void createPipelines();
 	void createComputePipeline();
-	void createCommandPool();
 	void createOffscreenResources();
-	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, VkImageCreateFlags flags, VkImageType imageType,VkSampleCountFlagBits numSamples,VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout imageLayout);
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	void createColorResources();
 	void createDepthResources();
 	void createFramebuffers();
@@ -379,20 +361,12 @@ class VulkanApp
 	void createTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory);
 	void loadTexture(const std::string imagePath, int& width, int& height, int& channels, int layers,stbi_uc*& texture);
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage , VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint32_t layerCount);
-	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
-	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels, uint32_t layerCount);
-	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-	bool hasStencilComponent(VkFormat format);
-	VkCommandBuffer beginSingleTimeCommands();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
-	VkImageView createImageView(VkImage image, VkImageView imageView, VkImageViewType viewType, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, uint32_t layerCount);
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window);
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkSampleCountFlagBits getMaxUsableSampleCount();
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 	std::vector<const char*>getRequiredExtensions();
 	void createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory);
 	void createCubeMapResources();
@@ -433,7 +407,6 @@ class VulkanApp
 	void createCubemapDescriptorSets();
 	void createLightDescriptorSets();
 	void createComputeDescriptorSets();
-	void createCommandBuffers();
 	void createComputeCommandBuffers();
 	void createSyncObjects();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);

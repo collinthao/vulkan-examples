@@ -5,6 +5,7 @@
 class VulkanImage
 {
 	public:
-	VulkanImage(VkImage image);
+	VulkanImage(VkImage image, VkDeviceMemory imageMemory);
 	VkImage image;
+	VkDeviceMemory memory;
 };

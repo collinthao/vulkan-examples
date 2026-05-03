@@ -12,9 +12,12 @@ C:\Users\colli\projects\vulkan-learnopengl-modules\fileContext.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\model.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\vertex.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\vulkanConfig.cpp
+C:\Users\colli\projects\vulkan-learnopengl-modules\commandBuffer\commandBuffer.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\descriptors\descriptor.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\engine\engine.cpp
+C:\Users\colli\projects\vulkan-learnopengl-modules\image\image.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\pipeline\pipeline.cpp
+C:\Users\colli\projects\vulkan-learnopengl-modules\queueFamily\queueFamily.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\renderer\vulkanApp.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\renderer\vulkanRenderer.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\vulkanImage\vulkanImage.cpp

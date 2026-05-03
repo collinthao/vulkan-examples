@@ -7,6 +7,9 @@ namespace Image
 {	
 	class Builder
 	{
+		private:
+	virtual uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice& physicalDevice) = 0;
+
 		public:
 			Builder();
 			virtual ~Builder(){};	
@@ -22,6 +25,6 @@ namespace Image
 			virtual Builder& setMemoryPropertyFlags(VkMemoryPropertyFlags memoryProperties) = 0;
 
 			virtual Builder& setLayout(VkImageLayout imageLayout) = 0;
-			virtual VulkanImage build() = 0;
+			virtual VulkanImage build(VkDevice& device, VkPhysicalDevice& physicalDevice) = 0;
 	};
 };
