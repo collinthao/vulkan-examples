@@ -190,15 +190,8 @@ class VulkanApp
 	VkDescriptorSetLayoutBinding fragmentLayoutBinding{};
 	VkDescriptorSetLayoutBinding allStagesUniformLayoutBinding{};
 
-	VkPipelineLayout pipelineLayout;
 	VkPipelineLayout computePipelineLayout;
-	VkPipelineLayout modelPipelineLayout;
-	VkPipelineLayout stencilPipelineLayout;
-	VkPipelineLayout primitivePipelineLayout;
-	VkPipelineLayout cubemapPipelineLayout;
-	VkPipelineLayout lightPipelineLayout;
-	VkPipelineLayout postProcessingPipelineLayout;
-	
+
 	Pipeline primitivePipeline; 
 	Pipeline basePipeline; 
 	Pipeline stencilPipeline;

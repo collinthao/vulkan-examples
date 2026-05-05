@@ -18,6 +18,7 @@ C:\Users\colli\projects\vulkan-learnopengl-modules\descriptors\descriptor.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\engine\engine.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\image\image.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\image\texture\texture.cpp
+C:\Users\colli\projects\vulkan-learnopengl-modules\image\texture\sampler\sampler.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\pipeline\pipeline.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\queueFamily\queueFamily.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\renderer\vulkanApp.cpp

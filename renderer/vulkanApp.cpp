@@ -5,6 +5,7 @@
 #include "../vulkanConfig.h"
 #include "../image/image.h"
 #include "../image/texture/texture.h"
+#include "../image/texture/sampler/sampler.h"
 #include "../queueFamily/queueFamily.h"
 #include "../commandBuffer/commandBuffer.h"
 #include "../buffer/buffer.h"
@@ -46,8 +47,8 @@ void VulkanApp::init(GLFWwindow* window)
 	Image::Texture::create(SPECULAR_PATH, specularImage, specularImageMemory, device, physicalDevice, graphicsAndComputeQueue);
 	createTextureImageView(textureImage, textureImageView);
 	createTextureImageView(specularImage, specularImageView);
-	createTextureSampler(textureSampler);
-	createTextureSampler(specularSampler);
+	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice);
+	Image::Texture::Sampler::createTextureSampler(specularSampler, device, physicalDevice);
 	createTextureImages(modelImages, modelImageMemories);	
 	createTextureImageViews(modelImages, modelImageViews);
 	createTextureSamplers(modelSamplers);
@@ -1062,10 +1063,8 @@ void VulkanApp::createCubeTextureImage(const std::string imagePath, VkImage& ima
 
 void VulkanApp::createCubeMapResources()
 {
-
 	cubemapImageView = Image::createView(cubemapImage, cubemapImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 }
-
 
 void VulkanApp::createTextureSampler(VkSampler& sampler)
 {
@@ -1096,7 +1095,6 @@ void VulkanApp::createTextureSampler(VkSampler& sampler)
 		throw std::runtime_error("failed to create texture sampler!");
 	}
 }
-
 
 void VulkanApp::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
 {
