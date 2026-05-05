@@ -320,8 +320,6 @@ class VulkanApp
 
 	uint32_t currentFrame = 0;
 
-	uint32_t mipLevels;
-
 	const std::string MODEL_PATH = "models/Sponza-master/sponza.obj";
 	const std::string MODEL_TEXTURE_DIRECTORY = "models/Sponza-master/";
 	const std::string TEXTURE_PATH = "textures/container.png";
@@ -358,9 +356,6 @@ class VulkanApp
 	void createFramebuffers();
 	void createModel();
 	void createTextureImageView(VkImage& image, VkImageView& imageView);
-	void createTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory);
-	void loadTexture(const std::string imagePath, int& width, int& height, int& channels, int layers,stbi_uc*& texture);
-	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage , VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);

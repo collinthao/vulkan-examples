@@ -2,6 +2,10 @@
 #include <stdexcept>
 #include "../commandBuffer/commandBuffer.h"
 
+namespace Image
+{
+	uint32_t mipLevels = 0;
+}
 
 void Image::create(uint32_t width, uint32_t height, uint32_t mipLevels, uint32_t arrayLayers, VkImageCreateFlags flags, VkImageType imageType,VkSampleCountFlagBits numSamples,VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkImageLayout imageLayout, VkDevice& device, VkPhysicalDevice& physicalDevice)
 	{
