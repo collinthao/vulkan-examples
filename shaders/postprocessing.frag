@@ -42,6 +42,12 @@ void main()
     for(int i = 0; i < 9; i++)
         col += sampleTex[i] * kernel[i];
 	
-fragColor = vec4(col, 1.);
-fragColor = texture(texture_sampler, texCoords);
+    fragColor = vec4(col, 1.);
+
+    // gamma correction
+    float gamma = 2.2;
+
+    fragColor = texture(texture_sampler, texCoords);
+
+    fragColor = vec4(pow(fragColor.rgb, vec3(1.)/gamma), 1.);
 }

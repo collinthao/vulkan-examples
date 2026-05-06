@@ -2357,8 +2357,8 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		light.specular = glm::vec3(1.f * (3. - i), 1. * (2. - i), 0.f);
 		light.position = lightPos;	
 		light.constant = 1.f;
-		light.linear = 0.09f;
-		light.quadratic = 0.032f;
+		light.linear = 0.7f;
+		light.quadratic = 1.8f;
 		light.color = glm::vec3(1.f * (3. - i), 1. * (2. - i), 0.);
 		light.model = glm::mat4(1.);
 		light.model = glm::translate(light.model, lightPos);
