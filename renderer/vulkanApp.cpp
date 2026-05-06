@@ -717,7 +717,7 @@ void VulkanApp::createPipelines()
 	 	.setDepthTest(VK_TRUE)
 		.setDepthWrite(VK_TRUE)
 		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_NONE)
+		.setCullMode(VK_CULL_MODE_FRONT_BIT)
 		.setCullFace(VK_FRONT_FACE_CLOCKWISE)
 		.setRenderPass(renderPass)
 		.build(device);
@@ -1129,7 +1129,7 @@ void VulkanApp::createTextureSamplers(std::vector<VkSampler>& samplers)
 {
 	for (size_t i = 0; i < MESH_COUNT; i++)
 	{
-		createTextureSampler(samplers[i]);
+		Image::Texture::Sampler::createTextureSampler(samplers[i], device, physicalDevice);
 	}
 }
 
@@ -2344,18 +2344,17 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 	}
 }
 
-
 void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 {
 	for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
 	{
-		glm::vec3 lightPos = glm::vec3(sin(3.) + i, cos(3. * i), 3. * i);
+		glm::vec3 lightPos = glm::vec3(sin(3. * glfwGetTime()) + i, cos(3. * i), 3. * i);
 
 		PointLight light{};
 			
 		light.ambient = glm::vec3(0.1f, .1f, .1f);
 		light.diffuse = glm::vec3(.9f * (3. - i), .9f * (2. - i), 0.f);
-		light.specular = glm::vec3(1.f * (3. - i), 1. * (2. - i), 0.);
+		light.specular = glm::vec3(1.f * (3. - i), 1. * (2. - i), 0.f);
 		light.position = lightPos;	
 		light.constant = 1.f;
 		light.linear = 0.09f;
@@ -2451,7 +2450,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 
 		material.specular = glm::vec3(.5); 	
-		material.shininess = 32.f; 
+		material.shininess = 64.f; 
 
 		memcpy(materialUniformBuffersMapped[j][currentImage], &material, sizeof(material));
 

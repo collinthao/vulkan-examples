@@ -1,6 +1,6 @@
 #version 450 core
 
-#define MAX_POINT_LIGHTS 4 
+#define MAX_POINT_LIGHTS 1 
 
 struct SpotLight
 {
@@ -116,7 +116,7 @@ vec3 calculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
 
 	vec3 reflectDir = reflect(-lightDir, normal);
 
-	float spec = pow(max(dot(reflectDir, viewDir), 0.), 32.f);
+	float spec = pow(max(dot(reflectDir, viewDir), 0.), 128.f);
 
 	vec3 ambient = light.ambient * vec3(texture(texSampler, fragTexCoord));
 	vec3 diffuse = light.diffuse * diff * vec3(texture(texSampler, fragTexCoord));
@@ -128,12 +128,15 @@ vec3 calculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
 vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
 		vec3 lightDir = normalize(pointLight.position - fragPos);
+
+		vec3 halfwayDir = normalize(lightDir + viewDir);
 		
 		float diff = max(dot(normal, lightDir), 0.);
 		
-		vec3 reflectDir = reflect(lightDir, normal);
+		vec3 reflectDir = reflect(-lightDir, normal);
 
-		float spec = pow(max(dot(viewDir, reflectDir), 0.f), u_material.shininess);
+		float spec = pow(max(dot(halfwayDir, normal), 0.f), u_material.shininess);
+		//float spec = pow(max(dot(viewDir, reflectDir), 0.f), 128.f);
 
 		float lightDistance = length(pointLight.position - fragPos);
 		float attenuation = 1.0/(pointLight.constant + pointLight.linear * lightDistance + pointLight.quadratic * (lightDistance * lightDistance));

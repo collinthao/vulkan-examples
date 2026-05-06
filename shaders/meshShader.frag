@@ -1,6 +1,6 @@
 #version 450
 
-#define MAX_POINT_LIGHTS 4 
+#define MAX_POINT_LIGHTS 1 
 
 struct SpotLight
 {
@@ -122,6 +122,7 @@ vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3
 vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir)
 {
 	vec3 lightDir = normalize(light.position - FragPos);
+	vec3 halfwayDir = normalize(lightDir + viewDir);
 	float theta = dot(lightDir, normalize(-light.direction));
 	float epsilon = light.cutOff - light.outerCutOff;
 	float intensity = clamp((theta - light.outerCutOff)/epsilon, 0.0, 1.);
@@ -130,7 +131,7 @@ vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir)
 
 	vec3 reflectDir = reflect(-lightDir, normal);
 
-	float spec = pow(max(dot(reflectDir, viewDir), 0.), 32.f);
+	float spec = pow(max(dot(halfwayDir, normal), 0.), 32.f);
 
 	vec3 ambient = light.ambient * vec3(texture(texSampler, fragTexCoord));
 	vec3 diffuse = light.diffuse * diff * vec3(texture(texSampler, fragTexCoord));
