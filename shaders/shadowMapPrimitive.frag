@@ -43,7 +43,6 @@ layout (binding = 1) uniform Material
 } u_material;
 
 layout(binding = 2) uniform sampler2D texSampler;
-layout(binding = 5) uniform sampler2D shadowMap;
 
 layout (binding = 3) uniform Lights
 {
@@ -82,8 +81,7 @@ void main()
 
 	//result += calculateSpotLight(lights.spotLight, norm, cameraDir);
 
-//	fragColor = vec4(result, 1.);
-	fragColor = vec4(vec3(vec3(texture(shadowMap, fragTexCoord)).r), 1.);
+	fragColor = vec4(result, 1.);
 }
 
 vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir)
@@ -143,8 +141,8 @@ vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3
 		float lightDistance = length(pointLight.position - fragPos);
 		float attenuation = 1.0/(pointLight.constant + pointLight.linear * lightDistance + pointLight.quadratic * (lightDistance));
 
-		vec3 ambient = pointLight.ambient * vec3(texture(shadowMap, fragTexCoord));
-		vec3 diffuse = pointLight.diffuse * diff * vec3(texture(shadowMap, fragTexCoord));
+		vec3 ambient = pointLight.ambient * vec3(texture(texSampler, fragTexCoord));
+		vec3 diffuse = pointLight.diffuse * diff * vec3(texture(texSampler, fragTexCoord));
 		vec3 specular = pointLight.specular * spec * vec3(texture(specularTexture, fragTexCoord));
 
 		ambient *= attenuation;

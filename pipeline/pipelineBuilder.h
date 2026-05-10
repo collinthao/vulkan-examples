@@ -58,7 +58,6 @@ class PipelineBuilder : private Builder
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
-		std::cout << "created pipeline layout...\n";
 		return pipelineLayout;
 	}
 

@@ -46,7 +46,7 @@ void Image::Texture::create(const std::string imagePath, VkImage& image, VkDevic
 			imageMemory,
 			VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
 
-	Image::transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, 1, device, graphicsAndComputeQueue);
+	Image::transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, 1, device, graphicsAndComputeQueue, VK_IMAGE_ASPECT_COLOR_BIT);
 	Image::copyBufferToImage(stagingBuffer, image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1, device, graphicsAndComputeQueue);
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);

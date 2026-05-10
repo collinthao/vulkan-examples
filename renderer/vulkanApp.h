@@ -162,15 +162,20 @@ class VulkanApp
 	VkQueue presentQueue;
 	VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_8_BIT;
 	VkSwapchainKHR swapChain;
+	std::vector<VkImage> shadowMapImages;
 	std::vector<VkImage> swapChainImages;
 	std::vector<VkImage> offScreenImages;
 	VkFormat swapChainImageFormat;
+	std::vector<VkImageView> shadowMapImageViews;
 	std::vector<VkImageView> swapChainImageViews;
 	std::vector<VkImageView> offScreenImageViews;
 	std::vector<VkDeviceMemory> offScreenImageMemories;
+	std::vector<VkDeviceMemory> shadowMapImageMemories;
+	VkRenderPass shadowMapRenderPass;
 	VkRenderPass renderPass;
 	VkRenderPass postProcessingRenderPass;
 	VkImage textureImage;
+	VkImage shadowMapImage;
 	VkDeviceMemory textureImageMemory;
 	VkDeviceMemory cubemapImageMemory;
 	VkImageView textureImageView;
@@ -193,6 +198,9 @@ class VulkanApp
 	VkPipelineLayout computePipelineLayout;
 
 	Pipeline primitivePipeline; 
+	Pipeline shadowMapPipeline; 
+	Pipeline shadowMapPrimitivePipeline; 
+	Pipeline shadowMapMeshPipeline; 
 	Pipeline basePipeline; 
 	Pipeline stencilPipeline;
 	Pipeline lightPipeline;
@@ -208,6 +216,10 @@ class VulkanApp
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
+
+	VkImage shadowMapDepthImage;
+	VkImageView shadowMapDepthImageView;
+	VkDeviceMemory shadowMapDepthImageMemory;
 
 	VkImage colorImage;
 	VkDeviceMemory colorImageMemory;
@@ -228,6 +240,7 @@ class VulkanApp
 	std::vector<VkDeviceMemory> modelImageMemories;
 	std::vector<VkImageView> modelImageViews;
 	std::vector<VkSampler> modelSamplers;
+	std::vector<VkFramebuffer> shadowMapFramebuffers;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	std::vector<VkFramebuffer> offScreenFramebuffers;
 
@@ -240,6 +253,7 @@ class VulkanApp
 	std::vector<VkBuffer> cubemapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> modelUniformBuffers;
 	std::vector<std::vector<VkBuffer>> primitiveUniformBuffers;
+	std::vector<std::vector<VkBuffer>> shadowMapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> stencilUniformBuffers;
 	std::vector<std::vector<VkBuffer>> materialUniformBuffers;
 	std::vector<std::vector<VkBuffer>> lightUniformBuffers;
@@ -251,6 +265,7 @@ class VulkanApp
 	std::vector<std::vector<VkDeviceMemory>> modelUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> materialUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> primitiveUniformBuffersMemory;
+	std::vector<std::vector<VkDeviceMemory>> shadowMapUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> stencilUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> lightUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> modelLightUniformBuffersMemory;
@@ -261,6 +276,7 @@ class VulkanApp
 	std::vector<std::vector<void*>> modelUniformBuffersMapped;
 	std::vector<std::vector<void*>> materialUniformBuffersMapped;
 	std::vector<std::vector<void*>> primitiveUniformBuffersMapped;
+	std::vector<std::vector<void*>> shadowMapUniformBuffersMapped;
 	std::vector<std::vector<void*>> stencilUniformBuffersMapped;
 	std::vector<std::vector<void*>> modelLightUniformBuffersMapped;
 	std::vector<std::vector<void*>> lightUniformBuffersMapped;
@@ -281,6 +297,7 @@ class VulkanApp
 	std::vector<VkDescriptorSet> computeDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> modelDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> primitiveDescriptorSets;
+	std::vector<std::vector<VkDescriptorSet>> shadowMapDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> stencilDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> lightDescriptorSets;
 
@@ -338,17 +355,19 @@ class VulkanApp
 	void createSwapChain(GLFWwindow * window);
 	void createImageViews();
 	void createRenderPass();
+	void createShadowMapRenderPass();
 	void createPostProcessingRenderPass();
 	void createDescriptorSetLayouts();	
 	void createComputeDescriptorSetLayout();
 	void createPipelines();
 	void createComputePipeline();
 	void createOffscreenResources();
+	void createShadowMapResources();
 	void createColorResources();
 	void createDepthResources();
 	void createFramebuffers();
 	void createModel();
-	void createTextureImageView(VkImage& image, VkImageView& imageView);
+	void createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -374,6 +393,7 @@ class VulkanApp
 	void createUniformBuffers();
 	void createGraphicsUniformBuffers();
 	void createPrimitiveUniformBuffers();
+	void createShadowMapUniformBuffers();
 	void createCubemapUniformBuffers();
 	void createStencilUniformBuffers();
 	void createMaterialUniformBuffers();
@@ -389,6 +409,7 @@ class VulkanApp
 	void createDescriptorSets();
 	void createGraphicsDescriptorSets();
 	void createPrimitiveDescriptorSets();
+	void createShadowMapDescriptorSets();
 	void createStencilDescriptorSets();
 	void createModelDescriptorSets();
 	void createPostProcessingDescriptorSets();

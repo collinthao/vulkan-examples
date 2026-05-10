@@ -15,4 +15,7 @@ set GLSL_PATH=glslc.exe
 %GLSL_PATH% postprocessing.frag -o postprocessingFrag.spv
 %GLSL_PATH% cubemap.vert -o cubemapVert.spv
 %GLSL_PATH% cubemap.frag -o cubemapFrag.spv
+%GLSL_PATH% shadowmap.vert -o shadowmapVert.spv
+%GLSL_PATH% shadowmap.frag -o shadowmapFrag.spv
+%GLSL_PATH% shadowmapPrimitive.frag -o shadowmapPrimitiveFrag.spv
 pause
