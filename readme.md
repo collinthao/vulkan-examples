@@ -1,5 +1,3 @@
 ***TODO***
-- The lighting color and frag color are still static within the primitive frag shader. This needs to be in a uniform buffer.
-- We're still using tinyobjloader but I eventually want to move over to assimp for more model support
-- Make creation of texture samplers, images, and views dynamic and in one dedicated function each instead of an individual funciton for each mapping
-- create specular map
+- have shadow map view from light perspective
+- remove shadowmap from primitives and make shadowmap screen space quad instead

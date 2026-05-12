@@ -187,6 +187,7 @@ class VulkanApp
 	VkDescriptorSetLayout computeDescriptorSetLayout;
 	VkDescriptorSetLayout lightDescriptorSetLayout;
 	VkDescriptorSetLayout postProcessingDescriptorSetLayout;
+	VkDescriptorSetLayout screenSpaceDescriptorSetLayout;
 	VkDescriptorSetLayout cubemapDescriptorSetLayout;
 
 	VkDescriptorSetLayoutBinding samplerUniformLayoutBinding{};
@@ -207,6 +208,7 @@ class VulkanApp
 	Pipeline meshPipeline;
 	Pipeline cubemapPipeline;
 	Pipeline postProcessingPipeline;
+	Pipeline screenSpacePipeline;
 
 	VkPipeline computePipeline;
 
@@ -282,17 +284,11 @@ class VulkanApp
 	std::vector<std::vector<void*>> lightUniformBuffersMapped;
 	std::vector<std::vector<void*>> lightObjectUniformBuffersMapped;
 
-	VkDescriptorPool descriptorPool;
 	VkDescriptorPool computeDescriptorPool;
-	VkDescriptorPool modelDescriptorPool;
-	VkDescriptorPool primitiveDescriptorPool;
-	VkDescriptorPool stencilDescriptorPool;
-	VkDescriptorPool lightDescriptorPool;
-	VkDescriptorPool postProcessingDescriptorPool;
-	VkDescriptorPool cubemapDescriptorPool;
 
 	std::vector<VkDescriptorSet> descriptorSets;
 	std::vector<VkDescriptorSet> postProcessingDescriptorSets;
+	std::vector<VkDescriptorSet> screenSpaceDescriptorSets;
 	std::vector<VkDescriptorSet> cubemapDescriptorSets;
 	std::vector<VkDescriptorSet> computeDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> modelDescriptorSets;
@@ -410,6 +406,7 @@ class VulkanApp
 	void createGraphicsDescriptorSets();
 	void createPrimitiveDescriptorSets();
 	void createShadowMapDescriptorSets();
+	void createShadowMapScreenSpaceQuadDescriptorSets();
 	void createStencilDescriptorSets();
 	void createModelDescriptorSets();
 	void createPostProcessingDescriptorSets();

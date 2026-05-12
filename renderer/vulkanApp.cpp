@@ -951,6 +951,14 @@ void VulkanApp::createPipelines()
 		.setRenderPass(postProcessingRenderPass)
 		.build(device);
 
+	screenSpacePipeline = 
+		pipelineBuilder
+		.setShaderPaths("shaders/postprocessingVert.spv", "shaders/screenSpaceQuadFrag.spv")
+		.setMSAASamples(msaaSamples)
+		.setDescriptorSetLayout(screenSpaceDescriptorSetLayout)
+		.setRenderPass(renderPass)
+		.build(device);
+
 	createComputePipeline();
 }
 
@@ -1780,6 +1788,7 @@ void VulkanApp::createDescriptorSets()
 	createStencilDescriptorSets();
 	createModelDescriptorSets();
 	createPostProcessingDescriptorSets();
+	createShadowMapScreenSpaceQuadDescriptorSets();
 	createCubemapDescriptorSets();
 	createLightDescriptorSets();
 	createComputeDescriptorSets();
@@ -2183,6 +2192,43 @@ void VulkanApp::createCubemapDescriptorSets()
 	}
 }
 
+void VulkanApp::createShadowMapScreenSpaceQuadDescriptorSets()
+{
+	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, screenSpacePipeline.descriptor.layout);
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = screenSpacePipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.pSetLayouts = layouts.data();
+
+	screenSpaceDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	if (vkAllocateDescriptorSets(device, &allocInfo, screenSpaceDescriptorSets.data()) != VK_SUCCESS)
+	{
+		std::cout << "Failed to create descriptor sets!\n";
+		throw std::runtime_error("Failed to create descriptor sets!");
+	}
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		VkDescriptorImageInfo shadowMapImageInfo{};
+		shadowMapImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+		shadowMapImageInfo.imageView = shadowMapImageViews[i];
+		shadowMapImageInfo.sampler = textureSampler;
+
+
+		std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = screenSpaceDescriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pImageInfo = &shadowMapImageInfo;
+
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	}
+}
+
 void VulkanApp::createPostProcessingDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, postProcessingPipeline.descriptor.layout);
@@ -2193,8 +2239,10 @@ void VulkanApp::createPostProcessingDescriptorSets()
 	allocInfo.pSetLayouts = layouts.data();
 
 	postProcessingDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	std::cout << "Creating pipelines\n";
 	if (vkAllocateDescriptorSets(device, &allocInfo, postProcessingDescriptorSets.data()) != VK_SUCCESS)
 	{
+		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
@@ -2671,7 +2719,16 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-	
+	screenSpacePipeline.bind(commandBuffer);
+		
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::quadIndices.size()), 1, 0, 0, 0);
+
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
@@ -2986,8 +3043,6 @@ void VulkanApp::cleanup(GLFWwindow * window)
 		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
 	}
-
-	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
