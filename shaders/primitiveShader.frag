@@ -82,8 +82,8 @@ void main()
 
 	//result += calculateSpotLight(lights.spotLight, norm, cameraDir);
 
-//	fragColor = vec4(result, 1.);
-	fragColor = vec4(vec3(vec3(texture(shadowMap, fragTexCoord)).r), 1.);
+//	fragColor = vec4(vec3(LinearizeDepth(gl_FragCoord.z)), 1.);
+	fragColor = vec4(result, 1.);
 }
 
 vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir)

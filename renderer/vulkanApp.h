@@ -134,7 +134,6 @@ namespace std
 const std::vector<const char*> deviceExtensions =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME
 };
 
 struct SwapChainSupportDetails
@@ -335,7 +334,7 @@ class VulkanApp
 	const uint32_t PARTICLE_COUNT = 8192;
 	const uint32_t OBJECT_COUNT = 10;
 	const uint32_t MAX_POINT_LIGHTS = 1;
-	const float FAR_PLANE = 400.f;
+	const float FAR_PLANE = 100.f;
 	float lastFrameTime = 0.f;
 	double lastTime = 0.f;
 

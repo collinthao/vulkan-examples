@@ -956,6 +956,7 @@ void VulkanApp::createPipelines()
 		.setShaderPaths("shaders/postprocessingVert.spv", "shaders/screenSpaceQuadFrag.spv")
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(screenSpaceDescriptorSetLayout)
+		.setDescriptor({samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
 		.setRenderPass(renderPass)
 		.build(device);
 
@@ -2844,7 +2845,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		ubom.model = glm::rotate(ubom.model, glm::radians(angle), glm::vec3(1.f, 0.3f, 0.5f));
 
 		ubom.view = camera.getViewMatrix();
-		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
+		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		ubom.fragColor = glm::vec3(0., 1., 1.);
 	
 		ubom.proj[1][1] *= -1;
@@ -2901,7 +2902,6 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 
 	memcpy(cubemapUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));
 }
-
 
 void VulkanApp::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
 {
