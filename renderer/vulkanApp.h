@@ -78,7 +78,7 @@ struct PointLight
 
 struct Lights
 {
-	alignas(16)PointLight pointLights[4];	
+	alignas(16)PointLight pointLights[1];	
 	alignas(16)DirectionalLight directionalLight;
 	alignas(16)SpotLight spotLight;
 };

@@ -82,7 +82,6 @@ void main()
 
 	//result += calculateSpotLight(lights.spotLight, norm, cameraDir);
 
-//	fragColor = vec4(vec3(LinearizeDepth(gl_FragCoord.z)), 1.);
 	fragColor = vec4(result, 1.);
 }
 
@@ -143,8 +142,8 @@ vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3
 		float lightDistance = length(pointLight.position - fragPos);
 		float attenuation = 1.0/(pointLight.constant + pointLight.linear * lightDistance + pointLight.quadratic * (lightDistance));
 
-		vec3 ambient = pointLight.ambient * vec3(texture(shadowMap, fragTexCoord));
-		vec3 diffuse = pointLight.diffuse * diff * vec3(texture(shadowMap, fragTexCoord));
+		vec3 ambient = pointLight.ambient * vec3(texture(texSampler, fragTexCoord));
+		vec3 diffuse = pointLight.diffuse * diff * vec3(texture(texSampler, fragTexCoord));
 		vec3 specular = pointLight.specular * spec * vec3(texture(specularTexture, fragTexCoord));
 
 		ambient *= attenuation;

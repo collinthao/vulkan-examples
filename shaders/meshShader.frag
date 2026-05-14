@@ -116,7 +116,7 @@ vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3
 	
 		vec3 finalResult = ambient + diffuse;
 
-		return finalResult;
+		return finalResult + 0.5;
 }
 
 vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir)
