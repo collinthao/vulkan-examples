@@ -23,7 +23,7 @@ layout(location = 4) out vec3 FragPos;
 
 void main()
 {
-    gl_Position = ubom.proj * ubom.view * ubom.model * vec4(inPosition, 1.0);
+    gl_Position = ubom.lightSpaceMatrix * ubom.model * vec4(inPosition, 1.0);
     fragColor = ubom.fragColor;
     fragTexCoord = vec2(inTexCoord.x, -inTexCoord.y);
     Normal = mat3(transpose(inverse(ubom.model)))* inNormal;

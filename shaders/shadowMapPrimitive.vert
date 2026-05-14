@@ -23,7 +23,7 @@ layout(location = 6) out vec3 CameraPos;
 
 void main()
 {
-    gl_Position = ubom.proj * ubom.view * ubom.model * vec4(inPosition, 1.0);
+    gl_Position = ubom.lightSpaceMatrix * ubom.model * vec4(inPosition, 1.0);
     fragTexCoord = inTexCoord;
     Normal = mat3(transpose(inverse(ubom.model))) * inNormal;
     FragPos = vec3(ubom.model * vec4(inPosition, 1.0));

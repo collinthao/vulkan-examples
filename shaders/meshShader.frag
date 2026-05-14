@@ -68,7 +68,7 @@ void main()
 
 	for (int i = 0; i < MAX_POINT_LIGHTS; i++)
 	{
-		result += calculatePointLights(lights.pointLights[i], norm, FragPos, cameraDir);	
+	//	result += calculatePointLights(lights.pointLights[i], norm, FragPos, cameraDir);	
 	}
 
 	//result += calculateSpotLight(lights.spotLight, norm, cameraDir);

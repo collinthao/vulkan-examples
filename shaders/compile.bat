@@ -18,5 +18,7 @@ set GLSL_PATH=glslc.exe
 %GLSL_PATH% shadowmap.vert -o shadowmapVert.spv
 %GLSL_PATH% shadowmap.frag -o shadowmapFrag.spv
 %GLSL_PATH% shadowmapPrimitive.frag -o shadowmapPrimitiveFrag.spv
+%GLSL_PATH% shadowmapPrimitive.vert -o shadowmapPrimitiveVert.spv
+%GLSL_PATH% shadowmapMesh.vert -o shadowmapMeshVert.spv
 %GLSL_PATH% screenSpaceQuad.frag -o screenSpaceQuadFrag.spv
 pause

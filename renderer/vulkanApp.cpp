@@ -800,7 +800,7 @@ void VulkanApp::createPipelines()
 
 	shadowMapPrimitivePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/primitiveVert.spv", "shaders/shadowMapPrimitiveFrag.spv")
+		.setShaderPaths("shaders/shadowMapPrimitiveVert.spv", "shaders/shadowMapPrimitiveFrag.spv")
 		.setRenderPass(shadowMapRenderPass)
 		.build(device);
 
@@ -813,7 +813,7 @@ void VulkanApp::createPipelines()
 		.build(device);
 
 	shadowMapMeshPipeline = pipelineBuilder
-		.setShaderPaths("shaders/meshVert.spv", "shaders/meshFrag.spv")
+		.setShaderPaths("shaders/shadowMapMeshVert.spv", "shaders/meshFrag.spv")
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -2788,11 +2788,18 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		UniformBufferObjectModel meshUBO{};
 		DirectionalLight directionalLight;
 		SpotLight spotLight;
+		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 1.f, 10.f);
+		glm::mat4 lightView = glm::lookAt(
+			glm::vec3(-2.0f, 4.0f, -1.0f), 
+			glm::vec3(0.f, 0.f, 0.f),
+			glm::vec3(0.f, 1.0f, 0.f)
+		);
 
 		meshUBO.model = glm::mat4(1.);
 		meshUBO.model = glm::scale(meshUBO.model, glm::vec3(0.1,0.1,0.1));
 		meshUBO.view = camera.getViewMatrix();
 		meshUBO.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		meshUBO.lightSpaceMatrix = lightSpaceProjection * lightView;
 		meshUBO.fragColor = glm::vec3(0., 1., 1.);
 
 		meshUBO.proj[1][1] *= -1;
@@ -2837,6 +2844,13 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		DirectionalLight directionalLight;
 		SpotLight spotLight;
 
+		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 1.f, 10.f);
+		glm::mat4 lightView = glm::lookAt(
+			glm::vec3(-2.0f, 4.0f, -1.0f), 
+			glm::vec3(0.f, 0.f, 0.f),
+			glm::vec3(0.f, 1.0f, 0.f)
+		);
+
 		ubom.model = glm::mat4(1.);
 		ubom.model = glm::translate(ubom.model, VulkanApp::cubePositions[j]);
 		
@@ -2846,6 +2860,8 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 
 		ubom.view = camera.getViewMatrix();
 		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+
+		ubom.lightSpaceMatrix = lightSpaceProjection * lightView;
 		ubom.fragColor = glm::vec3(0., 1., 1.);
 	
 		ubom.proj[1][1] *= -1;
