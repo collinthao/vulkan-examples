@@ -20,6 +20,7 @@ layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 Normal;
 layout(location = 3) out vec3 FragPos;
 layout(location = 6) out vec3 CameraPos;
+layout(location = 7) out vec4 FragPosLightSpace;
 
 void main()
 {
@@ -29,4 +30,5 @@ void main()
     FragPos = vec3(ubom.model * vec4(inPosition, 1.0));
     FragColor = ubom.fragColor;
     CameraPos = ubom.cameraPos;
+    FragPosLightSpace = vec4(FragPos, 1.0) * ubom.lightSpaceMatrix;
 }

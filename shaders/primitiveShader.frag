@@ -60,6 +60,19 @@ layout (location = 1) in vec2 fragTexCoord;
 layout (location = 2) in vec3 Normal;
 layout (location = 3) in vec3 FragPos;
 layout (location = 6) in vec3 CameraPos;
+layout (location = 7) in vec4 FragPosLightSpace;
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+	vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;	
+	projCoords = projCoords * 0.5 + 0.5;
+	float closestDepth = texture(shadowMap, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+
+	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+
+	return shadow;
+}
 
 vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3 viewDir);
 	
@@ -81,6 +94,7 @@ void main()
 	}
 
 	//result += calculateSpotLight(lights.spotLight, norm, cameraDir);
+
 
 	fragColor = vec4(result, 1.);
 }
@@ -123,7 +137,11 @@ vec3 calculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
 	vec3 diffuse = light.diffuse * diff * vec3(texture(texSampler, fragTexCoord));
 	vec3 specular = light.specular * spec * vec3(texture(specularTexture, fragTexCoord));
 
-	return ambient + diffuse + specular;
+	float shadow = ShadowCalculation(FragPosLightSpace);
+
+	vec3 lighting = (ambient + (1.0 - shadow) + (diffuse + specular)) * vec3(texture(texSampler, fragTexCoord));
+
+	return lighting; 
 }
 
 vec3 calculatePointLights(PointLight pointLight, vec3 normal, vec3 fragPos, vec3 viewDir)

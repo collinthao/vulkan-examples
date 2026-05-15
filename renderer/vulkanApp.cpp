@@ -760,13 +760,15 @@ void VulkanApp::createPipelines()
 	std::vector<VkDescriptorSetLayoutBinding> meshBindings = {
 	vertexLayoutBinding, 
 	samplerUniformLayoutBinding,
-	vertexLayoutBinding
+	vertexLayoutBinding,
+	samplerUniformLayoutBinding,
 		};
 
 	std::vector<VkDescriptorType> meshTypes = {
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
 	};
 
 	std::vector<VkDescriptorSetLayoutBinding> cubemapBindings = {
@@ -2108,12 +2110,17 @@ void VulkanApp::createModelDescriptorSets()
 			lightBufferInfo.offset = 0;
 			lightBufferInfo.range = sizeof(Lights);
 
+			VkDescriptorImageInfo shadowMapInfo{};
+			shadowMapInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			shadowMapInfo.imageView = shadowMapImageViews[i];
+			shadowMapInfo.sampler = textureSampler;
+
 			VkDescriptorImageInfo imageInfo{};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = modelImageViews[j];
 			imageInfo.sampler = modelSamplers[j];
 
-			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+			std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = modelDescriptorSets[j][i];
 			descriptorWrites[0].dstBinding = 0;
@@ -2137,6 +2144,14 @@ void VulkanApp::createModelDescriptorSets()
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrites[2].descriptorCount = 1;
 			descriptorWrites[2].pBufferInfo = &lightBufferInfo;
+
+			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[3].dstSet = modelDescriptorSets[j][i];
+			descriptorWrites[3].dstBinding = 3;
+			descriptorWrites[3].dstArrayElement = 0;
+			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[3].descriptorCount = 1;
+			descriptorWrites[3].pImageInfo = &shadowMapInfo;
 			
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -2720,6 +2735,8 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
+/*
+// DEBUG FOR SHADOWMAP
 	screenSpacePipeline.bind(commandBuffer);
 		
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
@@ -2729,7 +2746,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
 	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::quadIndices.size()), 1, 0, 0, 0);
-
+*/
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
@@ -2788,7 +2805,8 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		UniformBufferObjectModel meshUBO{};
 		DirectionalLight directionalLight;
 		SpotLight spotLight;
-		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 1.f, 10.f);
+		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.1f, 7.5f);
+//		glm::mat4 lightSpaceProjection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
 		glm::mat4 lightView = glm::lookAt(
 			glm::vec3(-2.0f, 4.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
@@ -2799,6 +2817,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		meshUBO.model = glm::scale(meshUBO.model, glm::vec3(0.1,0.1,0.1));
 		meshUBO.view = camera.getViewMatrix();
 		meshUBO.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		lightSpaceProjection[1][1] *= -1;
 		meshUBO.lightSpaceMatrix = lightSpaceProjection * lightView;
 		meshUBO.fragColor = glm::vec3(0., 1., 1.);
 
@@ -2814,7 +2833,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		directionalLight.ambient = glm::vec3(0.1f, .1f, .1f);
 		directionalLight.diffuse = glm::vec3(.9f, .9f, .9f);
 		directionalLight.specular = glm::vec3(1.f);
-		directionalLight.direction = glm::vec3(-0.2f, -1.0f, -0.3f);
+		directionalLight.direction = glm::vec3(-2.0f, 4.0f, -1.0f);
 
 		lights.directionalLight = directionalLight;
 
@@ -2844,7 +2863,8 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		DirectionalLight directionalLight;
 		SpotLight spotLight;
 
-		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 1.f, 10.f);
+		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.1f, 7.5f);
+//		glm::mat4 lightSpaceProjection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
 		glm::mat4 lightView = glm::lookAt(
 			glm::vec3(-2.0f, 4.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
@@ -2861,6 +2881,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		ubom.view = camera.getViewMatrix();
 		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 
+		lightSpaceProjection[1][1] *= -1;
 		ubom.lightSpaceMatrix = lightSpaceProjection * lightView;
 		ubom.fragColor = glm::vec3(0., 1., 1.);
 	
@@ -2890,7 +2911,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		directionalLight.ambient = glm::vec3(0.1f, .1f, .1f);
 		directionalLight.diffuse = glm::vec3(.9f, .9f, .9f);
 		directionalLight.specular = glm::vec3(1.f);
-		directionalLight.direction = glm::vec3(-0.2f, -1.0f, -0.3f);
+		directionalLight.direction =  glm::vec3(-2.0f, 4.0f, -1.0f);
 
 		lights.directionalLight = directionalLight;
 
