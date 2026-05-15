@@ -30,5 +30,5 @@ void main()
     FragPos = vec3(ubom.model * vec4(inPosition, 1.0));
     FragColor = ubom.fragColor;
     CameraPos = ubom.cameraPos;
-    FragPosLightSpace = vec4(FragPos, 1.0) * ubom.lightSpaceMatrix;
+    FragPosLightSpace =  ubom.lightSpaceMatrix * vec4(FragPos, 1.0);
 }

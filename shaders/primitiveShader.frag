@@ -66,6 +66,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 {
 	vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;	
 	projCoords = projCoords * 0.5 + 0.5;
+	projCoords.y = 1.0 - projCoords.y;
 	float closestDepth = texture(shadowMap, projCoords.xy).r;
 	float currentDepth = projCoords.z;
 
@@ -94,7 +95,6 @@ void main()
 	}
 
 	//result += calculateSpotLight(lights.spotLight, norm, cameraDir);
-
 
 	fragColor = vec4(result, 1.);
 }

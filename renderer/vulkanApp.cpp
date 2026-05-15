@@ -2586,7 +2586,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	VkRect2D scissor{};
 	scissor.offset = {0, 0};
-	scissor.extent = VulkanConfig::swapChainExtent;
+	scissor.extent = {1024, 1024};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	shadowMapMeshPipeline.bind(commandBuffer);
@@ -2638,6 +2638,8 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	vkCmdEndRenderPass(commandBuffer);
 
+	scissor.extent = VulkanConfig::swapChainExtent;
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	// NORMAL PASS
 	clearValues[0].color = {{.1f, .1f, .1f, 1.f}};
 	clearValues[1].depthStencil = {1.0f, 0};
@@ -2703,19 +2705,6 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
 */	
 	}
-
-	/*
-	 *TODO: MAKE QUAD FOR DEBUGGING
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
-
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(VulkanApp::cubemapVertices.size()), 1, 0, 0);
-
-	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::quadIndices.size()), 1, 0, 0, 0);
-*/
 	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)
 	{
 		lightPipeline.bind(commandBuffer);
@@ -2732,6 +2721,10 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 	cubemapPipeline.bind(commandBuffer);
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
+
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(VulkanApp::cubemapVertices.size()), 1, 0, 0);
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2792,7 +2785,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		light.model = glm::mat4(1.);
 		light.model = glm::translate(light.model, lightPos);
 		light.view = camera.getViewMatrix();
-		light.projection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
+		light.projection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 400.f);
 		light.projection[1][1] *= -1;
 
 		pointLights[i] = light;
@@ -2808,7 +2801,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.1f, 7.5f);
 //		glm::mat4 lightSpaceProjection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
 		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(-2.0f, 4.0f, -1.0f), 
+			glm::vec3(-2.0f, -4.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
@@ -2866,7 +2859,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.1f, 7.5f);
 //		glm::mat4 lightSpaceProjection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
 		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(-2.0f, 4.0f, -1.0f), 
+			glm::vec3(-2.0f, -4.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
@@ -2934,7 +2927,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 	cubemapUbo.model = glm::translate(cubemapUbo.model, glm::vec3(4., 10., 0.));
 	
 	cubemapUbo.view = glm::mat4(glm::mat3(camera.getViewMatrix()));
-	cubemapUbo.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
+	cubemapUbo.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 400.f);
 	cubemapUbo.proj[1][1] *= -1;
 
 	memcpy(cubemapUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));

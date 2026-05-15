@@ -30,5 +30,5 @@ void main()
     Normal = mat3(transpose(inverse(ubom.model)))* inNormal;
     CameraPos = ubom.cameraPos;
     FragPos = vec3(ubom.model * vec4(inPosition, 1.));
-    FragPosLightSpace = vec4(FragPos, 1.0) * ubom.lightSpaceMatrix;
+    FragPosLightSpace = ubom.lightSpaceMatrix * vec4(FragPos, 1.0);
 }
