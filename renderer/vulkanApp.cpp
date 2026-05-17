@@ -955,7 +955,7 @@ void VulkanApp::createPipelines()
 
 	screenSpacePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/postprocessingVert.spv", "shaders/screenSpaceQuadFrag.spv")
+		.setShaderPaths("shaders/screenSpaceQuadVert.spv", "shaders/screenSpaceQuadFrag.spv")
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(screenSpaceDescriptorSetLayout)
 		.setDescriptor({samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
@@ -2863,8 +2863,10 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
 
+		glm::vec3 cubePosition = VulkanApp::cubePositions[j];
+
 		ubom.model = glm::mat4(1.);
-		ubom.model = glm::translate(ubom.model, VulkanApp::cubePositions[j]);
+		ubom.model = glm::translate(ubom.model, glm::vec3(cubePosition.x * sin(glfwGetTime()) * 3.f, cubePosition.y, cubePosition.z));
 		
 		float angle = 20.f * j;
 
