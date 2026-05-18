@@ -2728,7 +2728,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-/*
+
 // DEBUG FOR SHADOWMAP
 	screenSpacePipeline.bind(commandBuffer);
 		
@@ -2739,7 +2739,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
 	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::quadIndices.size()), 1, 0, 0, 0);
-*/
+
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
@@ -2857,7 +2857,6 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		SpotLight spotLight;
 
 		glm::mat4 lightSpaceProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, 0.1f, 7.5f);
-//		glm::mat4 lightSpaceProjection = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 100.f);
 		glm::mat4 lightView = glm::lookAt(
 			glm::vec3(-2.0f, -4.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
