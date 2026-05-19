@@ -180,6 +180,7 @@ class VulkanApp
 	VkDeviceMemory cubemapImageMemory;
 	VkImageView textureImageView;
 	VkSampler textureSampler;
+	VkSampler shadowSampler;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSetLayout primitiveDescriptorSetLayout;
 	VkDescriptorSetLayout stencilDescriptorSetLayout;
@@ -333,7 +334,7 @@ class VulkanApp
 	const std::string SPECULAR_PATH = "textures/container_specular.png";
 	size_t MESH_COUNT = 0;
 	const uint32_t PARTICLE_COUNT = 8192;
-	const uint32_t OBJECT_COUNT = 1;
+	const uint32_t OBJECT_COUNT = 10;
 	const uint32_t MAX_POINT_LIGHTS = 1;
 	const float FAR_PLANE = 400.f;
 	float lastFrameTime = 0.f;
@@ -505,15 +506,15 @@ class VulkanApp
 
 	static inline glm::vec3 cubePositions[] = {
 		glm::vec3( 1.0f, 4.f,  0.0f),
-//		glm::vec3( 2.0f, 4.f, -15.0f),
-//		glm::vec3(-1.5f, 4.f, -2.5f),
-//		glm::vec3(-3.8f, 4.f, -12.3f),
-//		glm::vec3( 2.4f, 4.f, -3.5f),
-//		glm::vec3(-1.7f, 4.f, -7.5f),
-//		glm::vec3( 1.3f, 4.f, -2.5f),
-//		glm::vec3( 1.5f, 4.f, -2.5f),
-//		glm::vec3( 1.5f, 4.f, -1.5f),
-//		glm::vec3(-1.3f, 4.f, -1.5f)
+		glm::vec3( 2.0f, 4.f, -15.0f),
+		glm::vec3(-1.5f, 4.f, -2.5f),
+		glm::vec3(-3.8f, 4.f, -12.3f),
+		glm::vec3( 2.4f, 4.f, -3.5f),
+		glm::vec3(-1.7f, 4.f, -7.5f),
+		glm::vec3( 1.3f, 4.f, -2.5f),
+		glm::vec3( 1.5f, 4.f, -2.5f),
+		glm::vec3( 1.5f, 4.f, -1.5f),
+		glm::vec3(-1.3f, 4.f, -1.5f)
 	};
 
 	static inline const std::vector<Vertex> cubemapVertices = {

@@ -4,5 +4,5 @@
 
 namespace Image::Texture::Sampler
 {
-	void createTextureSampler(VkSampler& sampler, VkDevice device, VkPhysicalDevice physicalDevice);
+	void createTextureSampler(VkSampler& sampler, VkDevice device, VkPhysicalDevice physicalDevice, VkSamplerAddressMode addressMode);
 };

@@ -62,7 +62,7 @@ layout (location = 3) in vec3 FragPos;
 layout (location = 6) in vec3 CameraPos;
 layout (location = 7) in vec4 FragPosLightSpace;
 
-float ShadowCalculation(vec4 fragPosLightSpace)
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 lightDir)
 {
 	vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;	
 	projCoords = projCoords * 0.5 + 0.5;
@@ -71,7 +71,11 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 	float closestDepth = texture(shadowMap, projCoords.xy).r;
 	float currentDepth = projCoords.z;
 
-	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	vec3 normal = normalize(Normal);
+
+	float bias = max(0.05 * (1.0 - dot(normal ,lightDir)), 0.005);
+
+	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
 	return shadow;
 }
@@ -138,9 +142,9 @@ vec3 calculateDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir
 	vec3 diffuse = light.diffuse * diff * vec3(texture(texSampler, fragTexCoord));
 	vec3 specular = light.specular * spec * vec3(texture(specularTexture, fragTexCoord));
 
-	float shadow = ShadowCalculation(FragPosLightSpace);
+	float shadow = ShadowCalculation(FragPosLightSpace, lightDir);
 
-	vec3 lighting = (ambient + (1.0 - shadow) + (diffuse + specular)) * vec3(texture(texSampler, fragTexCoord));
+	vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * vec3(texture(texSampler, fragTexCoord));
 
 	return lighting; 
 }
