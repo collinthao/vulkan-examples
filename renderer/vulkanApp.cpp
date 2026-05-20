@@ -2801,7 +2801,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		SpotLight spotLight;
 		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 10.f);
 		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(2.0f, 10.0f, -1.0f), 
+			glm::vec3(-2.0f, 10.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
@@ -2858,7 +2858,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 
 		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 10.f);
 		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(2.0f, 10.0f, -1.0f), 
+			glm::vec3(cos(glfwGetTime()) * -2.0f, 10.0f, sin(glfwGetTime()) * -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
