@@ -2799,9 +2799,9 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		UniformBufferObjectModel meshUBO{};
 		DirectionalLight directionalLight;
 		SpotLight spotLight;
-		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 10.f);
+		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 15.f);
 		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(-2.0f, 10.0f, -1.0f), 
+			glm::vec3(-2.0f, 15.0f, -1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
@@ -2826,7 +2826,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		directionalLight.ambient = glm::vec3(0.1f, .1f, .1f);
 		directionalLight.diffuse = glm::vec3(.9f, .9f, .9f);
 		directionalLight.specular = glm::vec3(1.f);
-		directionalLight.direction = glm::normalize(glm::vec3(-2.0f, -10.0f, -1.0f));
+		directionalLight.direction = glm::normalize(glm::vec3(-2.0f, -15.0f, -1.0f));
 
 		lights.directionalLight = directionalLight;
 
@@ -2856,9 +2856,9 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		DirectionalLight directionalLight;
 		SpotLight spotLight;
 
-		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 10.f);
+		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 15.f);
 		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(cos(glfwGetTime()) * -2.0f, 10.0f, sin(glfwGetTime()) * -1.0f), 
+			glm::vec3(2.0f, 15.0f,1.0f), 
 			glm::vec3(0.f, 0.f, 0.f),
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
@@ -2912,7 +2912,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 		directionalLight.ambient = glm::vec3(0.1f, .1f, .1f);
 		directionalLight.diffuse = glm::vec3(.9f, .9f, .9f);
 		directionalLight.specular = glm::vec3(1.f);
-		directionalLight.direction =  glm::normalize(glm::vec3(-2.0f, -10.0f, -1.0f));
+		directionalLight.direction =  glm::normalize(glm::vec3(-2.0f, -15.0f, -1.0f));
 
 		lights.directionalLight = directionalLight;
 
