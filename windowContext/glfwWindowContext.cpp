@@ -1,6 +1,7 @@
 #include "./glfwWindowContext.h"
 #include <iostream>
-#include "../renderer/vulkanApp.h"
+#include "../renderer/vulkanApp/vulkanApp.h"
+#include "../renderer/vulkanApp/shadowMappingScene/shadowMappingScene.h"
 
 GLFWWindowContext::GLFWWindowContext()
 {
@@ -22,7 +23,9 @@ void GLFWWindowContext::initWindow()
 
 void GLFWWindowContext::mouse_callback(GLFWwindow * window, double xpos, double ypos)
 {
-	VulkanApp::camera.move(xpos, ypos);
+	//Eventually, we want to have either the camera be static or have a class pointer to the move camera method
+	//IVulkanApp::moveCamera(xpos, ypos);
+	ShadowMappingScene::moveCamera(xpos, ypos);
 }
 
 void GLFWWindowContext::framebufferResizeCallback(GLFWwindow* window, int width, int height)

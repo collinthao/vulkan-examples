@@ -1,5 +1,4 @@
-#ifndef VULKANAPP_H
-#define VULKANAPP_H
+#pragma once
 
 #include <assimp/mesh.h>
 #include <assimp/scene.h>
@@ -21,7 +20,6 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
-#include "../model.h"
 #include <stb_image.h>
 #include <tiny_obj_loader.h>
 #define GLM_FORCE_RADIANS
@@ -30,9 +28,8 @@
 #include <gtx/hash.hpp>
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
-#include "../camera.h"
-#include "../pipeline/pipelineBuilder.h"
-#include "../vulkanImage/vulkanImageBuilder.h"
+#include "../../../vulkanImage/vulkanImageBuilder.h"
+#include "../vulkanApp.h"
 
 namespace fs = std::filesystem;
 
@@ -137,19 +134,12 @@ const std::vector<const char*> deviceExtensions =
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-struct SwapChainSupportDetails
-{
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-};
-
 const std::vector<const char*> validationLayers =
 {
 	"VK_LAYER_KHRONOS_validation"
 };
 
-class VulkanApp
+class ShadowMappingScene : public IVulkanApp
 {
 	private:
 	VkInstance instance;
@@ -398,12 +388,9 @@ class VulkanApp
 	void createModelLightUniformBuffers();
 	void createLightObjectUniformBuffers();
 	void createModelUniformBuffers();
-	void createDescriptorPools();
-	void createPrimitiveDescriptorPool();
-	void createStencilDescriptorPool();
-	void createCubemapDescriptorPool();
 	void createComputeDescriptorPool();
 	void createDescriptorSets();
+	void createDescriptorPools();
 	void createGraphicsDescriptorSets();
 	void createPrimitiveDescriptorSets();
 	void createShadowMapDescriptorSets();
@@ -424,7 +411,7 @@ class VulkanApp
 	void setDescriptorSetLayoutBindings();
 
 	public:
-	VulkanApp();
+	ShadowMappingScene() = default;
 
 	void init(GLFWwindow * window);
 	void drawFrame(GLFWwindow * window);
@@ -440,6 +427,12 @@ class VulkanApp
 
 	VkDevice* getDevice();
 	VkDevice device;
+
+	
+	static void moveCamera(double xpos, double ypos)
+	{
+		camera.move(xpos, ypos);
+	}
 
 	static VkResult CreateDebugUtilsMessengerEXT(
 		VkInstance instance, 
@@ -654,5 +647,3 @@ static inline const std::vector<uint32_t> cubeIndices = {
 	    6, 7, 4,
 	};
 };
-
-#endif

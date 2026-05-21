@@ -1,0 +1,138 @@
+#pragma once
+#include <string>
+#include <assimp/mesh.h>
+#include <assimp/scene.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vector>
+#include <stdexcept>
+#include <map>
+#include <set>
+#include <unordered_map>
+#include <optional>
+#include <iostream>
+#include <limits>
+#include <algorithm>
+#include <array>
+#include <filesystem>
+#include <fstream>
+#include <random>
+#include "../../model.h"
+#include <stb_image.h>
+#include <tiny_obj_loader.h>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <gtx/hash.hpp>
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include "../../camera.h"
+#include "../../pipeline/pipelineBuilder.h"
+#include "../../vulkanImage/vulkanImageBuilder.h"
+
+struct SwapChainSupportDetails
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
+};
+
+class IVulkanApp
+{
+	public:
+	virtual void createInstance()=0;
+	virtual void createSurface(GLFWwindow * window)=0;
+	virtual void setupDebugMessenger()=0;
+	virtual void pickPhysicalDevice()=0;
+	virtual void createLogicalDevice()=0;
+	virtual void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)=0;
+	virtual bool isDeviceSuitable(VkPhysicalDevice device)=0;
+	virtual int rateDeviceSuitability(VkPhysicalDevice device)=0;
+	virtual bool checkDeviceExtensionSupport(VkPhysicalDevice device)=0;
+	virtual void createSwapChain(GLFWwindow * window)=0;
+	virtual void createImageViews()=0;
+	virtual void createRenderPass()=0;
+	virtual void createShadowMapRenderPass()=0;
+	virtual void createPostProcessingRenderPass()=0;
+	virtual void createDescriptorSetLayouts()=0;	
+	virtual void createComputeDescriptorSetLayout()=0;
+	virtual void createPipelines()=0;
+	virtual void createComputePipeline()=0;
+	virtual void createOffscreenResources()=0;
+	virtual void createShadowMapResources()=0;
+	virtual void createColorResources()=0;
+	virtual void createDepthResources()=0;
+	virtual void createFramebuffers()=0;
+	virtual void createModel()=0;
+	virtual void createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)=0;
+	virtual VkShaderModule createShaderModule(const std::vector<char>& code)=0;
+	virtual VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)=0;
+	virtual VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)=0;
+	virtual	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)=0;
+	virtual SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device)=0;
+	virtual VkSampleCountFlagBits getMaxUsableSampleCount()=0;
+	virtual std::vector<const char*>getRequiredExtensions()=0;
+	virtual void createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)=0;
+	virtual void createCubeMapResources()=0;
+	virtual void createTextureSampler(VkSampler& sampler)=0;
+	virtual void createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)=0;
+	virtual void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)=0;
+	virtual void createTextureSamplers(std::vector<VkSampler>& samplers)=0;
+	virtual void loadModel()=0;
+	virtual void createShaderStorageBuffers()=0;
+	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)=0;
+	virtual void createVertexBuffers()=0;
+	virtual void createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)=0;
+	virtual void createIndexBuffer()=0;
+	virtual void createQuadIndexBuffer()=0;
+	virtual void createModelIndexBuffers()=0;
+	virtual void createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)=0;
+	virtual void createUniformBuffers()=0;
+	virtual void createGraphicsUniformBuffers()=0;
+	virtual void createPrimitiveUniformBuffers()=0;
+	virtual void createShadowMapUniformBuffers()=0;
+	virtual void createCubemapUniformBuffers()=0;
+	virtual void createStencilUniformBuffers()=0;
+	virtual void createMaterialUniformBuffers()=0;
+	virtual void createLightUniformBuffers()=0;
+	virtual void createModelLightUniformBuffers()=0;
+	virtual void createLightObjectUniformBuffers()=0;
+	virtual void createModelUniformBuffers()=0;
+	virtual void createDescriptorPools()=0;
+	virtual void createComputeDescriptorPool()=0;
+	virtual void createDescriptorSets()=0;
+	virtual void createGraphicsDescriptorSets()=0;
+	virtual void createPrimitiveDescriptorSets()=0;
+	virtual void createShadowMapDescriptorSets()=0;
+	virtual void createShadowMapScreenSpaceQuadDescriptorSets()=0;
+	virtual void createStencilDescriptorSets()=0;
+	virtual void createModelDescriptorSets()=0;
+	virtual void createPostProcessingDescriptorSets()=0;
+	virtual void createCubemapDescriptorSets()=0;
+	virtual void createLightDescriptorSets()=0;
+	virtual void createComputeDescriptorSets()=0;
+	virtual void createComputeCommandBuffers()=0;
+	virtual void createSyncObjects()=0;
+	virtual void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)=0;
+	virtual void updateUniformBuffer(uint32_t currentImage)=0;
+	virtual void recordComputeCommandBuffer(VkCommandBuffer commandBuffer)=0;
+	virtual void recreateSwapChain(GLFWwindow * window)=0;
+	virtual void cleanupSwapChain()=0;
+	virtual void setDescriptorSetLayoutBindings()=0;
+
+	IVulkanApp()=default;
+	virtual ~IVulkanApp(){};
+
+	virtual void init(GLFWwindow * window)=0;
+	virtual void drawFrame(GLFWwindow * window)=0;
+	virtual void processInput(GLFWwindow * window)=0;
+	virtual void cleanup(GLFWwindow * window)=0;
+	virtual void deviceWaitIdle()=0;
+
+	static void moveCamera(double xpos, double ypos){std::cout << "Hi\n";};
+	virtual VkDevice* getDevice()=0;
+	VkDevice device;
+};

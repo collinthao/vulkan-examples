@@ -1,27 +1,22 @@
-#include "./vulkanApp.h"
+#include "./shadowMappingScene.h"
 #include <iostream>
-#include "../windowContext/GLFWWindowContext.h"
-#include "../particle.h"
-#include "../vulkanConfig.h"
-#include "../image/image.h"
-#include "../image/texture/texture.h"
-#include "../image/texture/sampler/sampler.h"
-#include "../queueFamily/queueFamily.h"
-#include "../commandBuffer/commandBuffer.h"
-#include "../buffer/buffer.h"
+#include "../../../windowContext/GLFWWindowContext.h"
+#include "../../../particle.h"
+#include "../../../vulkanConfig.h"
+#include "../../../image/image.h"
+#include "../../../image/texture/texture.h"
+#include "../../../image/texture/sampler/sampler.h"
+#include "../../../queueFamily/queueFamily.h"
+#include "../../../commandBuffer/commandBuffer.h"
+#include "../../../buffer/buffer.h"
 
-glm::vec3 VulkanApp::cameraPos = glm::vec3(0., 0., 3.);
-glm::vec3 VulkanApp::cameraFront = glm::vec3(0.f, 0.f, -1.f);
-glm::vec3 VulkanApp::cameraUp = glm::vec3(0.f,1.f, 0.f);
+glm::vec3 ShadowMappingScene::cameraPos = glm::vec3(0., 0., 3.);
+glm::vec3 ShadowMappingScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
+glm::vec3 ShadowMappingScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
 
-Camera VulkanApp::camera = Camera(VulkanApp::cameraPos, VulkanApp::cameraFront, VulkanApp::cameraUp);
+Camera ShadowMappingScene::camera = Camera(ShadowMappingScene::cameraPos, ShadowMappingScene::cameraFront, ShadowMappingScene::cameraUp);
 
-VulkanApp::VulkanApp()
-{
-	std::cout << "Vulkan renderer constructor called\n";
-};
-
-void VulkanApp::init(GLFWwindow* window)
+void ShadowMappingScene::init(GLFWwindow* window)
 {
 	createInstance();
 	setupDebugMessenger();
@@ -69,7 +64,7 @@ void VulkanApp::init(GLFWwindow* window)
 	createSyncObjects();
 }
 
-std::vector<const char*> VulkanApp::getRequiredExtensions()
+std::vector<const char*> ShadowMappingScene::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
@@ -86,7 +81,7 @@ std::vector<const char*> VulkanApp::getRequiredExtensions()
 	return extensions;
 }
 
-void VulkanApp::createInstance()
+void ShadowMappingScene::createInstance()
 {
 	std::cout << "Creating instance...\n";
 	VkApplicationInfo appInfo{};
@@ -124,7 +119,7 @@ void VulkanApp::createInstance()
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
 };
 
-void VulkanApp::setupDebugMessenger()
+void ShadowMappingScene::setupDebugMessenger()
 {
 	if (!enableValidationLayers) return;
 		
@@ -137,7 +132,7 @@ void VulkanApp::setupDebugMessenger()
 	}
 }
 
-void VulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void ShadowMappingScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
 	createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -146,7 +141,7 @@ void VulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfo
 	createInfo.pfnUserCallback = debugCallback;
 }
 
-void VulkanApp::createSurface(GLFWwindow * window)
+void ShadowMappingScene::createSurface(GLFWwindow * window)
 {
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
 	{
@@ -154,7 +149,7 @@ void VulkanApp::createSurface(GLFWwindow * window)
 	}
 }
 
-void VulkanApp::pickPhysicalDevice()
+void ShadowMappingScene::pickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -190,7 +185,7 @@ void VulkanApp::pickPhysicalDevice()
 	}
 }
 
-void VulkanApp::createLogicalDevice()
+void ShadowMappingScene::createLogicalDevice()
 {
 	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
 
@@ -244,7 +239,7 @@ void VulkanApp::createLogicalDevice()
 	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
-bool VulkanApp::isDeviceSuitable(VkPhysicalDevice device)
+bool ShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(device, surface);
 
@@ -263,7 +258,7 @@ bool VulkanApp::isDeviceSuitable(VkPhysicalDevice device)
 	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-SwapChainSupportDetails VulkanApp::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails ShadowMappingScene::querySwapChainSupport(VkPhysicalDevice device)
 {
 	SwapChainSupportDetails details;
 
@@ -290,7 +285,7 @@ SwapChainSupportDetails VulkanApp::querySwapChainSupport(VkPhysicalDevice device
 	return details;
 }
 
-VkSampleCountFlagBits VulkanApp::getMaxUsableSampleCount()
+VkSampleCountFlagBits ShadowMappingScene::getMaxUsableSampleCount()
 {
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
@@ -307,7 +302,7 @@ VkSampleCountFlagBits VulkanApp::getMaxUsableSampleCount()
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
-bool VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool ShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
 
 	uint32_t extensionCount;
@@ -327,7 +322,7 @@ bool VulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 }
 
 
-int VulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
+int ShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice device)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -346,7 +341,7 @@ int VulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 	return score;
 }
 
-void VulkanApp::createSwapChain(GLFWwindow * window)
+void ShadowMappingScene::createSwapChain(GLFWwindow * window)
 {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -408,7 +403,7 @@ void VulkanApp::createSwapChain(GLFWwindow * window)
 	VulkanConfig::swapChainExtent = extent;
 }
 
-VkPresentModeKHR VulkanApp::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+VkPresentModeKHR ShadowMappingScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
 	for (const auto& availablePresentMode : availablePresentModes)
 	{
@@ -421,7 +416,7 @@ VkPresentModeKHR VulkanApp::chooseSwapPresentMode(const std::vector<VkPresentMod
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkSurfaceFormatKHR VulkanApp::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR ShadowMappingScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
 	for (const auto& availableFormat : availableFormats)
 	{
@@ -434,7 +429,7 @@ VkSurfaceFormatKHR VulkanApp::chooseSwapSurfaceFormat(const std::vector<VkSurfac
 	return availableFormats[0];
 }
 
-VkExtent2D VulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
+VkExtent2D ShadowMappingScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 	{
@@ -459,7 +454,7 @@ VkExtent2D VulkanApp::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilit
 	}
 }
 
-void VulkanApp::createImageViews()
+void ShadowMappingScene::createImageViews()
 {
 	swapChainImageViews.resize(swapChainImages.size());
 	shadowMapImageViews.resize(swapChainImages.size());
@@ -470,7 +465,7 @@ void VulkanApp::createImageViews()
 	}
 }
 
-void VulkanApp::createShadowMapRenderPass()
+void ShadowMappingScene::createShadowMapRenderPass()
 {
 	VkAttachmentDescription depthAttachment{};
 	//depthAttachment.format = findDepthFormat();
@@ -524,7 +519,7 @@ void VulkanApp::createShadowMapRenderPass()
 	}
 }
 
-void VulkanApp::createRenderPass()
+void ShadowMappingScene::createRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -608,7 +603,7 @@ void VulkanApp::createRenderPass()
 	}
 }
 
-void VulkanApp::createPostProcessingRenderPass()
+void ShadowMappingScene::createPostProcessingRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -655,12 +650,12 @@ void VulkanApp::createPostProcessingRenderPass()
 	}
 }
 
-void VulkanApp::createDescriptorSetLayouts()
+void ShadowMappingScene::createDescriptorSetLayouts()
 {
 	createComputeDescriptorSetLayout();
 }
 
-void VulkanApp::setDescriptorSetLayoutBindings()
+void ShadowMappingScene::setDescriptorSetLayoutBindings()
 {
 	samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerUniformLayoutBinding.descriptorCount = 1;
@@ -688,7 +683,7 @@ void VulkanApp::setDescriptorSetLayoutBindings()
 	allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
 }
 
-void VulkanApp::createComputeDescriptorSetLayout()
+void ShadowMappingScene::createComputeDescriptorSetLayout()
 {
 	std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
 	layoutBindings[0].binding = 0;
@@ -720,7 +715,7 @@ void VulkanApp::createComputeDescriptorSetLayout()
 	}
 }
 
-void VulkanApp::createPipelines()
+void ShadowMappingScene::createPipelines()
 {
 	//std::vector<VkDescriptorType> primitiveTypes{VK_DESCRIPTOR};
 	std::vector<VkDescriptorSetLayoutBinding> shadowMapBindings = {
@@ -966,7 +961,7 @@ void VulkanApp::createPipelines()
 	createComputePipeline();
 }
 
-void VulkanApp::createComputePipeline()
+void ShadowMappingScene::createComputePipeline()
 {
 	auto compShaderCode = readFile("shaders/comp.spv");
 
@@ -999,7 +994,7 @@ void VulkanApp::createComputePipeline()
 	}
 }
 
-VkShaderModule VulkanApp::createShaderModule(const std::vector<char>& code)
+VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& code)
 {
 
 	VkShaderModuleCreateInfo createInfo{};
@@ -1016,7 +1011,7 @@ VkShaderModule VulkanApp::createShaderModule(const std::vector<char>& code)
 	return shaderModule;
 }
 
-void VulkanApp::createShadowMapResources()
+void ShadowMappingScene::createShadowMapResources()
 {
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
@@ -1033,7 +1028,7 @@ void VulkanApp::createShadowMapResources()
 	}
 }
 
-void VulkanApp::createOffscreenResources()
+void ShadowMappingScene::createOffscreenResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 
@@ -1048,7 +1043,7 @@ void VulkanApp::createOffscreenResources()
 	}
 }
 
-void VulkanApp::createColorResources()
+void ShadowMappingScene::createColorResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 	
@@ -1056,7 +1051,7 @@ void VulkanApp::createColorResources()
 	colorImageView = Image::createView(colorImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
-void VulkanApp::createDepthResources()
+void ShadowMappingScene::createDepthResources()
 {
 	//VkFormat depthFormat = findDepthFormat();
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
@@ -1066,7 +1061,7 @@ msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_
 	depthImageView = Image::createView(depthImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
-void VulkanApp::createFramebuffers()
+void ShadowMappingScene::createFramebuffers()
 {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 	offScreenFramebuffers.resize(swapChainImageViews.size());
@@ -1142,7 +1137,7 @@ void VulkanApp::createFramebuffers()
 
 }
 
-void VulkanApp::createModel()
+void ShadowMappingScene::createModel()
 {
 	model = new Model(MODEL_PATH);
 	vertexBuffers.resize(model->meshes.size());	
@@ -1150,12 +1145,12 @@ void VulkanApp::createModel()
 	MESH_COUNT = model->meshes.size();
 }
 
-void VulkanApp::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
+void ShadowMappingScene::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
 {
 	imageView = Image::createView(image, imageView, VK_IMAGE_VIEW_TYPE_2D, format, flags, Image::mipLevels, 1, device, graphicsAndComputeQueue);
 }
 
-void VulkanApp::createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)
+void ShadowMappingScene::createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)
 {
 	std::vector<std::string> faces
 	{
@@ -1221,12 +1216,12 @@ void VulkanApp::createCubeTextureImage(const std::string imagePath, VkImage& ima
 	Image::generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, Image::mipLevels, 6, device, physicalDevice, graphicsAndComputeQueue);
 }
 
-void VulkanApp::createCubeMapResources()
+void ShadowMappingScene::createCubeMapResources()
 {
 	cubemapImageView = Image::createView(cubemapImage, cubemapImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 }
 
-void VulkanApp::createTextureSampler(VkSampler& sampler)
+void ShadowMappingScene::createTextureSampler(VkSampler& sampler)
 {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1256,7 +1251,7 @@ void VulkanApp::createTextureSampler(VkSampler& sampler)
 	}
 }
 
-void VulkanApp::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
+void ShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
 {
 	// TODO: move to getTextureCount later, maybe
 	images.resize(MESH_COUNT);
@@ -1277,7 +1272,7 @@ void VulkanApp::createTextureImages(std::vector<VkImage>& images, std::vector<Vk
 	}
 }
 
-void VulkanApp::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
+void ShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
 {
 	for (size_t i = 0; i < MESH_COUNT; i++)
 	{
@@ -1285,7 +1280,7 @@ void VulkanApp::createTextureImageViews(std::vector<VkImage>& images, std::vecto
 	}
 }
 
-void VulkanApp::createTextureSamplers(std::vector<VkSampler>& samplers)
+void ShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
 {
 	for (size_t i = 0; i < MESH_COUNT; i++)
 	{
@@ -1293,7 +1288,7 @@ void VulkanApp::createTextureSamplers(std::vector<VkSampler>& samplers)
 	}
 }
 
-void VulkanApp::loadModel()
+void ShadowMappingScene::loadModel()
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -1338,7 +1333,7 @@ void VulkanApp::loadModel()
 	}
 }
 
-void VulkanApp::createShaderStorageBuffers()
+void ShadowMappingScene::createShaderStorageBuffers()
 {
 	uint32_t WIDTH = GLFWWindowContext::getWindowWidth();
 	uint32_t HEIGHT = GLFWWindowContext::getWindowHeight();
@@ -1383,7 +1378,7 @@ void VulkanApp::createShaderStorageBuffers()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void VulkanApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void ShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);
 
@@ -1396,7 +1391,7 @@ void VulkanApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize 
 	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
 }
 
-void VulkanApp::createVertexBuffers()
+void ShadowMappingScene::createVertexBuffers()
 {
 	// TODO: move to own method
 	for (size_t i = 0; i < model->meshes.size(); i++)
@@ -1409,7 +1404,7 @@ void VulkanApp::createVertexBuffers()
 	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 }
 
-void VulkanApp::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
+void ShadowMappingScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
 {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -1430,11 +1425,11 @@ void VulkanApp::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffe
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void VulkanApp::createIndexBuffer()
+void ShadowMappingScene::createIndexBuffer()
 {
 
 	//VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	VkDeviceSize bufferSize = sizeof(VulkanApp::cubeIndices[0]) * VulkanApp::cubeIndices.size();
+	VkDeviceSize bufferSize = sizeof(ShadowMappingScene::cubeIndices[0]) * ShadowMappingScene::cubeIndices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1442,7 +1437,7 @@ void VulkanApp::createIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, VulkanApp::cubeIndices.data(), (size_t)bufferSize);
+	memcpy(data, ShadowMappingScene::cubeIndices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, physicalDevice);
@@ -1453,9 +1448,9 @@ void VulkanApp::createIndexBuffer()
 
 }
 
-void VulkanApp::createQuadIndexBuffer()
+void ShadowMappingScene::createQuadIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(VulkanApp::quadIndices[0]) * VulkanApp::quadIndices.size();
+	VkDeviceSize bufferSize = sizeof(ShadowMappingScene::quadIndices[0]) * ShadowMappingScene::quadIndices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1463,7 +1458,7 @@ void VulkanApp::createQuadIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, VulkanApp::quadIndices.data(), (size_t)bufferSize);
+	memcpy(data, ShadowMappingScene::quadIndices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffer, quadIndexBufferMemory, device, physicalDevice);
@@ -1474,7 +1469,7 @@ void VulkanApp::createQuadIndexBuffer()
 }
 
 
-void VulkanApp::createModelIndexBuffers()
+void ShadowMappingScene::createModelIndexBuffers()
 {
 	indexModelBuffers.resize(MESH_COUNT);
 	indexModelBufferMemories.resize(MESH_COUNT);
@@ -1485,7 +1480,7 @@ void VulkanApp::createModelIndexBuffers()
 	}
 }
 
-void VulkanApp::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
+void ShadowMappingScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
 {
 
 	VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
@@ -1507,7 +1502,7 @@ void VulkanApp::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer
 
 }
 
-void VulkanApp::createUniformBuffers()
+void ShadowMappingScene::createUniformBuffers()
 {
 	createGraphicsUniformBuffers();
 	createPrimitiveUniformBuffers();
@@ -1521,7 +1516,7 @@ void VulkanApp::createUniformBuffers()
 }
 
 
-void VulkanApp::createMaterialUniformBuffers()
+void ShadowMappingScene::createMaterialUniformBuffers()
 {
 	materialUniformBuffers.resize(OBJECT_COUNT);
 	materialUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1546,7 +1541,7 @@ void VulkanApp::createMaterialUniformBuffers()
 	}
 }
 
-void VulkanApp::createLightObjectUniformBuffers()
+void ShadowMappingScene::createLightObjectUniformBuffers()
 {
 	lightObjectUniformBuffers.resize(MAX_POINT_LIGHTS);
 	lightObjectUniformBuffersMemory.resize(MAX_POINT_LIGHTS);
@@ -1571,7 +1566,7 @@ void VulkanApp::createLightObjectUniformBuffers()
 	}
 }
 
-void VulkanApp::createModelLightUniformBuffers()
+void ShadowMappingScene::createModelLightUniformBuffers()
 {
 	modelLightUniformBuffers.resize(MESH_COUNT);
 	modelLightUniformBuffersMemory.resize(MESH_COUNT);
@@ -1596,7 +1591,7 @@ void VulkanApp::createModelLightUniformBuffers()
 	}
 }
 
-void VulkanApp::createLightUniformBuffers()
+void ShadowMappingScene::createLightUniformBuffers()
 {
 	lightUniformBuffers.resize(OBJECT_COUNT);
 	lightUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1621,7 +1616,7 @@ void VulkanApp::createLightUniformBuffers()
 	}
 }
 
-void VulkanApp::createStencilUniformBuffers()
+void ShadowMappingScene::createStencilUniformBuffers()
 {
 	stencilUniformBuffers.resize(OBJECT_COUNT);
 	stencilUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1646,7 +1641,7 @@ void VulkanApp::createStencilUniformBuffers()
 	}
 }
 
-void VulkanApp::createShadowMapUniformBuffers()
+void ShadowMappingScene::createShadowMapUniformBuffers()
 {
 	shadowMapUniformBuffers.resize(OBJECT_COUNT);
 	shadowMapUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1671,7 +1666,7 @@ void VulkanApp::createShadowMapUniformBuffers()
 	}
 }
 
-void VulkanApp::createPrimitiveUniformBuffers()
+void ShadowMappingScene::createPrimitiveUniformBuffers()
 {
 	primitiveUniformBuffers.resize(OBJECT_COUNT);
 	primitiveUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1696,7 +1691,7 @@ void VulkanApp::createPrimitiveUniformBuffers()
 	}
 }
 
-void VulkanApp::createModelUniformBuffers()
+void ShadowMappingScene::createModelUniformBuffers()
 {		
 	modelUniformBuffers.resize(MESH_COUNT);
 	modelUniformBuffersMemory.resize(MESH_COUNT);
@@ -1722,7 +1717,7 @@ void VulkanApp::createModelUniformBuffers()
 }
 
 
-void VulkanApp::createCubemapUniformBuffers()
+void ShadowMappingScene::createCubemapUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1740,7 +1735,7 @@ void VulkanApp::createCubemapUniformBuffers()
 	}
 }
 
-void VulkanApp::createGraphicsUniformBuffers()
+void ShadowMappingScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1758,12 +1753,12 @@ void VulkanApp::createGraphicsUniformBuffers()
 	}
 }
 	
-void VulkanApp::createDescriptorPools()
+void ShadowMappingScene::createDescriptorPools()
 {
 	createComputeDescriptorPool();
 }
 
-void VulkanApp::createComputeDescriptorPool()
+void ShadowMappingScene::createComputeDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1784,7 +1779,7 @@ void VulkanApp::createComputeDescriptorPool()
 }
 
 
-void VulkanApp::createDescriptorSets()
+void ShadowMappingScene::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
 	createPrimitiveDescriptorSets();
@@ -1798,7 +1793,7 @@ void VulkanApp::createDescriptorSets()
 	createComputeDescriptorSets();
 }
 
-void VulkanApp::createLightDescriptorSets()
+void ShadowMappingScene::createLightDescriptorSets()
 {
 	lightDescriptorSets.resize(MAX_POINT_LIGHTS);
 
@@ -1839,7 +1834,7 @@ void VulkanApp::createLightDescriptorSets()
 }
 
 
-void VulkanApp::createStencilDescriptorSets()
+void ShadowMappingScene::createStencilDescriptorSets()
 {
 	stencilDescriptorSets.resize(OBJECT_COUNT);
 
@@ -1879,7 +1874,7 @@ void VulkanApp::createStencilDescriptorSets()
 	}
 }
 
-void VulkanApp::createShadowMapDescriptorSets()
+void ShadowMappingScene::createShadowMapDescriptorSets()
 {
 	shadowMapDescriptorSets.resize(OBJECT_COUNT);
 
@@ -1976,7 +1971,7 @@ void VulkanApp::createShadowMapDescriptorSets()
 	}
 }
 
-void VulkanApp::createPrimitiveDescriptorSets()
+void ShadowMappingScene::createPrimitiveDescriptorSets()
 {
 	primitiveDescriptorSets.resize(OBJECT_COUNT);
 
@@ -2081,7 +2076,7 @@ void VulkanApp::createPrimitiveDescriptorSets()
 	}
 }
 
-void VulkanApp::createModelDescriptorSets()
+void ShadowMappingScene::createModelDescriptorSets()
 {
 	modelDescriptorSets.resize(MESH_COUNT);
 	for (size_t j = 0; j < MESH_COUNT; j++)
@@ -2159,7 +2154,7 @@ void VulkanApp::createModelDescriptorSets()
 	}
 }
 
-void VulkanApp::createCubemapDescriptorSets()
+void ShadowMappingScene::createCubemapDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, cubemapPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2209,7 +2204,7 @@ void VulkanApp::createCubemapDescriptorSets()
 	}
 }
 
-void VulkanApp::createShadowMapScreenSpaceQuadDescriptorSets()
+void ShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, screenSpacePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2246,7 +2241,7 @@ void VulkanApp::createShadowMapScreenSpaceQuadDescriptorSets()
 	}
 }
 
-void VulkanApp::createPostProcessingDescriptorSets()
+void ShadowMappingScene::createPostProcessingDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, postProcessingPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2283,7 +2278,7 @@ void VulkanApp::createPostProcessingDescriptorSets()
 	}
 }
 
-void VulkanApp::createGraphicsDescriptorSets()
+void ShadowMappingScene::createGraphicsDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, basePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2332,7 +2327,7 @@ void VulkanApp::createGraphicsDescriptorSets()
 }
 
 
-void VulkanApp::createComputeDescriptorSets()
+void ShadowMappingScene::createComputeDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2393,7 +2388,7 @@ void VulkanApp::createComputeDescriptorSets()
 	}
 }
 
-void VulkanApp::createComputeCommandBuffers()
+void ShadowMappingScene::createComputeCommandBuffers()
 {
 	computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -2409,7 +2404,7 @@ void VulkanApp::createComputeCommandBuffers()
 	}
 }
 
-void VulkanApp::createSyncObjects()
+void ShadowMappingScene::createSyncObjects()
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -2442,7 +2437,7 @@ void VulkanApp::createSyncObjects()
 }
 
 
-void VulkanApp::drawFrame(GLFWwindow * window)
+void ShadowMappingScene::drawFrame(GLFWwindow * window)
 {
 	camera.update();
 	VkSubmitInfo submitInfo{};
@@ -2541,7 +2536,7 @@ void VulkanApp::drawFrame(GLFWwindow * window)
 
 }
 
-void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2614,7 +2609,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 
 		// STENCIL
 /*
@@ -2685,7 +2680,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 
 		// STENCIL
 /*
@@ -2716,7 +2711,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 	}
 
 	cubemapPipeline.bind(commandBuffer);
@@ -2725,7 +2720,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
 
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(VulkanApp::cubemapVertices.size()), 1, 0, 0);
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubemapVertices.size()), 1, 0, 0);
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2739,7 +2734,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::quadIndices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -2757,7 +2752,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(VulkanApp::quadIndices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -2767,7 +2762,7 @@ void VulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 	}
 }
 
-void VulkanApp::updateUniformBuffer(uint32_t currentImage)
+void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 {
 	for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
 	{
@@ -2863,7 +2858,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
 
-		glm::vec3 cubePosition = VulkanApp::cubePositions[j];
+		glm::vec3 cubePosition = ShadowMappingScene::cubePositions[j];
 		glm::vec3 transformedPosition = glm::vec3(cubePosition.x + 2.f, cubePosition.y - 1.f, cubePosition.z);
 		//glm::vec3 transformedPosition = cubePosition;
 		ubom.model = glm::mat4(1.);
@@ -2941,7 +2936,7 @@ void VulkanApp::updateUniformBuffer(uint32_t currentImage)
 	memcpy(cubemapUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));
 }
 
-void VulkanApp::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
+void ShadowMappingScene::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2966,7 +2961,7 @@ void VulkanApp::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
 	}
 }
 
-void VulkanApp::recreateSwapChain(GLFWwindow * window)
+void ShadowMappingScene::recreateSwapChain(GLFWwindow * window)
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -3012,7 +3007,7 @@ for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 }
 
 
-void VulkanApp::cleanupSwapChain()
+void ShadowMappingScene::cleanupSwapChain()
 {
 	vkDestroyImageView(device, colorImageView, nullptr);
 	vkDestroyImage(device, colorImage, nullptr);
@@ -3036,12 +3031,12 @@ void VulkanApp::cleanupSwapChain()
 
 }
 
-VkDevice* VulkanApp::getDevice()
+VkDevice* ShadowMappingScene::getDevice()
 {
 	return &device;
 }
 
-void VulkanApp::processInput(GLFWwindow * window)
+void ShadowMappingScene::processInput(GLFWwindow * window)
 {
 	camera.cameraSpeed = 10.f * lastFrameTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -3064,7 +3059,7 @@ void VulkanApp::processInput(GLFWwindow * window)
 //		verticalSteps -= 0.1;
 }
 
-void VulkanApp::cleanup(GLFWwindow * window)
+void ShadowMappingScene::cleanup(GLFWwindow * window)
 {
 	cleanupSwapChain();
 
@@ -3123,7 +3118,7 @@ void VulkanApp::cleanup(GLFWwindow * window)
 	glfwTerminate();
 }
 
-void VulkanApp::deviceWaitIdle()
+void ShadowMappingScene::deviceWaitIdle()
 {
 	vkDeviceWaitIdle(device);
 }

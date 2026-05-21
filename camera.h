@@ -7,8 +7,6 @@
 #include <chrono>
 #include <iostream>
 
-
-
 enum CameraDirection 
 {
 	FORWARD,
