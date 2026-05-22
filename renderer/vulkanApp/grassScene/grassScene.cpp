@@ -1402,6 +1402,7 @@ void GrassScene::createVertexBuffers()
 */
 	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
 	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
+	createVertexBuffer(triangleVertices, vertexTriangleBuffer, vertexTriangleBufferMemory);
 }
 
 void GrassScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
@@ -2568,6 +2569,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
 	VkBuffer vertexCubemapBuffers[] = { vertexCubemapBuffer };
+	VkBuffer vertexTriangleBuffers[] = { vertexTriangleBuffer };
 	VkDeviceSize offsets[] = { 0 };
 	
 	VkViewport viewport{};
@@ -2628,28 +2630,9 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::cubeIndices.size()), 1, 0, 0, 0);
-
-		// STENCIL
-/*
-		stencilPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-*/	
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::triangleVertices.size()), 1, 0, 0);
 	}
 
 	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)

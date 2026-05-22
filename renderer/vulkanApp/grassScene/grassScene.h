@@ -238,8 +238,10 @@ class GrassScene : public IVulkanApp
 	std::vector<VkFramebuffer> offScreenFramebuffers;
 
 	VkBuffer vertexCubeBuffer;
+	VkBuffer vertexTriangleBuffer;
 	VkBuffer vertexCubemapBuffer;
 	VkDeviceMemory vertexCubeBufferMemory;
+	VkDeviceMemory vertexTriangleBufferMemory;
 	VkDeviceMemory vertexCubemapBufferMemory;
 
 	std::vector<VkBuffer> uniformBuffers;
