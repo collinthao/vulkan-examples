@@ -7,6 +7,11 @@
 #include <GLFW/glfw3.h>
 #include "../descriptors/descriptorBuilder.h"
 
+struct ShaderContext
+{
+	VkShaderStageFlagBits 	stage;
+	std::string		path;
+};
 
 class Builder
 {
@@ -17,7 +22,7 @@ class Builder
 	public:
 	virtual ~Builder(){};
 
-	virtual Builder& setShaderPaths(std::string vertPath, std::string fragPath) = 0;
+	virtual Builder& setShaderPaths(std::vector<ShaderContext> shaderInfo) = 0;
 	virtual Builder& setBindingDescription(VkVertexInputBindingDescription description) = 0;
 	virtual Builder& setAttributeDescriptions(std::array<VkVertexInputAttributeDescription, 4> descriptions) = 0;
 	virtual Builder& setTopology(VkPrimitiveTopology topology) = 0;

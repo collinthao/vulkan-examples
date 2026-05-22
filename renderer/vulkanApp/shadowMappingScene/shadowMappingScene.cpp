@@ -779,7 +779,7 @@ void ShadowMappingScene::createPipelines()
 
 	shadowMapPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/shadowmapVert.spv", "shaders/shadowmapFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowmapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowmapFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -798,20 +798,20 @@ void ShadowMappingScene::createPipelines()
 
 	shadowMapPrimitivePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/shadowMapPrimitiveVert.spv", "shaders/shadowMapPrimitiveFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapPrimitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowMapPrimitiveFrag.spv"}})
 		.setRenderPass(shadowMapRenderPass)
 		.build(device);
 
 	primitivePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/primitiveVert.spv", "shaders/primitiveFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/primitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/primitiveFrag.spv"}})
 		.setMSAASamples(msaaSamples)
 		.setDescriptor(primitiveBindings, primitiveTypes, OBJECT_COUNT, device)
 		.setRenderPass(renderPass)
 		.build(device);
-
+/*
 	shadowMapMeshPipeline = pipelineBuilder
-		.setShaderPaths("shaders/shadowMapMeshVert.spv", "shaders/meshFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapMeshVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -828,10 +828,10 @@ void ShadowMappingScene::createPipelines()
 		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.setRenderPass(shadowMapRenderPass)
 		.build(device);
-
+*/
 	basePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/vert.spv", "shaders/frag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/vert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/frag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
@@ -851,7 +851,7 @@ void ShadowMappingScene::createPipelines()
 
 	stencilPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/stencilVert.spv", "shaders/stencilFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/stencilVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/stencilFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -871,7 +871,7 @@ void ShadowMappingScene::createPipelines()
 
 	lightPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/lightVert.spv", "shaders/lightFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/lightVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/lightFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -888,10 +888,10 @@ void ShadowMappingScene::createPipelines()
 		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.setRenderPass(renderPass)
 		.build(device);
-
+/*
 	meshPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/meshVert.spv", "shaders/meshFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/meshVert.spv"},{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -908,10 +908,10 @@ void ShadowMappingScene::createPipelines()
 		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.setRenderPass(renderPass)
 		.build(device);
-
+*/
 	cubemapPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/cubemapVert.spv", "shaders/cubemapFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/cubemapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/cubemapFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -931,7 +931,7 @@ void ShadowMappingScene::createPipelines()
 
 	postProcessingPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/postprocessingVert.spv", "shaders/postprocessingFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/postprocessingVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/postprocessingFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -951,7 +951,7 @@ void ShadowMappingScene::createPipelines()
 
 	screenSpacePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/screenSpaceQuadVert.spv", "shaders/screenSpaceQuadFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/screenSpaceQuadVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/screenSpaceQuadFrag.spv"}})
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(screenSpaceDescriptorSetLayout)
 		.setDescriptor({samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
@@ -960,6 +960,24 @@ void ShadowMappingScene::createPipelines()
 
 	createComputePipeline();
 }
+
+VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& code)
+{
+
+	VkShaderModuleCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create shader module");
+	}
+
+	return shaderModule;
+}
+
 
 void ShadowMappingScene::createComputePipeline()
 {
@@ -992,23 +1010,6 @@ void ShadowMappingScene::createComputePipeline()
 	{
 			throw std::runtime_error("failed to create compute pipeline!");
 	}
-}
-
-VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& code)
-{
-
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-	
-	VkShaderModule shaderModule;
-	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create shader module");
-	}
-
-	return shaderModule;
 }
 
 void ShadowMappingScene::createShadowMapResources()

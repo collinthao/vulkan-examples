@@ -586,7 +586,11 @@ class GrassScene : public IVulkanApp
 		{{ -0.5f,  0.5f,  0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  1.0f,  0.0f}, {0., 0.}},
 	};
 
-	
+	static inline const std::vector<Vertex> triangleVertices = {
+		{{ -0.5f, -0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {.0, .0}},
+		{{  0.5f, -0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {1., 0.}}, 
+		{{  0.5f,  0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {1., 1.}}
+	};
 
 	static inline const std::vector<uint32_t> cubeIndices = {
 	    // BACK (-Z)
@@ -614,34 +618,6 @@ class GrassScene : public IVulkanApp
 	   22,20,23
 	};
 
-
-/*
-static inline const std::vector<uint32_t> cubeIndices = {
-    // BACK (-Z)
-    0, 2, 1,
-    2, 0, 3,
-
-    // FRONT (+Z)
-    4, 6, 5,
-    6, 4, 7,
-
-    // LEFT (-X)
-    8,10, 9,
-   10, 8,11,
-
-    // RIGHT (+X)
-   12,14,13,
-   14,12,15,
-
-    // BOTTOM (-Y)
-   16,18,17,
-   18,16,19,
-
-    // TOP (+Y)
-   20,22,21,
-   22,20,23
-};
-*/
 	static inline const std::vector<uint32_t> quadIndices = {
 	    4, 5, 6,
 	    6, 7, 4,

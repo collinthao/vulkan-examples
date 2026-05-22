@@ -778,7 +778,7 @@ void GrassScene::createPipelines()
 
 	shadowMapPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/shadowmapVert.spv", "shaders/shadowmapFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowmapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowmapFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -797,20 +797,20 @@ void GrassScene::createPipelines()
 
 	shadowMapPrimitivePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/shadowMapPrimitiveVert.spv", "shaders/shadowMapPrimitiveFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapPrimitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowMapPrimitiveFrag.spv"}})
 		.setRenderPass(shadowMapRenderPass)
 		.build(device);
 
 	primitivePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/primitiveVert.spv", "shaders/primitiveFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/primitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/primitiveFrag.spv"}})
 		.setMSAASamples(msaaSamples)
 		.setDescriptor(primitiveBindings, primitiveTypes, OBJECT_COUNT, device)
 		.setRenderPass(renderPass)
 		.build(device);
 /*
 	shadowMapMeshPipeline = pipelineBuilder
-		.setShaderPaths("shaders/shadowMapMeshVert.spv", "shaders/meshFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapMeshVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -830,7 +830,7 @@ void GrassScene::createPipelines()
 */
 	basePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/vert.spv", "shaders/frag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/vert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/frag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
@@ -850,7 +850,7 @@ void GrassScene::createPipelines()
 
 	stencilPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/stencilVert.spv", "shaders/stencilFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/stencilVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/stencilFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -870,7 +870,7 @@ void GrassScene::createPipelines()
 
 	lightPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/lightVert.spv", "shaders/lightFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/lightVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/lightFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -890,7 +890,7 @@ void GrassScene::createPipelines()
 /*
 	meshPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/meshVert.spv", "shaders/meshFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/meshVert.spv"},{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -910,7 +910,7 @@ void GrassScene::createPipelines()
 */
 	cubemapPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/cubemapVert.spv", "shaders/cubemapFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/cubemapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/cubemapFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -930,7 +930,7 @@ void GrassScene::createPipelines()
 
 	postProcessingPipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/postprocessingVert.spv", "shaders/postprocessingFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/postprocessingVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/postprocessingFrag.spv"}})
 		.setBindingDescription(Vertex::getBindingDesciption())
 		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
@@ -950,7 +950,7 @@ void GrassScene::createPipelines()
 
 	screenSpacePipeline = 
 		pipelineBuilder
-		.setShaderPaths("shaders/screenSpaceQuadVert.spv", "shaders/screenSpaceQuadFrag.spv")
+		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/screenSpaceQuadVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/screenSpaceQuadFrag.spv"}})
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(screenSpaceDescriptorSetLayout)
 		.setDescriptor({samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
@@ -2595,25 +2595,6 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::cubeIndices.size()), 1, 0, 0, 0);
 
-		// STENCIL
-/*
-		stencilPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-*/
-/*
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-*/	
 	}
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -2670,6 +2651,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
 */	
 	}
+
 	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)
 	{
 		lightPipeline.bind(commandBuffer);

@@ -10,7 +10,7 @@ class PipelineBuilder : private Builder
 	
 	private: 
 	Descriptor descriptor;
-	std::string shaderPaths[2];
+	std::vector<ShaderContext> shaders;
 	VkVertexInputBindingDescription bindingDescription;
 	std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
 	VkPrimitiveTopology primitiveTopology;
@@ -93,10 +93,9 @@ class PipelineBuilder : private Builder
 		return *this;
 	}
 
-	PipelineBuilder& setShaderPaths(std::string vertPath, std::string fragPath)
+	PipelineBuilder& setShaderPaths(std::vector<ShaderContext> shaderInfo)
 	{
-		shaderPaths[0] = vertPath;
-		shaderPaths[1] = fragPath;
+		shaders = shaderInfo;
 		return *this;
 	};
 
@@ -168,25 +167,22 @@ class PipelineBuilder : private Builder
 		VkPipelineLayout pipelineLayout{}; 
 		pipelineLayout = createPipelineLayout(device, pipelineLayout);
 
-		auto vertShaderCode = FileContext::readFile(shaderPaths[0]);
-		auto fragShaderCode = FileContext::readFile(shaderPaths[1]);
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+		shaderStages.reserve(shaders.size());
 
-		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, device);
-		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, device);
+		for (const auto& shader : shaders)
+		{
+			auto shaderCode = FileContext::readFile(shader.path);
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = vertShaderModule;
-		vertShaderStageInfo.pName = "main";
-		
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = fragShaderModule;
-		fragShaderStageInfo.pName = "main";
+			VkShaderModule shaderModule = createShaderModule(shaderCode, device);
+			VkPipelineShaderStageCreateInfo shaderStageInfo{};
+			shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaderStageInfo.stage = shader.stage;
+			shaderStageInfo.module = shaderModule;
+			shaderStageInfo.pName = "main";
 
-		VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+			shaderStages.push_back(shaderStageInfo);
+		}
 
 		auto bindingDescription = Vertex::getBindingDesciption();
 		auto attributeDescriptions = Vertex::getAttributeDescriptions();
@@ -294,7 +290,7 @@ class PipelineBuilder : private Builder
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.stageCount = 2; // Two shader stages; vertex and fragment
-		pipelineInfo.pStages = shaderStages;
+		pipelineInfo.pStages = shaderStages.data();
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
 		pipelineInfo.pViewportState = &viewportState;
@@ -314,8 +310,6 @@ class PipelineBuilder : private Builder
 		}
 
 		//END
-		vkDestroyShaderModule(device, fragShaderModule, nullptr);
-		vkDestroyShaderModule(device, vertShaderModule, nullptr);
 
 		return Pipeline(device, pipeline, pipelineLayout, descriptor);
 	}
