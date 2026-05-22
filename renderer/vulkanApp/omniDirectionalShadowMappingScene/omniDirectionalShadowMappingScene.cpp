@@ -1,4 +1,4 @@
-#include "./shadowMappingScene.h"
+#include "./omniDirectionalShadowMappingScene.h"
 #include <iostream>
 #include "../../../windowContext/GLFWWindowContext.h"
 #include "../../../particle.h"
@@ -10,13 +10,13 @@
 #include "../../../commandBuffer/commandBuffer.h"
 #include "../../../buffer/buffer.h"
 
-glm::vec3 ShadowMappingScene::cameraPos = glm::vec3(0., 0., 3.);
-glm::vec3 ShadowMappingScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
-glm::vec3 ShadowMappingScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
+glm::vec3 OmniDirectionalShadowMappingScene::cameraPos = glm::vec3(0., 0., 3.);
+glm::vec3 OmniDirectionalShadowMappingScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
+glm::vec3 OmniDirectionalShadowMappingScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
 
-Camera ShadowMappingScene::camera = Camera(ShadowMappingScene::cameraPos, ShadowMappingScene::cameraFront, ShadowMappingScene::cameraUp);
+Camera OmniDirectionalShadowMappingScene::camera = Camera(OmniDirectionalShadowMappingScene::cameraPos, OmniDirectionalShadowMappingScene::cameraFront, OmniDirectionalShadowMappingScene::cameraUp);
 
-void ShadowMappingScene::init(GLFWwindow* window)
+void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
 {
 	createInstance();
 	setupDebugMessenger();
@@ -30,7 +30,7 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	createPostProcessingRenderPass();
 	setDescriptorSetLayoutBindings();
 	createDescriptorSetLayouts();	
-	createModel();
+	//createModel();
 	createPipelines();
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
 	createOffscreenResources();
@@ -47,15 +47,14 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(specularSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(shadowSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	createTextureImages(modelImages, modelImageMemories);	
-	createTextureImageViews(modelImages, modelImageViews);
-	createTextureSamplers(modelSamplers);
-	loadModel();
+	//createTextureImages(modelImages, modelImageMemories);	
+	//createTextureImageViews(modelImages, modelImageViews);
+	//createTextureSamplers(modelSamplers);
 	createShaderStorageBuffers();
 	createVertexBuffers();
 	createIndexBuffer();
 	createQuadIndexBuffer();
-	createModelIndexBuffers();
+	//createModelIndexBuffers();
 	createUniformBuffers();
 	createDescriptorPools();
 	createDescriptorSets();
@@ -64,7 +63,7 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	createSyncObjects();
 }
 
-std::vector<const char*> ShadowMappingScene::getRequiredExtensions()
+std::vector<const char*> OmniDirectionalShadowMappingScene::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
@@ -81,7 +80,7 @@ std::vector<const char*> ShadowMappingScene::getRequiredExtensions()
 	return extensions;
 }
 
-void ShadowMappingScene::createInstance()
+void OmniDirectionalShadowMappingScene::createInstance()
 {
 	std::cout << "Creating instance...\n";
 	VkApplicationInfo appInfo{};
@@ -119,7 +118,7 @@ void ShadowMappingScene::createInstance()
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
 };
 
-void ShadowMappingScene::setupDebugMessenger()
+void OmniDirectionalShadowMappingScene::setupDebugMessenger()
 {
 	if (!enableValidationLayers) return;
 		
@@ -132,7 +131,7 @@ void ShadowMappingScene::setupDebugMessenger()
 	}
 }
 
-void ShadowMappingScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void OmniDirectionalShadowMappingScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
 	createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -141,7 +140,7 @@ void ShadowMappingScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerC
 	createInfo.pfnUserCallback = debugCallback;
 }
 
-void ShadowMappingScene::createSurface(GLFWwindow * window)
+void OmniDirectionalShadowMappingScene::createSurface(GLFWwindow * window)
 {
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
 	{
@@ -149,7 +148,7 @@ void ShadowMappingScene::createSurface(GLFWwindow * window)
 	}
 }
 
-void ShadowMappingScene::pickPhysicalDevice()
+void OmniDirectionalShadowMappingScene::pickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -185,7 +184,7 @@ void ShadowMappingScene::pickPhysicalDevice()
 	}
 }
 
-void ShadowMappingScene::createLogicalDevice()
+void OmniDirectionalShadowMappingScene::createLogicalDevice()
 {
 	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
 
@@ -239,7 +238,7 @@ void ShadowMappingScene::createLogicalDevice()
 	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
-bool ShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device)
+bool OmniDirectionalShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(device, surface);
 
@@ -258,7 +257,7 @@ bool ShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device)
 	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-SwapChainSupportDetails ShadowMappingScene::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails OmniDirectionalShadowMappingScene::querySwapChainSupport(VkPhysicalDevice device)
 {
 	SwapChainSupportDetails details;
 
@@ -285,7 +284,7 @@ SwapChainSupportDetails ShadowMappingScene::querySwapChainSupport(VkPhysicalDevi
 	return details;
 }
 
-VkSampleCountFlagBits ShadowMappingScene::getMaxUsableSampleCount()
+VkSampleCountFlagBits OmniDirectionalShadowMappingScene::getMaxUsableSampleCount()
 {
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
@@ -302,7 +301,7 @@ VkSampleCountFlagBits ShadowMappingScene::getMaxUsableSampleCount()
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
-bool ShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool OmniDirectionalShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
 
 	uint32_t extensionCount;
@@ -322,7 +321,7 @@ bool ShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
 }
 
 
-int ShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice device)
+int OmniDirectionalShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice device)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -341,7 +340,7 @@ int ShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice device)
 	return score;
 }
 
-void ShadowMappingScene::createSwapChain(GLFWwindow * window)
+void OmniDirectionalShadowMappingScene::createSwapChain(GLFWwindow * window)
 {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -403,7 +402,7 @@ void ShadowMappingScene::createSwapChain(GLFWwindow * window)
 	VulkanConfig::swapChainExtent = extent;
 }
 
-VkPresentModeKHR ShadowMappingScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+VkPresentModeKHR OmniDirectionalShadowMappingScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
 	for (const auto& availablePresentMode : availablePresentModes)
 	{
@@ -416,7 +415,7 @@ VkPresentModeKHR ShadowMappingScene::chooseSwapPresentMode(const std::vector<VkP
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkSurfaceFormatKHR ShadowMappingScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR OmniDirectionalShadowMappingScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
 	for (const auto& availableFormat : availableFormats)
 	{
@@ -429,7 +428,7 @@ VkSurfaceFormatKHR ShadowMappingScene::chooseSwapSurfaceFormat(const std::vector
 	return availableFormats[0];
 }
 
-VkExtent2D ShadowMappingScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
+VkExtent2D OmniDirectionalShadowMappingScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 	{
@@ -454,7 +453,7 @@ VkExtent2D ShadowMappingScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& 
 	}
 }
 
-void ShadowMappingScene::createImageViews()
+void OmniDirectionalShadowMappingScene::createImageViews()
 {
 	swapChainImageViews.resize(swapChainImages.size());
 	shadowMapImageViews.resize(swapChainImages.size());
@@ -465,7 +464,7 @@ void ShadowMappingScene::createImageViews()
 	}
 }
 
-void ShadowMappingScene::createShadowMapRenderPass()
+void OmniDirectionalShadowMappingScene::createShadowMapRenderPass()
 {
 	VkAttachmentDescription depthAttachment{};
 	//depthAttachment.format = findDepthFormat();
@@ -519,7 +518,7 @@ void ShadowMappingScene::createShadowMapRenderPass()
 	}
 }
 
-void ShadowMappingScene::createRenderPass()
+void OmniDirectionalShadowMappingScene::createRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -603,7 +602,7 @@ void ShadowMappingScene::createRenderPass()
 	}
 }
 
-void ShadowMappingScene::createPostProcessingRenderPass()
+void OmniDirectionalShadowMappingScene::createPostProcessingRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -650,12 +649,12 @@ void ShadowMappingScene::createPostProcessingRenderPass()
 	}
 }
 
-void ShadowMappingScene::createDescriptorSetLayouts()
+void OmniDirectionalShadowMappingScene::createDescriptorSetLayouts()
 {
 	createComputeDescriptorSetLayout();
 }
 
-void ShadowMappingScene::setDescriptorSetLayoutBindings()
+void OmniDirectionalShadowMappingScene::setDescriptorSetLayoutBindings()
 {
 	samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerUniformLayoutBinding.descriptorCount = 1;
@@ -683,7 +682,7 @@ void ShadowMappingScene::setDescriptorSetLayoutBindings()
 	allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
 }
 
-void ShadowMappingScene::createComputeDescriptorSetLayout()
+void OmniDirectionalShadowMappingScene::createComputeDescriptorSetLayout()
 {
 	std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
 	layoutBindings[0].binding = 0;
@@ -715,7 +714,7 @@ void ShadowMappingScene::createComputeDescriptorSetLayout()
 	}
 }
 
-void ShadowMappingScene::createPipelines()
+void OmniDirectionalShadowMappingScene::createPipelines()
 {
 	//std::vector<VkDescriptorType> primitiveTypes{VK_DESCRIPTOR};
 	std::vector<VkDescriptorSetLayoutBinding> shadowMapBindings = {
@@ -809,7 +808,7 @@ void ShadowMappingScene::createPipelines()
 		.setDescriptor(primitiveBindings, primitiveTypes, OBJECT_COUNT, device)
 		.setRenderPass(renderPass)
 		.build(device);
-
+/*
 	shadowMapMeshPipeline = pipelineBuilder
 		.setShaderPaths("shaders/shadowMapMeshVert.spv", "shaders/meshFrag.spv")
 		.setBindingDescription(Vertex::getBindingDesciption())
@@ -828,7 +827,7 @@ void ShadowMappingScene::createPipelines()
 		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.setRenderPass(shadowMapRenderPass)
 		.build(device);
-
+*/
 	basePipeline = 
 		pipelineBuilder
 		.setShaderPaths("shaders/vert.spv", "shaders/frag.spv")
@@ -888,7 +887,7 @@ void ShadowMappingScene::createPipelines()
 		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.setRenderPass(renderPass)
 		.build(device);
-
+/*
 	meshPipeline = 
 		pipelineBuilder
 		.setShaderPaths("shaders/meshVert.spv", "shaders/meshFrag.spv")
@@ -908,7 +907,7 @@ void ShadowMappingScene::createPipelines()
 		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.setRenderPass(renderPass)
 		.build(device);
-
+*/
 	cubemapPipeline = 
 		pipelineBuilder
 		.setShaderPaths("shaders/cubemapVert.spv", "shaders/cubemapFrag.spv")
@@ -961,7 +960,7 @@ void ShadowMappingScene::createPipelines()
 	createComputePipeline();
 }
 
-void ShadowMappingScene::createComputePipeline()
+void OmniDirectionalShadowMappingScene::createComputePipeline()
 {
 	auto compShaderCode = readFile("shaders/comp.spv");
 
@@ -994,7 +993,7 @@ void ShadowMappingScene::createComputePipeline()
 	}
 }
 
-VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& code)
+VkShaderModule OmniDirectionalShadowMappingScene::createShaderModule(const std::vector<char>& code)
 {
 
 	VkShaderModuleCreateInfo createInfo{};
@@ -1011,7 +1010,7 @@ VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& c
 	return shaderModule;
 }
 
-void ShadowMappingScene::createShadowMapResources()
+void OmniDirectionalShadowMappingScene::createShadowMapResources()
 {
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
@@ -1028,7 +1027,7 @@ void ShadowMappingScene::createShadowMapResources()
 	}
 }
 
-void ShadowMappingScene::createOffscreenResources()
+void OmniDirectionalShadowMappingScene::createOffscreenResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 
@@ -1043,7 +1042,7 @@ void ShadowMappingScene::createOffscreenResources()
 	}
 }
 
-void ShadowMappingScene::createColorResources()
+void OmniDirectionalShadowMappingScene::createColorResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 	
@@ -1051,7 +1050,7 @@ void ShadowMappingScene::createColorResources()
 	colorImageView = Image::createView(colorImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
-void ShadowMappingScene::createDepthResources()
+void OmniDirectionalShadowMappingScene::createDepthResources()
 {
 	//VkFormat depthFormat = findDepthFormat();
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
@@ -1061,7 +1060,7 @@ msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_
 	depthImageView = Image::createView(depthImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
-void ShadowMappingScene::createFramebuffers()
+void OmniDirectionalShadowMappingScene::createFramebuffers()
 {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 	offScreenFramebuffers.resize(swapChainImageViews.size());
@@ -1137,7 +1136,7 @@ void ShadowMappingScene::createFramebuffers()
 
 }
 
-void ShadowMappingScene::createModel()
+void OmniDirectionalShadowMappingScene::createModel()
 {
 	model = new Model(MODEL_PATH);
 	vertexBuffers.resize(model->meshes.size());	
@@ -1145,12 +1144,12 @@ void ShadowMappingScene::createModel()
 	MESH_COUNT = model->meshes.size();
 }
 
-void ShadowMappingScene::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
+void OmniDirectionalShadowMappingScene::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
 {
 	imageView = Image::createView(image, imageView, VK_IMAGE_VIEW_TYPE_2D, format, flags, Image::mipLevels, 1, device, graphicsAndComputeQueue);
 }
 
-void ShadowMappingScene::createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)
+void OmniDirectionalShadowMappingScene::createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)
 {
 	std::vector<std::string> faces
 	{
@@ -1216,12 +1215,12 @@ void ShadowMappingScene::createCubeTextureImage(const std::string imagePath, VkI
 	Image::generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, Image::mipLevels, 6, device, physicalDevice, graphicsAndComputeQueue);
 }
 
-void ShadowMappingScene::createCubeMapResources()
+void OmniDirectionalShadowMappingScene::createCubeMapResources()
 {
 	cubemapImageView = Image::createView(cubemapImage, cubemapImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 }
 
-void ShadowMappingScene::createTextureSampler(VkSampler& sampler)
+void OmniDirectionalShadowMappingScene::createTextureSampler(VkSampler& sampler)
 {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1251,7 +1250,7 @@ void ShadowMappingScene::createTextureSampler(VkSampler& sampler)
 	}
 }
 
-void ShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
+void OmniDirectionalShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
 {
 	// TODO: move to getTextureCount later, maybe
 	images.resize(MESH_COUNT);
@@ -1272,7 +1271,7 @@ void ShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::
 	}
 }
 
-void ShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
+void OmniDirectionalShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
 {
 	for (size_t i = 0; i < MESH_COUNT; i++)
 	{
@@ -1280,7 +1279,7 @@ void ShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, s
 	}
 }
 
-void ShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
+void OmniDirectionalShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
 {
 	for (size_t i = 0; i < MESH_COUNT; i++)
 	{
@@ -1288,7 +1287,7 @@ void ShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
 	}
 }
 
-void ShadowMappingScene::loadModel()
+void OmniDirectionalShadowMappingScene::loadModel()
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -1333,7 +1332,7 @@ void ShadowMappingScene::loadModel()
 	}
 }
 
-void ShadowMappingScene::createShaderStorageBuffers()
+void OmniDirectionalShadowMappingScene::createShaderStorageBuffers()
 {
 	uint32_t WIDTH = GLFWWindowContext::getWindowWidth();
 	uint32_t HEIGHT = GLFWWindowContext::getWindowHeight();
@@ -1378,7 +1377,7 @@ void ShadowMappingScene::createShaderStorageBuffers()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void ShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void OmniDirectionalShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);
 
@@ -1391,20 +1390,21 @@ void ShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDe
 	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
 }
 
-void ShadowMappingScene::createVertexBuffers()
+void OmniDirectionalShadowMappingScene::createVertexBuffers()
 {
 	// TODO: move to own method
+/*
 	for (size_t i = 0; i < model->meshes.size(); i++)
 	{
 		const Mesh mesh = model->meshes[i];
 		createVertexBuffer(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
 	}
-
+*/
 	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
 	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 }
 
-void ShadowMappingScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
+void OmniDirectionalShadowMappingScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
 {
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -1425,11 +1425,11 @@ void ShadowMappingScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuff
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void ShadowMappingScene::createIndexBuffer()
+void OmniDirectionalShadowMappingScene::createIndexBuffer()
 {
 
 	//VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	VkDeviceSize bufferSize = sizeof(ShadowMappingScene::cubeIndices[0]) * ShadowMappingScene::cubeIndices.size();
+	VkDeviceSize bufferSize = sizeof(OmniDirectionalShadowMappingScene::cubeIndices[0]) * OmniDirectionalShadowMappingScene::cubeIndices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1437,7 +1437,7 @@ void ShadowMappingScene::createIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, ShadowMappingScene::cubeIndices.data(), (size_t)bufferSize);
+	memcpy(data, OmniDirectionalShadowMappingScene::cubeIndices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, physicalDevice);
@@ -1445,12 +1445,11 @@ void ShadowMappingScene::createIndexBuffer()
 	
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
-
 }
 
-void ShadowMappingScene::createQuadIndexBuffer()
+void OmniDirectionalShadowMappingScene::createQuadIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(ShadowMappingScene::quadIndices[0]) * ShadowMappingScene::quadIndices.size();
+	VkDeviceSize bufferSize = sizeof(OmniDirectionalShadowMappingScene::quadIndices[0]) * OmniDirectionalShadowMappingScene::quadIndices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1458,7 +1457,7 @@ void ShadowMappingScene::createQuadIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, ShadowMappingScene::quadIndices.data(), (size_t)bufferSize);
+	memcpy(data, OmniDirectionalShadowMappingScene::quadIndices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffer, quadIndexBufferMemory, device, physicalDevice);
@@ -1469,7 +1468,7 @@ void ShadowMappingScene::createQuadIndexBuffer()
 }
 
 
-void ShadowMappingScene::createModelIndexBuffers()
+void OmniDirectionalShadowMappingScene::createModelIndexBuffers()
 {
 	indexModelBuffers.resize(MESH_COUNT);
 	indexModelBufferMemories.resize(MESH_COUNT);
@@ -1480,7 +1479,7 @@ void ShadowMappingScene::createModelIndexBuffers()
 	}
 }
 
-void ShadowMappingScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
+void OmniDirectionalShadowMappingScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
 {
 
 	VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
@@ -1502,7 +1501,7 @@ void ShadowMappingScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices,
 
 }
 
-void ShadowMappingScene::createUniformBuffers()
+void OmniDirectionalShadowMappingScene::createUniformBuffers()
 {
 	createGraphicsUniformBuffers();
 	createPrimitiveUniformBuffers();
@@ -1516,7 +1515,7 @@ void ShadowMappingScene::createUniformBuffers()
 }
 
 
-void ShadowMappingScene::createMaterialUniformBuffers()
+void OmniDirectionalShadowMappingScene::createMaterialUniformBuffers()
 {
 	materialUniformBuffers.resize(OBJECT_COUNT);
 	materialUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1541,7 +1540,7 @@ void ShadowMappingScene::createMaterialUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createLightObjectUniformBuffers()
+void OmniDirectionalShadowMappingScene::createLightObjectUniformBuffers()
 {
 	lightObjectUniformBuffers.resize(MAX_POINT_LIGHTS);
 	lightObjectUniformBuffersMemory.resize(MAX_POINT_LIGHTS);
@@ -1566,7 +1565,7 @@ void ShadowMappingScene::createLightObjectUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createModelLightUniformBuffers()
+void OmniDirectionalShadowMappingScene::createModelLightUniformBuffers()
 {
 	modelLightUniformBuffers.resize(MESH_COUNT);
 	modelLightUniformBuffersMemory.resize(MESH_COUNT);
@@ -1591,7 +1590,7 @@ void ShadowMappingScene::createModelLightUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createLightUniformBuffers()
+void OmniDirectionalShadowMappingScene::createLightUniformBuffers()
 {
 	lightUniformBuffers.resize(OBJECT_COUNT);
 	lightUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1616,7 +1615,7 @@ void ShadowMappingScene::createLightUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createStencilUniformBuffers()
+void OmniDirectionalShadowMappingScene::createStencilUniformBuffers()
 {
 	stencilUniformBuffers.resize(OBJECT_COUNT);
 	stencilUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1641,7 +1640,7 @@ void ShadowMappingScene::createStencilUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createShadowMapUniformBuffers()
+void OmniDirectionalShadowMappingScene::createShadowMapUniformBuffers()
 {
 	shadowMapUniformBuffers.resize(OBJECT_COUNT);
 	shadowMapUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1666,7 +1665,7 @@ void ShadowMappingScene::createShadowMapUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createPrimitiveUniformBuffers()
+void OmniDirectionalShadowMappingScene::createPrimitiveUniformBuffers()
 {
 	primitiveUniformBuffers.resize(OBJECT_COUNT);
 	primitiveUniformBuffersMemory.resize(OBJECT_COUNT);
@@ -1691,7 +1690,7 @@ void ShadowMappingScene::createPrimitiveUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createModelUniformBuffers()
+void OmniDirectionalShadowMappingScene::createModelUniformBuffers()
 {		
 	modelUniformBuffers.resize(MESH_COUNT);
 	modelUniformBuffersMemory.resize(MESH_COUNT);
@@ -1717,7 +1716,7 @@ void ShadowMappingScene::createModelUniformBuffers()
 }
 
 
-void ShadowMappingScene::createCubemapUniformBuffers()
+void OmniDirectionalShadowMappingScene::createCubemapUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1735,7 +1734,7 @@ void ShadowMappingScene::createCubemapUniformBuffers()
 	}
 }
 
-void ShadowMappingScene::createGraphicsUniformBuffers()
+void OmniDirectionalShadowMappingScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1753,12 +1752,12 @@ void ShadowMappingScene::createGraphicsUniformBuffers()
 	}
 }
 	
-void ShadowMappingScene::createDescriptorPools()
+void OmniDirectionalShadowMappingScene::createDescriptorPools()
 {
 	createComputeDescriptorPool();
 }
 
-void ShadowMappingScene::createComputeDescriptorPool()
+void OmniDirectionalShadowMappingScene::createComputeDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1779,13 +1778,13 @@ void ShadowMappingScene::createComputeDescriptorPool()
 }
 
 
-void ShadowMappingScene::createDescriptorSets()
+void OmniDirectionalShadowMappingScene::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
 	createPrimitiveDescriptorSets();
 	createShadowMapDescriptorSets();
 	createStencilDescriptorSets();
-	createModelDescriptorSets();
+	//createModelDescriptorSets();
 	createPostProcessingDescriptorSets();
 	createShadowMapScreenSpaceQuadDescriptorSets();
 	createCubemapDescriptorSets();
@@ -1793,7 +1792,7 @@ void ShadowMappingScene::createDescriptorSets()
 	createComputeDescriptorSets();
 }
 
-void ShadowMappingScene::createLightDescriptorSets()
+void OmniDirectionalShadowMappingScene::createLightDescriptorSets()
 {
 	lightDescriptorSets.resize(MAX_POINT_LIGHTS);
 
@@ -1834,7 +1833,7 @@ void ShadowMappingScene::createLightDescriptorSets()
 }
 
 
-void ShadowMappingScene::createStencilDescriptorSets()
+void OmniDirectionalShadowMappingScene::createStencilDescriptorSets()
 {
 	stencilDescriptorSets.resize(OBJECT_COUNT);
 
@@ -1874,7 +1873,7 @@ void ShadowMappingScene::createStencilDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createShadowMapDescriptorSets()
+void OmniDirectionalShadowMappingScene::createShadowMapDescriptorSets()
 {
 	shadowMapDescriptorSets.resize(OBJECT_COUNT);
 
@@ -1971,7 +1970,7 @@ void ShadowMappingScene::createShadowMapDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createPrimitiveDescriptorSets()
+void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 {
 	primitiveDescriptorSets.resize(OBJECT_COUNT);
 
@@ -2076,7 +2075,7 @@ void ShadowMappingScene::createPrimitiveDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createModelDescriptorSets()
+void OmniDirectionalShadowMappingScene::createModelDescriptorSets()
 {
 	modelDescriptorSets.resize(MESH_COUNT);
 	for (size_t j = 0; j < MESH_COUNT; j++)
@@ -2154,7 +2153,7 @@ void ShadowMappingScene::createModelDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createCubemapDescriptorSets()
+void OmniDirectionalShadowMappingScene::createCubemapDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, cubemapPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2204,7 +2203,7 @@ void ShadowMappingScene::createCubemapDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
+void OmniDirectionalShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, screenSpacePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2241,7 +2240,7 @@ void ShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createPostProcessingDescriptorSets()
+void OmniDirectionalShadowMappingScene::createPostProcessingDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, postProcessingPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2278,7 +2277,7 @@ void ShadowMappingScene::createPostProcessingDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createGraphicsDescriptorSets()
+void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, basePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2327,7 +2326,7 @@ void ShadowMappingScene::createGraphicsDescriptorSets()
 }
 
 
-void ShadowMappingScene::createComputeDescriptorSets()
+void OmniDirectionalShadowMappingScene::createComputeDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2388,7 +2387,7 @@ void ShadowMappingScene::createComputeDescriptorSets()
 	}
 }
 
-void ShadowMappingScene::createComputeCommandBuffers()
+void OmniDirectionalShadowMappingScene::createComputeCommandBuffers()
 {
 	computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -2404,7 +2403,7 @@ void ShadowMappingScene::createComputeCommandBuffers()
 	}
 }
 
-void ShadowMappingScene::createSyncObjects()
+void OmniDirectionalShadowMappingScene::createSyncObjects()
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -2437,7 +2436,7 @@ void ShadowMappingScene::createSyncObjects()
 }
 
 
-void ShadowMappingScene::drawFrame(GLFWwindow * window)
+void OmniDirectionalShadowMappingScene::drawFrame(GLFWwindow * window)
 {
 	camera.update();
 	VkSubmitInfo submitInfo{};
@@ -2536,7 +2535,7 @@ void ShadowMappingScene::drawFrame(GLFWwindow * window)
 
 }
 
-void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2585,21 +2584,6 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	shadowMapMeshPipeline.bind(commandBuffer);
-
-	for (size_t i = 0; i < MESH_COUNT; i++)
-	{
-		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapMeshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
-	}
-
 	for (size_t j = 0; j < OBJECT_COUNT; j++)
 	{
 		shadowMapPrimitivePipeline.bind(commandBuffer);
@@ -2609,7 +2593,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 
 		// STENCIL
 /*
@@ -2655,21 +2639,6 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
-	meshPipeline.bind(commandBuffer);
-
-	for (size_t i = 0; i < MESH_COUNT; i++)
-	{
-		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
-	}
-
 	for (size_t j = 0; j < OBJECT_COUNT; j++)
 	{
 		primitivePipeline.bind(commandBuffer);
@@ -2680,7 +2649,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 
 		// STENCIL
 /*
@@ -2711,7 +2680,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 	}
 
 	cubemapPipeline.bind(commandBuffer);
@@ -2720,9 +2689,21 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
 
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubemapVertices.size()), 1, 0, 0);
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubemapVertices.size()), 1, 0, 0);
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+
+// DEBUG FOR SHADOWMAP
+	screenSpacePipeline.bind(commandBuffer);
+		
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -2740,7 +2721,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -2750,7 +2731,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	}
 }
 
-void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
+void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 {
 	for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
 	{
@@ -2846,7 +2827,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
 
-		glm::vec3 cubePosition = ShadowMappingScene::cubePositions[j];
+		glm::vec3 cubePosition = OmniDirectionalShadowMappingScene::cubePositions[j];
 		glm::vec3 transformedPosition = glm::vec3(cubePosition.x + 2.f, cubePosition.y - 1.f, cubePosition.z);
 		//glm::vec3 transformedPosition = cubePosition;
 		ubom.model = glm::mat4(1.);
@@ -2924,7 +2905,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 	memcpy(cubemapUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));
 }
 
-void ShadowMappingScene::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
+void OmniDirectionalShadowMappingScene::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2949,7 +2930,7 @@ void ShadowMappingScene::recordComputeCommandBuffer(VkCommandBuffer commandBuffe
 	}
 }
 
-void ShadowMappingScene::recreateSwapChain(GLFWwindow * window)
+void OmniDirectionalShadowMappingScene::recreateSwapChain(GLFWwindow * window)
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -2995,7 +2976,7 @@ for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 }
 
 
-void ShadowMappingScene::cleanupSwapChain()
+void OmniDirectionalShadowMappingScene::cleanupSwapChain()
 {
 	vkDestroyImageView(device, colorImageView, nullptr);
 	vkDestroyImage(device, colorImage, nullptr);
@@ -3019,12 +3000,12 @@ void ShadowMappingScene::cleanupSwapChain()
 
 }
 
-VkDevice* ShadowMappingScene::getDevice()
+VkDevice* OmniDirectionalShadowMappingScene::getDevice()
 {
 	return &device;
 }
 
-void ShadowMappingScene::processInput(GLFWwindow * window)
+void OmniDirectionalShadowMappingScene::processInput(GLFWwindow * window)
 {
 	camera.cameraSpeed = 10.f * lastFrameTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -3047,7 +3028,7 @@ void ShadowMappingScene::processInput(GLFWwindow * window)
 //		verticalSteps -= 0.1;
 }
 
-void ShadowMappingScene::cleanup(GLFWwindow * window)
+void OmniDirectionalShadowMappingScene::cleanup(GLFWwindow * window)
 {
 	cleanupSwapChain();
 
@@ -3106,7 +3087,7 @@ void ShadowMappingScene::cleanup(GLFWwindow * window)
 	glfwTerminate();
 }
 
-void ShadowMappingScene::deviceWaitIdle()
+void OmniDirectionalShadowMappingScene::deviceWaitIdle()
 {
 	vkDeviceWaitIdle(device);
 }

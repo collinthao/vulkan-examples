@@ -23,6 +23,8 @@ C:\Users\Collin\Projects\vulkan-learnopengl-modules\Libraries\glm-1.0.2\glm\deta
 C:\Users\Collin\Projects\vulkan-learnopengl-modules\pipeline\pipeline.cpp
 C:\Users\Collin\Projects\vulkan-learnopengl-modules\queueFamily\queueFamily.cpp
 C:\Users\Collin\Projects\vulkan-learnopengl-modules\renderer\vulkanRenderer.cpp
+C:\Users\Collin\Projects\vulkan-learnopengl-modules\renderer\vulkanApp\grassScene\grassScene.cpp
+C:\Users\Collin\Projects\vulkan-learnopengl-modules\renderer\vulkanApp\omniDirectionalShadowMappingScene\omniDirectionalShadowMappingScene.cpp
 C:\Users\Collin\Projects\vulkan-learnopengl-modules\renderer\vulkanApp\shadowMappingScene\shadowMappingScene.cpp
 C:\Users\Collin\Projects\vulkan-learnopengl-modules\vulkanImage\vulkanImage.cpp
 C:\Users\Collin\Projects\vulkan-learnopengl-modules\windowContext\glfwWindowContext.cpp
