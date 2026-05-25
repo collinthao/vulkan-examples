@@ -23,8 +23,8 @@ class Builder
 	virtual ~Builder(){};
 
 	virtual Builder& setShaderPaths(std::vector<ShaderContext> shaderInfo) = 0;
-	virtual Builder& setBindingDescription(VkVertexInputBindingDescription description) = 0;
-	virtual Builder& setAttributeDescriptions(std::array<VkVertexInputAttributeDescription, 4> descriptions) = 0;
+	virtual Builder& setBindingDescription(uint32_t binding, size_t stride, VkVertexInputRate inputRate) = 0;
+	virtual Builder& setAttributeDescription(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset) = 0;
 	virtual Builder& setTopology(VkPrimitiveTopology topology) = 0;
 	virtual Builder& setMSAASamples(VkSampleCountFlagBits samples) = 0;
 	virtual Builder& setDescriptorSetLayout(VkDescriptorSetLayout layouts) = 0;
@@ -38,5 +38,7 @@ class Builder
 	virtual Builder& setRenderPass(VkRenderPass pass) = 0;
 	virtual Builder& setCullMode(VkCullModeFlags mode) = 0;
 	virtual Builder& setCullFace(VkFrontFace face) = 0;
+	virtual Builder& clearBindingDescription(uint32_t binding, size_t stride, VkVertexInputRate inputRate) = 0;
+	virtual Builder& clearAttributeDescription(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset) = 0;
 	virtual Pipeline build(VkDevice& device) = 0;
 };

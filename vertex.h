@@ -2,6 +2,54 @@
 #include <GLFW/glfw3.h>
 #include <glm.hpp>
 #include <array>
+#include <iostream>
+
+// Move to separate file
+struct InstanceData {
+	alignas(16) glm::vec3 pos;
+	alignas(16) glm::vec3 scale;
+	alignas(4) float rot{ 0.0f };
+	alignas(4) uint32_t id{0};
+
+    static inline std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+
+        attributeDescriptions[4].binding = 1;
+        attributeDescriptions[4].location = 4;
+        attributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[4].offset = offsetof(InstanceData, pos);
+
+        attributeDescriptions[5].binding = 1;
+        attributeDescriptions[5].location = 5;
+        attributeDescriptions[5].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[5].offset = offsetof(InstanceData, scale);
+
+	attributeDescriptions[6].binding = 1;
+        attributeDescriptions[6].location = 6;
+        attributeDescriptions[6].format = VK_FORMAT_R32_SFLOAT;
+        attributeDescriptions[6].offset = offsetof(InstanceData, rot);
+
+	attributeDescriptions[7].binding = 1;
+        attributeDescriptions[7].location = 7;
+        attributeDescriptions[7].format = VK_FORMAT_R32_SINT;
+        attributeDescriptions[7].offset = offsetof(InstanceData, id);
+
+        return attributeDescriptions;
+    };
+
+    static inline VkVertexInputBindingDescription getBindingDescription()
+    {
+    	VkVertexInputBindingDescription bindingDescription{};
+    
+    	bindingDescription.binding = 1;
+    	bindingDescription.stride = sizeof(InstanceData);
+    	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+    
+    	return bindingDescription;
+    };
+
+
+};
 
 struct Vertex
 {

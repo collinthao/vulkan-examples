@@ -4,6 +4,7 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include "../../buffer/buffer.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -75,7 +76,6 @@ class IVulkanApp
 	virtual void createShaderStorageBuffers()=0;
 	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)=0;
 	virtual void createVertexBuffers()=0;
-	virtual void createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)=0;
 	virtual void createIndexBuffer()=0;
 	virtual void createQuadIndexBuffer()=0;
 	virtual void createModelIndexBuffers()=0;
@@ -93,17 +93,16 @@ virtual void createModelUniformBuffers()=0;
 	virtual void recreateSwapChain(GLFWwindow * window)=0;
 	virtual void cleanupSwapChain()=0;
 	virtual void setDescriptorSetLayoutBindings()=0;
+		IVulkanApp()=default;
+		virtual ~IVulkanApp(){};
 
-	IVulkanApp()=default;
-	virtual ~IVulkanApp(){};
+		virtual void init(GLFWwindow * window)=0;
+		virtual void drawFrame(GLFWwindow * window)=0;
+		virtual void processInput(GLFWwindow * window)=0;
+		virtual void cleanup(GLFWwindow * window)=0;
+		virtual void deviceWaitIdle()=0;
 
-	virtual void init(GLFWwindow * window)=0;
-	virtual void drawFrame(GLFWwindow * window)=0;
-	virtual void processInput(GLFWwindow * window)=0;
-	virtual void cleanup(GLFWwindow * window)=0;
-	virtual void deviceWaitIdle()=0;
-
-	static void moveCamera(double xpos, double ypos){std::cout << "Hi\n";};
-	virtual VkDevice* getDevice()=0;
-	VkDevice device;
+		static void moveCamera(double xpos, double ypos){std::cout << "Hi\n";};
+		virtual VkDevice* getDevice()=0;
+		VkDevice device;
 };

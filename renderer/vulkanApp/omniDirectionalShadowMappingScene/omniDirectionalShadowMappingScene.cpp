@@ -779,8 +779,11 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	shadowMapPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowmapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowmapFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		.setAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0)
+		.setAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3)
+		.setAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6)
+		.setAttributeDescription(0, 3, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 8)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 		.setDescriptor(shadowMapBindings, shadowMapTypes, OBJECT_COUNT, device)
@@ -811,8 +814,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 /*
 	shadowMapMeshPipeline = pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapMeshVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 		.setDescriptorSetLayout(modelDescriptorSetLayout)
@@ -831,8 +833,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	basePipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/vert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/frag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(descriptorSetLayout)
@@ -851,8 +852,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	stencilPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/stencilVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/stencilFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(stencilDescriptorSetLayout)
@@ -871,8 +871,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	lightPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/lightVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/lightFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(lightDescriptorSetLayout)
@@ -891,8 +890,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	meshPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/meshVert.spv"},{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(modelDescriptorSetLayout)
@@ -911,8 +909,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	cubemapPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/cubemapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/cubemapFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(cubemapDescriptorSetLayout)
@@ -931,8 +928,7 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	postProcessingPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/postprocessingVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/postprocessingFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 		.setDescriptorSetLayout(postProcessingDescriptorSetLayout)
@@ -1396,32 +1392,11 @@ void OmniDirectionalShadowMappingScene::createVertexBuffers()
 	for (size_t i = 0; i < model->meshes.size(); i++)
 	{
 		const Mesh mesh = model->meshes[i];
-		createVertexBuffer(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
+		createVertexBuffer<Vertex>(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
 	}
 */
-	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
-	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
-}
-
-void OmniDirectionalShadowMappingScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
-{
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
-
-	void* data;
-	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, vertices.data(), (size_t)bufferSize);
-	vkUnmapMemory(device, stagingBufferMemory);
-
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, device, physicalDevice);
-
-	copyBuffer(stagingBuffer, buffer, bufferSize);
-
-	vkDestroyBuffer(device, stagingBuffer, nullptr);
-	vkFreeMemory(device, stagingBufferMemory, nullptr);
+	createVertexBuffer<Vertex>(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
+	createVertexBuffer<Vertex>(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 }
 
 void OmniDirectionalShadowMappingScene::createIndexBuffer()

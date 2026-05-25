@@ -4,15 +4,60 @@
 #include <stdexcept>
 #include "../vulkanConfig.h"
 #include "../fileContext.h"
+#include <unordered_set>
+
+namespace std 
+{
+	template<> struct hash<VkVertexInputAttributeDescription>
+	{
+		size_t operator()(VkVertexInputAttributeDescription const& attribute) const
+		{
+			return ((hash<uint32_t>()(attribute.location) ^
+				(hash<uint32_t>()(attribute.binding) << 1)) >> 1) ^
+					(hash<uint32_t>()(static_cast<uint32_t>(attribute.format)) << 1) >> 1 ^
+(hash<uint32_t>()(attribute.offset)) ;
+		}
+	};
+};
+
+
+namespace std 
+{
+	template<> struct hash<VkVertexInputBindingDescription>
+	{
+		size_t operator()(VkVertexInputBindingDescription const& binding) const
+		{
+			return ((hash<uint32_t>()(binding.binding) ^
+				(hash<uint32_t>()(binding.stride) << 1)) >> 1) ^
+					(hash<uint32_t>()(static_cast<uint32_t>(binding.inputRate)) << 1);
+		}
+	};
+};
+
+inline bool operator ==(const VkVertexInputAttributeDescription& a, const VkVertexInputAttributeDescription& b)
+{
+	return a.location == b.location &&
+		a.binding == b.binding &&
+		a.format == b.format &&
+		a.offset == b.offset;		
+};
+
+inline bool operator ==(const VkVertexInputBindingDescription& a, const VkVertexInputBindingDescription& b)
+{
+	return a.binding == b.binding &&
+		a.stride == b.stride &&
+		a.inputRate == b.inputRate;		
+};
 
 class PipelineBuilder : private Builder
 {
 	
 	private: 
+	static inline int attributeDescriptionCounter{0};
 	Descriptor descriptor;
 	std::vector<ShaderContext> shaders;
-	VkVertexInputBindingDescription bindingDescription;
-	std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
+	std::unordered_set<VkVertexInputBindingDescription> bindingDescriptions;
+	std::unordered_set<VkVertexInputAttributeDescription> attributeDescriptions;
 	VkPrimitiveTopology primitiveTopology;
 	VkSampleCountFlagBits msaaSamples;
 	VkDescriptorSetLayout setLayouts;
@@ -99,21 +144,59 @@ class PipelineBuilder : private Builder
 		return *this;
 	};
 
-	PipelineBuilder& setBindingDescription(VkVertexInputBindingDescription description)
+	PipelineBuilder& setBindingDescription(uint32_t binding, size_t stride, VkVertexInputRate inputRate)
 	{
-		bindingDescription = description;
+		VkVertexInputBindingDescription bindingDescription{};
+    
+		bindingDescription.binding = binding;
+		bindingDescription.stride = stride;
+		bindingDescription.inputRate = inputRate;
+ 
+		bindingDescriptions.insert(std::move(bindingDescription));
 		return *this;
 	};
-	PipelineBuilder& setAttributeDescriptions(std::array<VkVertexInputAttributeDescription, 4> descriptions)
+
+	PipelineBuilder& setAttributeDescription(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset)
 	{
-		attributeDescriptions = descriptions;
+		VkVertexInputAttributeDescription attributeDescription;
+		attributeDescription.binding = binding;
+		attributeDescription.location = location;
+		attributeDescription.format = format;
+		attributeDescription.offset = offset;
+		attributeDescriptions.insert(std::move(attributeDescription));
 		return *this;
 	};
+
+	PipelineBuilder& clearBindingDescription(uint32_t binding, size_t stride, VkVertexInputRate inputRate)
+	{
+		VkVertexInputBindingDescription description{};
+    
+		description.binding = binding;
+		description.stride = stride;
+		description.inputRate = inputRate;
+ 
+		bindingDescriptions.erase(description);
+		return *this;
+	}
+
+	PipelineBuilder& clearAttributeDescription(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset)
+	{
+		VkVertexInputAttributeDescription description;
+		description.binding = binding;
+		description.location = location;
+		description.format = format;
+		description.offset = offset;
+
+		attributeDescriptions.erase(description);
+		return *this;
+	}
+
 	PipelineBuilder& setTopology(VkPrimitiveTopology topology)
 	{
 		primitiveTopology = topology;
 		return *this;
 	};
+
 	PipelineBuilder& setMSAASamples(VkSampleCountFlagBits samples)
 	{
 		msaaSamples = samples;
@@ -184,15 +267,15 @@ class PipelineBuilder : private Builder
 			shaderStages.push_back(shaderStageInfo);
 		}
 
-		auto bindingDescription = Vertex::getBindingDesciption();
-		auto attributeDescriptions = Vertex::getAttributeDescriptions();
+		std::vector<VkVertexInputBindingDescription> bindings{bindingDescriptions.begin(), bindingDescriptions.end()};
+		std::vector<VkVertexInputAttributeDescription> attributes{attributeDescriptions.begin(), attributeDescriptions.end()};
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindings.size());
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size());
+		vertexInputInfo.pVertexBindingDescriptions = bindings.data();
+		vertexInputInfo.pVertexAttributeDescriptions = attributes.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -289,7 +372,7 @@ class PipelineBuilder : private Builder
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = 2; // Two shader stages; vertex and fragment
+		pipelineInfo.stageCount = shaderStages.size(); // Two shader stages; vertex and fragment
 		pipelineInfo.pStages = shaderStages.data();
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
@@ -304,10 +387,12 @@ class PipelineBuilder : private Builder
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
+		std::cout << "build start\n";
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
+		std::cout << "build end\n";
 
 		//END
 

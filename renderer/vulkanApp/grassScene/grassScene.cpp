@@ -1,5 +1,6 @@
 #include "./grassScene.h"
 #include <iostream>
+#include <random>
 #include "../../../windowContext/GLFWWindowContext.h"
 #include "../../../particle.h"
 #include "../../../vulkanConfig.h"
@@ -52,6 +53,7 @@ void GrassScene::init(GLFWwindow* window)
 	//createTextureSamplers(modelSamplers);
 	createShaderStorageBuffers();
 	createVertexBuffers();
+	createInstanceBuffers();
 	createIndexBuffer();
 	createQuadIndexBuffer();
 	//createModelIndexBuffers();
@@ -733,6 +735,8 @@ void GrassScene::createPipelines()
        	allStagesUniformLayoutBinding,
 	specularUniformLayoutBinding,
 	samplerUniformLayoutBinding,
+	vertexLayoutBinding, 
+	vertexLayoutBinding 
 		};
 
 	std::vector<VkDescriptorType> shadowMapTypes = {
@@ -749,7 +753,9 @@ void GrassScene::createPipelines()
 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
 	};
 	
 	std::vector<VkDescriptorSetLayoutBinding> meshBindings = {
@@ -779,8 +785,11 @@ void GrassScene::createPipelines()
 	shadowMapPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowmapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowmapFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		.setAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0)
+		.setAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
+		.setAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8)
+		.setAttributeDescription(0, 3, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 12)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 		.setDescriptor(shadowMapBindings, shadowMapTypes, OBJECT_COUNT, device)
@@ -790,7 +799,7 @@ void GrassScene::createPipelines()
 	 	.setDepthTest(VK_TRUE)
 		.setDepthWrite(VK_TRUE)
 		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_FRONT_BIT)
+		.setCullMode(VK_CULL_MODE_NONE)
 		.setCullFace(VK_FRONT_FACE_CLOCKWISE)
 		.setRenderPass(shadowMapRenderPass)
 		.build(device);
@@ -803,16 +812,30 @@ void GrassScene::createPipelines()
 
 	primitivePipeline = 
 		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/primitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/primitiveFrag.spv"}})
+		.setShaderPaths(
+			{{VK_SHADER_STAGE_VERTEX_BIT, "shaders/grass/grassVert.spv"}, 
+			{VK_SHADER_STAGE_GEOMETRY_BIT, "shaders/grass/grassGeom.spv"},
+			{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/grass/grassFrag.spv"}})
+		.setBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+		.setAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
+		.setAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3)
+		.setAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 6)
+		.setAttributeDescription(1, 7, VK_FORMAT_R32_UINT, sizeof(float) * 7)
 		.setMSAASamples(msaaSamples)
+		.setCullMode(VK_CULL_MODE_NONE)
+		.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
 		.setDescriptor(primitiveBindings, primitiveTypes, OBJECT_COUNT, device)
 		.setRenderPass(renderPass)
 		.build(device);
 /*
 	shadowMapMeshPipeline = pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapMeshVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE) // Clear Attribute and Binding Descriptions. Don't think it's working...
+		.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
+		.clearAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
+		.clearAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 8)
+		.clearAttributeDescription(1, 7, VK_FORMAT_R32G32_UINT, sizeof(float) * 9)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 		.setDescriptorSetLayout(modelDescriptorSetLayout)
@@ -831,8 +854,12 @@ void GrassScene::createPipelines()
 	basePipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/vert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/frag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+		.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
+		.clearAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
+		.clearAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 8)
+		.clearAttributeDescription(1, 7, VK_FORMAT_R32_UINT, sizeof(float) * 9)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(descriptorSetLayout)
@@ -851,8 +878,7 @@ void GrassScene::createPipelines()
 	stencilPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/stencilVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/stencilFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(stencilDescriptorSetLayout)
@@ -871,8 +897,7 @@ void GrassScene::createPipelines()
 	lightPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/lightVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/lightFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(lightDescriptorSetLayout)
@@ -891,8 +916,7 @@ void GrassScene::createPipelines()
 	meshPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/meshVert.spv"},{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(modelDescriptorSetLayout)
@@ -911,8 +935,7 @@ void GrassScene::createPipelines()
 	cubemapPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/cubemapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/cubemapFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(msaaSamples)
 		.setDescriptorSetLayout(cubemapDescriptorSetLayout)
@@ -931,8 +954,7 @@ void GrassScene::createPipelines()
 	postProcessingPipeline = 
 		pipelineBuilder
 		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/postprocessingVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/postprocessingFrag.spv"}})
-		.setBindingDescription(Vertex::getBindingDesciption())
-		.setAttributeDescriptions(Vertex::getAttributeDescriptions())
+		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 		.setDescriptorSetLayout(postProcessingDescriptorSetLayout)
@@ -1390,6 +1412,33 @@ void GrassScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize
 	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
 }
 
+void GrassScene::createInstanceBuffers()
+{
+	std::random_device dev;
+	std::mt19937 rng(dev());
+	std::uniform_int_distribution<> dis(-10, 10);	
+	std::uniform_real_distribution<> rScale(0.1f, 1.f);	
+	std::uniform_int_distribution<> rRotation(0,180);	
+	instanceData.resize(MAX_INSTANCE_COUNT);
+
+	for(uint32_t i = 0; i < MAX_INSTANCE_COUNT; i++)
+	{
+		float scaleX = static_cast<float>(rScale(rng)); 
+		float scaleY = static_cast<float>(rScale(rng)); 
+		float scaleZ = static_cast<float>(rScale(rng)); 
+		float posX = static_cast<float>(dis(rng)); 
+		float posZ = static_cast<float>(dis(rng)); 
+		float rotation = static_cast<float>(rRotation(rng));
+		
+		instanceData[i].pos = glm::vec3(posX, 1.f, posZ);
+		instanceData[i].scale = glm::vec3(scaleX, scaleY, scaleZ);
+		instanceData[i].rot = static_cast<float>(rotation);
+		instanceData[i].id = i;
+	}
+
+	createVertexBuffer<InstanceData>(instanceData, instanceBuffer, instanceBufferMemory);
+}
+
 void GrassScene::createVertexBuffers()
 {
 	// TODO: move to own method
@@ -1403,27 +1452,6 @@ void GrassScene::createVertexBuffers()
 	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
 	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 	createVertexBuffer(triangleVertices, vertexTriangleBuffer, vertexTriangleBufferMemory);
-}
-
-void GrassScene::createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory)	
-{
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
-
-	void* data;
-	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, vertices.data(), (size_t)bufferSize);
-	vkUnmapMemory(device, stagingBufferMemory);
-
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, device, physicalDevice);
-
-	copyBuffer(stagingBuffer, buffer, bufferSize);
-
-	vkDestroyBuffer(device, stagingBuffer, nullptr);
-	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
 void GrassScene::createIndexBuffer()
@@ -1663,6 +1691,23 @@ void GrassScene::createShadowMapUniformBuffers()
 			vkMapMemory(device, shadowMapUniformBuffersMemory[j][i], 0, bufferSize, 0, &shadowMapUniformBuffersMapped[j][i]);
 
 		}
+	}
+}
+
+void GrassScene::createInstanceUniformBuffers()
+{
+	VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		instanceUniformBuffers.resize(OBJECT_COUNT);
+		instanceUniformBuffersMemory.resize(OBJECT_COUNT);
+		instanceUniformBuffersMapped.resize(OBJECT_COUNT);
+
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+		instanceUniformBuffers[i], instanceUniformBuffersMemory[i], device, physicalDevice);
+
+		vkMapMemory(device, instanceUniformBuffersMemory[i], 0, bufferSize, 0, &instanceUniformBuffersMapped[i]);
 	}
 }
 
@@ -2070,6 +2115,15 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[5].descriptorCount = 1;
 			descriptorWrites[5].pImageInfo = &shadowMapImageInfo;
+
+			descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[6].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[6].dstBinding = 6;
+			descriptorWrites[6].dstArrayElement = 0;
+			descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[6].descriptorCount = 1;
+			descriptorWrites[6].pBufferInfo = &bufferInfo;
+	
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -2570,6 +2624,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
 	VkBuffer vertexCubemapBuffers[] = { vertexCubemapBuffer };
 	VkBuffer vertexTriangleBuffers[] = { vertexTriangleBuffer };
+	VkBuffer instanceBuffers[] = { instanceBuffer };
 	VkDeviceSize offsets[] = { 0 };
 	
 	VkViewport viewport{};
@@ -2586,17 +2641,16 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < 1; j++)
 	{
 		shadowMapPrimitivePipeline.bind(commandBuffer);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::cubeIndices.size()), 1, 0, 0, 0);
-
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::triangleVertices.size()), 1, 0, 0);
 	}
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -2622,17 +2676,16 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < 1; j++)
 	{
 		primitivePipeline.bind(commandBuffer);
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
 
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::triangleVertices.size()), 1, 0, 0);
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::triangleVertices.size()), MAX_INSTANCE_COUNT, 0, 0);
 	}
 
 	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)
@@ -2772,7 +2825,7 @@ void GrassScene::updateUniformBuffer(uint32_t currentImage)
 		memcpy(modelLightUniformBuffersMapped[i][currentImage], &lights, sizeof(lights));
 	}
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < 1; j++)
 	{
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -2793,20 +2846,16 @@ void GrassScene::updateUniformBuffer(uint32_t currentImage)
 		);
 
 		glm::vec3 cubePosition = GrassScene::cubePositions[j];
-		glm::vec3 transformedPosition = glm::vec3(cubePosition.x + 2.f, cubePosition.y - 1.f, cubePosition.z);
+		glm::vec3 transformedPosition = glm::vec3(cubePosition.x, cubePosition.y, cubePosition.z);
 		//glm::vec3 transformedPosition = cubePosition;
 		ubom.model = glm::mat4(1.);
-		if (j == 0){
-		ubom.model = glm::translate(ubom.model, camera.cameraPos);
-		}
-		else
-		{
 
 		ubom.model = glm::translate(ubom.model, transformedPosition);
-		};
 		float angle = 20.f * j;
 
 		ubom.model = glm::rotate(ubom.model, glm::radians(angle), glm::vec3(1.f, 0.3f, 0.5f));
+
+		ubom.model = glm::scale(ubom.model, glm::vec3(10.));
 
 		ubom.view = camera.getViewMatrix();
 		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
@@ -2816,6 +2865,7 @@ void GrassScene::updateUniformBuffer(uint32_t currentImage)
 		ubom.fragColor = glm::vec3(0., 1., 1.);
 	
 		ubom.proj[1][1] *= -1;
+		ubom.deltaTime = glfwGetTime();
 
 		memcpy(primitiveUniformBuffersMapped[j][currentImage], &ubom, sizeof(ubom));
 

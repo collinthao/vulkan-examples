@@ -94,6 +94,11 @@ struct Light
 	alignas(4)float outerCutOff;
 };
 
+struct UniformInstance
+{
+	alignas(16) glm::vec3 offset;
+};
+
 struct UniformBufferObjectModel
 {
 	 alignas(16) glm::mat4 model;
@@ -102,7 +107,7 @@ struct UniformBufferObjectModel
 	 alignas(16) glm::mat4 lightSpaceMatrix;
 	 alignas(16) glm::vec3 fragColor;
 	 alignas(16) glm::vec3 cameraPos;
-	 alignas(4)  int matIndex;
+	 alignas(4)  float deltaTime;
 };
 
 struct UniformBufferObject
@@ -148,6 +153,7 @@ class GrassScene : public IVulkanApp
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	const int MAX_FRAMES_IN_FLIGHT = 2;
+	const int MAX_INSTANCE_COUNT = 2000;
 	VkQueue graphicsAndComputeQueue;
 	VkQueue presentQueue;
 	VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_8_BIT;
@@ -237,6 +243,9 @@ class GrassScene : public IVulkanApp
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	std::vector<VkFramebuffer> offScreenFramebuffers;
 
+	VkBuffer instanceBuffer;
+	VkDeviceMemory instanceBufferMemory;
+
 	VkBuffer vertexCubeBuffer;
 	VkBuffer vertexTriangleBuffer;
 	VkBuffer vertexCubemapBuffer;
@@ -248,6 +257,7 @@ class GrassScene : public IVulkanApp
 	std::vector<VkBuffer> cubemapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> modelUniformBuffers;
 	std::vector<std::vector<VkBuffer>> primitiveUniformBuffers;
+	std::vector<VkBuffer> instanceUniformBuffers;
 	std::vector<std::vector<VkBuffer>> shadowMapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> stencilUniformBuffers;
 	std::vector<std::vector<VkBuffer>> materialUniformBuffers;
@@ -260,6 +270,7 @@ class GrassScene : public IVulkanApp
 	std::vector<std::vector<VkDeviceMemory>> modelUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> materialUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> primitiveUniformBuffersMemory;
+	std::vector<VkDeviceMemory> instanceUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> shadowMapUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> stencilUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> lightUniformBuffersMemory;
@@ -271,6 +282,7 @@ class GrassScene : public IVulkanApp
 	std::vector<std::vector<void*>> modelUniformBuffersMapped;
 	std::vector<std::vector<void*>> materialUniformBuffersMapped;
 	std::vector<std::vector<void*>> primitiveUniformBuffersMapped;
+	std::vector<void*> instanceUniformBuffersMapped;
 	std::vector<std::vector<void*>> shadowMapUniformBuffersMapped;
 	std::vector<std::vector<void*>> stencilUniformBuffersMapped;
 	std::vector<std::vector<void*>> modelLightUniformBuffersMapped;
@@ -302,6 +314,7 @@ class GrassScene : public IVulkanApp
 	VkDeviceMemory quadIndexBufferMemory;
 
 	std::vector<Vertex> modelVertices;
+	std::vector<InstanceData> instanceData;
 	std::vector<uint32_t> indices;
 
 	std::vector<VkCommandBuffer> computeCommandBuffers;
@@ -374,7 +387,7 @@ class GrassScene : public IVulkanApp
 	void createShaderStorageBuffers();
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createVertexBuffers();
-	void createVertexBuffer(std::vector<Vertex> vertices, VkBuffer& buffer, VkDeviceMemory& memory);
+	void createInstanceBuffers();
 	void createIndexBuffer();
 	void createQuadIndexBuffer();
 	void createModelIndexBuffers();
@@ -385,6 +398,7 @@ class GrassScene : public IVulkanApp
 	void createShadowMapUniformBuffers();
 	void createCubemapUniformBuffers();
 	void createStencilUniformBuffers();
+	void createInstanceUniformBuffers();
 	void createMaterialUniformBuffers();
 	void createLightUniformBuffers();
 	void createModelLightUniformBuffers();
@@ -411,6 +425,29 @@ class GrassScene : public IVulkanApp
 	void recreateSwapChain(GLFWwindow * window);
 	void cleanupSwapChain();
 	void setDescriptorSetLayoutBindings();
+	
+	template <typename T = Vertex>
+	void createVertexBuffer(std::vector<T> vertices, VkBuffer& buffer, VkDeviceMemory& memory)
+	{
+		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+
+		void* data;
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, vertices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemory);
+
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, device, physicalDevice);
+
+		copyBuffer(stagingBuffer, buffer, bufferSize);
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+	};	
 
 	public:
 	GrassScene() = default;
@@ -589,9 +626,7 @@ class GrassScene : public IVulkanApp
 	};
 
 	static inline const std::vector<Vertex> triangleVertices = {
-		{{ -0.5f, -0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {.0, .0}},
-		{{  0.5f, -0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {1., 0.}}, 
-		{{  0.5f,  0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {1., 1.}}
+		{{ -0.5f, -0.5f, -0.5f},{ 0.5f, 0.5f, 0.5f},{ 0.0f,  0.0f, -1.0f}, {.0, .0}}
 	};
 
 	static inline const std::vector<uint32_t> cubeIndices = {
@@ -625,3 +660,4 @@ class GrassScene : public IVulkanApp
 	    6, 7, 4,
 	};
 };
+

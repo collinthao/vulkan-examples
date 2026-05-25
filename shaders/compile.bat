@@ -22,6 +22,7 @@ set GLSL_PATH=glslc.exe
 %GLSL_PATH% shadowmapMesh.vert -o shadowmapMeshVert.spv
 %GLSL_PATH% screenSpaceQuad.frag -o screenSpaceQuadFrag.spv
 %GLSL_PATH% screenSpaceQuad.vert -o screenSpaceQuadVert.spv
-%GLSL_PATH% grass/grass.vert -o grassVert.spv
-%GLSL_PATH% grass/grass.geom -o grassGeom.spv
+%GLSL_PATH% grass/grass.vert -o grass/grassVert.spv
+%GLSL_PATH% grass/grass.geom -o grass/grassGeom.spv
+%GLSL_PATH% grass/grass.frag -o grass/grassFrag.spv
 pause
