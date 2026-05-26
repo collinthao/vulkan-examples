@@ -1099,8 +1099,8 @@ void GrassScene::createShaderStorageBuffers()
 	uint32_t HEIGHT = GLFWWindowContext::getWindowHeight();
 
 	VkDeviceSize bufferSize = sizeof(Particle) * PARTICLE_COUNT;
-	shaderStorageBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	shaderStorageBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+	shaderStorageBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	shaderStorageBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	std::default_random_engine rndEngine((unsigned)time(nullptr));
 	std::uniform_real_distribution<float> rndDist(0.0f, 1.f);
@@ -1127,7 +1127,7 @@ void GrassScene::createShaderStorageBuffers()
 	memcpy(data, particles.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shaderStorageBuffers[i], shaderStorageBuffersMemory[i], device, physicalDevice);	
 	
@@ -1249,7 +1249,6 @@ void GrassScene::createModelIndexBuffers()
 
 void GrassScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
 {
-
 	VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
 
 	VkBuffer stagingBuffer;
@@ -1266,13 +1265,12 @@ void GrassScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffe
 	
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
-
 }
 
 void GrassScene::createUniformBuffers()
 {
 	createGraphicsUniformBuffers();
-	createPrimitiveUniformBuffers();
+	createGrassUniformBuffers();
 	createCubemapUniformBuffers();
 	createStencilUniformBuffers();
 	createMaterialUniformBuffers();
@@ -1293,11 +1291,11 @@ void GrassScene::createMaterialUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(Material);
 
-		materialUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		materialUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		materialUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		materialUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		materialUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		materialUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			materialUniformBuffers[j][i], materialUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1318,11 +1316,11 @@ void GrassScene::createLightObjectUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(PointLight);
 
-		lightObjectUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightObjectUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightObjectUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		lightObjectUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightObjectUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightObjectUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				lightObjectUniformBuffers[j][i], lightObjectUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1343,11 +1341,11 @@ void GrassScene::createModelLightUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(Lights);
 
-		modelLightUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelLightUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelLightUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		modelLightUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelLightUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelLightUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				modelLightUniformBuffers[j][i], modelLightUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1368,11 +1366,11 @@ void GrassScene::createLightUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(Lights);
 
-		lightUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		lightUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				lightUniformBuffers[j][i], lightUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1393,11 +1391,11 @@ void GrassScene::createStencilUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		stencilUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		stencilUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		stencilUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		stencilUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		stencilUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		stencilUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			stencilUniformBuffers[j][i], stencilUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1418,11 +1416,11 @@ void GrassScene::createShadowMapUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		shadowMapUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		shadowMapUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		shadowMapUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		shadowMapUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		shadowMapUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		shadowMapUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			shadowMapUniformBuffers[j][i], shadowMapUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1437,7 +1435,7 @@ void GrassScene::createInstanceUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		instanceUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
 		instanceUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
@@ -1450,26 +1448,26 @@ void GrassScene::createInstanceUniformBuffers()
 	}
 }
 
-void GrassScene::createPrimitiveUniformBuffers()
+void GrassScene::createGrassUniformBuffers()
 {
-	primitiveUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
-	primitiveUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
-	primitiveUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
+	grassUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	grassUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	grassUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		primitiveUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		primitiveUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		primitiveUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		grassUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		grassUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		grassUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			primitiveUniformBuffers[j][i], primitiveUniformBuffersMemory[j][i], device, physicalDevice);
+			grassUniformBuffers[j][i], grassUniformBuffersMemory[j][i], device, physicalDevice);
 
-			vkMapMemory(device, primitiveUniformBuffersMemory[j][i], 0, bufferSize, 0, &primitiveUniformBuffersMapped[j][i]);
+			vkMapMemory(device, grassUniformBuffersMemory[j][i], 0, bufferSize, 0, &grassUniformBuffersMapped[j][i]);
 
 		}
 	}
@@ -1485,11 +1483,11 @@ void GrassScene::createModelUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		modelUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		modelUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				modelUniformBuffers[j][i], modelUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1505,11 +1503,11 @@ void GrassScene::createCubemapUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	cubemapUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	cubemapUniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	cubemapUniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+	cubemapUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			cubemapUniformBuffers[i], cubemapUniformBuffersMemory[i], device, physicalDevice);
@@ -1523,11 +1521,11 @@ void GrassScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			uniformBuffers[i], uniformBuffersMemory[i], device, physicalDevice);
@@ -1546,15 +1544,15 @@ void GrassScene::createComputeDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolInfo.maxSets = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &computeDescriptorPool) != VK_SUCCESS)
 	{
@@ -1566,7 +1564,7 @@ void GrassScene::createComputeDescriptorPool()
 void GrassScene::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
-	createPrimitiveDescriptorSets();
+	createGrassDescriptorSets();
 	createShadowMapDescriptorSets();
 	createStencilDescriptorSets();
 	//createModelDescriptorSets();
@@ -1583,20 +1581,20 @@ void GrassScene::createLightDescriptorSets()
 
 	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, lightPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::lightPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = lightPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::lightPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		lightDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		lightDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, lightDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = lightObjectUniformBuffers[j][i];
@@ -1624,20 +1622,20 @@ void GrassScene::createStencilDescriptorSets()
 
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, stencilPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::stencilPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = stencilPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::stencilPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		stencilDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		stencilDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, stencilDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = stencilUniformBuffers[j][i];
@@ -1664,23 +1662,23 @@ void GrassScene::createShadowMapDescriptorSets()
 
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, shadowMapPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::shadowMapPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = shadowMapPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::shadowMapPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		shadowMapDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		shadowMapDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, shadowMapDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = primitiveUniformBuffers[j][i];
+			bufferInfo.buffer = grassUniformBuffers[j][i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObjectModel);
 
@@ -1704,10 +1702,10 @@ void GrassScene::createShadowMapDescriptorSets()
 			specularImageInfo.imageView = specularImageView;
 			specularImageInfo.sampler = specularSampler;
 
-			VkDescriptorImageInfo primitiveImageInfo{};
-			primitiveImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-			primitiveImageInfo.imageView = shadowMapImageViews[i];
-			primitiveImageInfo.sampler = textureSampler;
+			VkDescriptorImageInfo grassImageInfo{};
+			grassImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			grassImageInfo.imageView = shadowMapImageViews[i];
+			grassImageInfo.sampler = textureSampler;
 
 			std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1755,29 +1753,29 @@ void GrassScene::createShadowMapDescriptorSets()
 	}
 }
 
-void GrassScene::createPrimitiveDescriptorSets()
+void GrassScene::createGrassDescriptorSets()
 {
-	primitiveDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
+	grassDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, primitivePipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::grassPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = primitivePipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::grassPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		primitiveDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
-		if (vkAllocateDescriptorSets(device, &allocInfo, primitiveDescriptorSets[j].data()) != VK_SUCCESS)
+		grassDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		if (vkAllocateDescriptorSets(device, &allocInfo, grassDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = primitiveUniformBuffers[j][i];
+			bufferInfo.buffer = grassUniformBuffers[j][i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObjectModel);
 
@@ -1808,7 +1806,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 
 			std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[0].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1816,7 +1814,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 	
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[1].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1824,7 +1822,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[1].pBufferInfo = &materialsBufferInfo;
 		
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[2].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[2].dstBinding = 2;
 			descriptorWrites[2].dstArrayElement = 0;
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1832,7 +1830,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[2].pImageInfo = &imageInfo;
 
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[3].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[3].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[3].dstBinding = 3;
 			descriptorWrites[3].dstArrayElement = 0;
 			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1840,7 +1838,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[3].pBufferInfo = &lightBufferInfo;
 			
 			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[4].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[4].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[4].dstBinding = 4;
 			descriptorWrites[4].dstArrayElement = 0;
 			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1848,7 +1846,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[4].pImageInfo = &specularImageInfo;
 
 			descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[5].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[5].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[5].dstBinding = 5;
 			descriptorWrites[5].dstArrayElement = 0;
 			descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1856,7 +1854,7 @@ void GrassScene::createPrimitiveDescriptorSets()
 			descriptorWrites[5].pImageInfo = &shadowMapImageInfo;
 
 			descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[6].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[6].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[6].dstBinding = 6;
 			descriptorWrites[6].dstArrayElement = 0;
 			descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1874,20 +1872,20 @@ void GrassScene::createModelDescriptorSets()
 	modelDescriptorSets.resize(VulkanConfig::MESH_COUNT);
 	for (size_t j = 0; j < VulkanConfig::MESH_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, meshPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::meshPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = meshPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::meshPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		modelDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		modelDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, modelDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = modelUniformBuffers[j][i];
@@ -1949,20 +1947,21 @@ void GrassScene::createModelDescriptorSets()
 
 void GrassScene::createCubemapDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, cubemapPipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::cubemapPipeline.descriptor.layout);
+
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = cubemapPipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::cubemapPipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	cubemapDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	cubemapDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, cubemapDescriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1999,21 +1998,21 @@ void GrassScene::createCubemapDescriptorSets()
 
 void GrassScene::createShadowMapScreenSpaceQuadDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, screenSpacePipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::screenSpacePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = screenSpacePipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::screenSpacePipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	screenSpaceDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	screenSpaceDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, screenSpaceDescriptorSets.data()) != VK_SUCCESS)
 	{
 		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo shadowMapImageInfo{};
 		shadowMapImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
@@ -2036,14 +2035,14 @@ void GrassScene::createShadowMapScreenSpaceQuadDescriptorSets()
 
 void GrassScene::createPostProcessingDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, postProcessingPipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::postProcessingPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = postProcessingPipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::postProcessingPipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	postProcessingDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	postProcessingDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	std::cout << "Creating pipelines\n";
 	if (vkAllocateDescriptorSets(device, &allocInfo, postProcessingDescriptorSets.data()) != VK_SUCCESS)
 	{
@@ -2051,7 +2050,7 @@ void GrassScene::createPostProcessingDescriptorSets()
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2073,20 +2072,20 @@ void GrassScene::createPostProcessingDescriptorSets()
 
 void GrassScene::createGraphicsDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, basePipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::basePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = basePipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::basePipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	descriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = uniformBuffers[i];
@@ -2122,19 +2121,19 @@ void GrassScene::createGraphicsDescriptorSets()
 
 void GrassScene::createComputeDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = computeDescriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	computeDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, computeDescriptorSets.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}	
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo uniformBufferInfo{};
 		uniformBufferInfo.buffer = uniformBuffers[i];
@@ -2144,7 +2143,7 @@ void GrassScene::createComputeDescriptorSets()
 		std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
 		VkDescriptorBufferInfo storageBufferInfoLastFrame{};
-		storageBufferInfoLastFrame.buffer = shaderStorageBuffers[(i - 1) % MAX_FRAMES_IN_FLIGHT];
+		storageBufferInfoLastFrame.buffer = shaderStorageBuffers[(i - 1) % VulkanConfig::MAX_FRAMES_IN_FLIGHT];
 		storageBufferInfoLastFrame.offset = 0;
 		storageBufferInfoLastFrame.range = sizeof(Particle) * PARTICLE_COUNT;
 
@@ -2183,7 +2182,7 @@ void GrassScene::createComputeDescriptorSets()
 
 void GrassScene::createComputeCommandBuffers()
 {
-	computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	computeCommandBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -2199,11 +2198,11 @@ void GrassScene::createComputeCommandBuffers()
 
 void GrassScene::createSyncObjects()
 {
-	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	computeFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	computeInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+	imageAvailableSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	renderFinishedSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	computeFinishedSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	computeInFlightFences.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	inFlightFences.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -2212,7 +2211,7 @@ void GrassScene::createSyncObjects()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
@@ -2321,7 +2320,7 @@ void GrassScene::drawFrame(GLFWwindow * window)
 		throw std::runtime_error("failed to present swap chain image!");
 	}
 
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	currentFrame = (currentFrame + 1) % VulkanConfig::MAX_FRAMES_IN_FLIGHT;
 
 	double currentTime = glfwGetTime();
 	lastFrameTime = (currentTime - lastTime);
@@ -2358,7 +2357,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	// SHADOW MAP PASS
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	basePipeline.bind(commandBuffer);
+	Pipelines::basePipeline.bind(commandBuffer);
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
 	VkBuffer vertexCubemapBuffers[] = { vertexCubemapBuffer };
@@ -2382,8 +2381,8 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	for (size_t j = 0; j < 1; j++)
 	{
-		shadowMapPrimitivePipeline.bind(commandBuffer);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
+		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2409,19 +2408,19 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	basePipeline.bind(commandBuffer);
+	Pipelines::basePipeline.bind(commandBuffer);
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
 	for (size_t j = 0; j < 1; j++)
 	{
-		primitivePipeline.bind(commandBuffer);
+		Pipelines::grassPipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::grassPipeline.getLayout(), 0, 1, &grassDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
 		vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
@@ -2431,9 +2430,9 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
 	{
-		lightPipeline.bind(commandBuffer);
+		Pipelines::lightPipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightPipeline.getLayout(), 0, 1, &lightDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::lightPipeline.getLayout(), 0, 1, &lightDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2442,9 +2441,9 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::cubeIndices.size()), 1, 0, 0, 0);
 	}
 
-	cubemapPipeline.bind(commandBuffer);
+	Pipelines::cubemapPipeline.bind(commandBuffer);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
 
@@ -2454,9 +2453,9 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 
 // DEBUG FOR SHADOWMAP
-/*	screenSpacePipeline.bind(commandBuffer);
+/*	Pipelines::screenSpacePipeline.bind(commandBuffer);
 		
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2472,9 +2471,9 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	postProcessingPipeline.bind(commandBuffer);
+	Pipelines::postProcessingPipeline.bind(commandBuffer);
 	
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, postProcessingPipeline.getLayout(), 0, 1, &postProcessingDescriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::postProcessingPipeline.getLayout(), 0, 1, &postProcessingDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2608,7 +2607,7 @@ void GrassScene::updateUniformBuffer(uint32_t currentImage)
 		ubom.proj[1][1] *= -1;
 		ubom.deltaTime = glfwGetTime();
 
-		memcpy(primitiveUniformBuffersMapped[j][currentImage], &ubom, sizeof(ubom));
+		memcpy(grassUniformBuffersMapped[j][currentImage], &ubom, sizeof(ubom));
 
 		// STENCIL
 		ubom.model = glm::scale(ubom.model, glm::vec3(1.1));
@@ -2709,7 +2708,7 @@ void GrassScene::recreateSwapChain(GLFWwindow * window)
 	createShadowMapResources();
 
 	//TODO: move to own function eventually
-for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2796,7 +2795,7 @@ void GrassScene::cleanup(GLFWwindow * window)
 	vkDestroyImage(device, textureImage, nullptr);
 	vkFreeMemory(device, textureImageMemory, nullptr);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
@@ -2816,7 +2815,7 @@ void GrassScene::cleanup(GLFWwindow * window)
 		vkFreeMemory(device, vertexBufferMemories[i], nullptr);
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
 		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);

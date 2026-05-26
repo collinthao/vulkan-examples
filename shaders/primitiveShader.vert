@@ -8,6 +8,7 @@ mat4 proj;
 mat4 lightSpaceMatrix;
 vec3 fragColor;
 vec3 cameraPos;
+float deltaTime;
 } ubom;
 
 layout(location = 0) in vec3 inPosition;

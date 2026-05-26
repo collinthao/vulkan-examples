@@ -152,7 +152,6 @@ class GrassScene : public IVulkanApp
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	const int MAX_FRAMES_IN_FLIGHT = 2;
 	const int MAX_INSTANCE_COUNT = 100000;
 	VkQueue graphicsAndComputeQueue;
 	VkQueue presentQueue;
@@ -180,7 +179,7 @@ class GrassScene : public IVulkanApp
 	VkSampler textureSampler;
 	VkSampler shadowSampler;
 	VkDescriptorSetLayout descriptorSetLayout;
-	VkDescriptorSetLayout primitiveDescriptorSetLayout;
+	VkDescriptorSetLayout grassDescriptorSetLayout;
 	VkDescriptorSetLayout stencilDescriptorSetLayout;
 	VkDescriptorSetLayout modelDescriptorSetLayout;
 	VkDescriptorSetLayout computeDescriptorSetLayout;
@@ -197,9 +196,9 @@ class GrassScene : public IVulkanApp
 
 	VkPipelineLayout computePipelineLayout;
 
-	Pipeline primitivePipeline; 
+	Pipeline grassPipeline; 
 	Pipeline shadowMapPipeline; 
-	Pipeline shadowMapPrimitivePipeline; 
+	Pipeline shadowMapGrassPipeline; 
 	Pipeline shadowMapMeshPipeline; 
 	Pipeline basePipeline; 
 	Pipeline stencilPipeline;
@@ -258,7 +257,7 @@ class GrassScene : public IVulkanApp
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkBuffer> cubemapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> modelUniformBuffers;
-	std::vector<std::vector<VkBuffer>> primitiveUniformBuffers;
+	std::vector<std::vector<VkBuffer>> grassUniformBuffers;
 	std::vector<VkBuffer> instanceUniformBuffers;
 	std::vector<std::vector<VkBuffer>> shadowMapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> stencilUniformBuffers;
@@ -271,7 +270,7 @@ class GrassScene : public IVulkanApp
 	std::vector<VkDeviceMemory> cubemapUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> modelUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> materialUniformBuffersMemory;
-	std::vector<std::vector<VkDeviceMemory>> primitiveUniformBuffersMemory;
+	std::vector<std::vector<VkDeviceMemory>> grassUniformBuffersMemory;
 	std::vector<VkDeviceMemory> instanceUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> shadowMapUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> stencilUniformBuffersMemory;
@@ -283,7 +282,7 @@ class GrassScene : public IVulkanApp
 	std::vector<void*> cubemapUniformBuffersMapped;
 	std::vector<std::vector<void*>> modelUniformBuffersMapped;
 	std::vector<std::vector<void*>> materialUniformBuffersMapped;
-	std::vector<std::vector<void*>> primitiveUniformBuffersMapped;
+	std::vector<std::vector<void*>> grassUniformBuffersMapped;
 	std::vector<void*> instanceUniformBuffersMapped;
 	std::vector<std::vector<void*>> shadowMapUniformBuffersMapped;
 	std::vector<std::vector<void*>> stencilUniformBuffersMapped;
@@ -299,7 +298,7 @@ class GrassScene : public IVulkanApp
 	std::vector<VkDescriptorSet> cubemapDescriptorSets;
 	std::vector<VkDescriptorSet> computeDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> modelDescriptorSets;
-	std::vector<std::vector<VkDescriptorSet>> primitiveDescriptorSets;
+	std::vector<std::vector<VkDescriptorSet>> grassDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> shadowMapDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> stencilDescriptorSets;
 	std::vector<std::vector<VkDescriptorSet>> lightDescriptorSets;
@@ -393,7 +392,7 @@ class GrassScene : public IVulkanApp
 	void createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory);
 	void createUniformBuffers();
 	void createGraphicsUniformBuffers();
-	void createPrimitiveUniformBuffers();
+	void createGrassUniformBuffers();
 	void createShadowMapUniformBuffers();
 	void createCubemapUniformBuffers();
 	void createStencilUniformBuffers();
@@ -407,7 +406,7 @@ class GrassScene : public IVulkanApp
 	void createDescriptorSets();
 	void createDescriptorPools();
 	void createGraphicsDescriptorSets();
-	void createPrimitiveDescriptorSets();
+	void createGrassDescriptorSets();
 	void createShadowMapDescriptorSets();
 	void createShadowMapScreenSpaceQuadDescriptorSets();
 	void createStencilDescriptorSets();

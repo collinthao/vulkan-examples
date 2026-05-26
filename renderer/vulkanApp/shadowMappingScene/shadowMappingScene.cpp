@@ -176,8 +176,8 @@ void ShadowMappingScene::pickPhysicalDevice()
 	if (candidates.rbegin()->first > 0)
 	{
 		physicalDevice = candidates.rbegin()->second;
-		msaaSamples = getMaxUsableSampleCount();
-		//msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+		VulkanConfig::msaaSamples = getMaxUsableSampleCount();
+		//VulkanConfig::msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	}
 	else
 	{
@@ -513,7 +513,7 @@ void ShadowMappingScene::createShadowMapRenderPass()
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependency.data();
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &shadowMapRenderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.shadowMapRenderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -523,7 +523,7 @@ void ShadowMappingScene::createRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
-	colorAttachment.samples = msaaSamples; 
+	colorAttachment.samples = VulkanConfig::msaaSamples; 
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -544,7 +544,7 @@ void ShadowMappingScene::createRenderPass()
 	VkAttachmentDescription depthAttachment{};
 	//depthAttachment.format = findDepthFormat();
 	depthAttachment.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
-	depthAttachment.samples = msaaSamples; 
+	depthAttachment.samples = VulkanConfig::msaaSamples; 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -597,7 +597,7 @@ void ShadowMappingScene::createRenderPass()
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependency.data();
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -644,7 +644,7 @@ void ShadowMappingScene::createPostProcessingRenderPass()
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &postProcessingRenderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.postProcessingRenderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -717,243 +717,7 @@ void ShadowMappingScene::createComputeDescriptorSetLayout()
 
 void ShadowMappingScene::createPipelines()
 {
-	//std::vector<VkDescriptorType> primitiveTypes{VK_DESCRIPTOR};
-	std::vector<VkDescriptorSetLayoutBinding> shadowMapBindings = {
-	vertexLayoutBinding, 
-	fragmentLayoutBinding, 
-	samplerUniformLayoutBinding,
-       	allStagesUniformLayoutBinding,
-	specularUniformLayoutBinding,
-		};
-
-
-	std::vector<VkDescriptorSetLayoutBinding> primitiveBindings = {
-	vertexLayoutBinding, 
-	fragmentLayoutBinding, 
-	samplerUniformLayoutBinding,
-       	allStagesUniformLayoutBinding,
-	specularUniformLayoutBinding,
-	samplerUniformLayoutBinding,
-		};
-
-	std::vector<VkDescriptorType> shadowMapTypes = {
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	};
-
-	std::vector<VkDescriptorType> primitiveTypes = {
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-	};
-	
-	std::vector<VkDescriptorSetLayoutBinding> meshBindings = {
-	vertexLayoutBinding, 
-	samplerUniformLayoutBinding,
-	vertexLayoutBinding,
-	samplerUniformLayoutBinding,
-		};
-
-	std::vector<VkDescriptorType> meshTypes = {
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-	};
-
-	std::vector<VkDescriptorSetLayoutBinding> cubemapBindings = {
-	samplerUniformLayoutBinding,
-	vertexLayoutBinding
-		};
-
-	std::vector<VkDescriptorType> cubemapTypes = {
-		VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	};
-
-	shadowMapPipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowmapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowmapFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0)
-		.setAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3)
-		.setAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 6)
-		.setAttributeDescription(0, 3, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 8)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
-		.setDescriptor(shadowMapBindings, shadowMapTypes, OBJECT_COUNT, device)
-		.setStencilTest(VK_TRUE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_TRUE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_FRONT_BIT)
-		.setCullFace(VK_FRONT_FACE_CLOCKWISE)
-		.setRenderPass(shadowMapRenderPass)
-		.build(device);
-
-	shadowMapPrimitivePipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapPrimitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/shadowMapPrimitiveFrag.spv"}})
-		.setRenderPass(shadowMapRenderPass)
-		.build(device);
-
-	primitivePipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/primitiveVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/primitiveFrag.spv"}})
-		.setMSAASamples(msaaSamples)
-		.setDescriptor(primitiveBindings, primitiveTypes, OBJECT_COUNT, device)
-		.setRenderPass(renderPass)
-		.build(device);
-/*
-	shadowMapMeshPipeline = pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapMeshVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
-		.setDescriptorSetLayout(modelDescriptorSetLayout)
-		.setDescriptor(meshBindings, meshTypes, MESH_COUNT, device)
-		.setStencilTest(VK_FALSE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_TRUE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_BACK_BIT)
-		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-		.setRenderPass(shadowMapRenderPass)
-		.build(device);
-*/
-	basePipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/vert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/frag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
-		.setMSAASamples(msaaSamples)
-		.setDescriptorSetLayout(descriptorSetLayout)
-		.setDescriptor({vertexLayoutBinding, samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
-		.setStencilTest(VK_TRUE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_TRUE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_NONE)
-		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-		.setRenderPass(renderPass)
-		.build(device);
-
-	stencilPipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/stencilVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/stencilFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(msaaSamples)
-		.setDescriptorSetLayout(stencilDescriptorSetLayout)
-		.setDescriptor({vertexLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, OBJECT_COUNT, device)
-		.setStencilTest(VK_TRUE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_NOT_EQUAL)	
-		.setStencilWriteMask(0x00)	
-	 	.setDepthTest(VK_FALSE)
-		.setDepthWrite(VK_FALSE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_NONE)
-		.setCullFace(VK_FRONT_FACE_CLOCKWISE)
-		.setRenderPass(renderPass)
-		.build(device);
-
-	lightPipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/lightVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/lightFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(msaaSamples)
-		.setDescriptorSetLayout(lightDescriptorSetLayout)
-		.setDescriptor({vertexLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, MAX_POINT_LIGHTS, device)
-		.setStencilTest(VK_TRUE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_TRUE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_NONE)
-		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-		.setRenderPass(renderPass)
-		.build(device);
-/*
-	meshPipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/meshVert.spv"},{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(msaaSamples)
-		.setDescriptorSetLayout(modelDescriptorSetLayout)
-		.setDescriptor(meshBindings, meshTypes, MESH_COUNT, device)
-		.setStencilTest(VK_FALSE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_TRUE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_BACK_BIT)
-		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-		.setRenderPass(renderPass)
-		.build(device);
-*/
-	cubemapPipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/cubemapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/cubemapFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(msaaSamples)
-		.setDescriptorSetLayout(cubemapDescriptorSetLayout)
-		.setDescriptor(cubemapBindings, cubemapTypes, 1,device)
-		.setStencilTest(VK_FALSE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_TRUE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL)
-		.setCullMode(VK_CULL_MODE_NONE)
-		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-		.setRenderPass(renderPass)
-		.build(device);
-
-	postProcessingPipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/postprocessingVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/postprocessingFrag.spv"}})
-		.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-		.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-		.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
-		.setDescriptorSetLayout(postProcessingDescriptorSetLayout)
-		.setDescriptor({samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
-		.setStencilTest(VK_FALSE)
-		.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
-		.setStencilWriteMask(0xFF)	
-	 	.setDepthTest(VK_FALSE)
-		.setDepthWrite(VK_TRUE)
-		.setDepthCompareOp(VK_COMPARE_OP_LESS)
-		.setCullMode(VK_CULL_MODE_NONE)
-		.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-		.setRenderPass(postProcessingRenderPass)
-		.build(device);
-
-	screenSpacePipeline = 
-		pipelineBuilder
-		.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/screenSpaceQuadVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/screenSpaceQuadFrag.spv"}})
-		.setMSAASamples(msaaSamples)
-		.setDescriptorSetLayout(screenSpaceDescriptorSetLayout)
-		.setDescriptor({samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
-		.setRenderPass(renderPass)
-		.build(device);
-
+	Pipelines::createPipelines(device, renderPasses);
 	createComputePipeline();
 }
 
@@ -1044,7 +808,7 @@ void ShadowMappingScene::createColorResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 	
-	Image::create(VulkanConfig::swapChainExtent.width,VulkanConfig::swapChainExtent.height, 1, 1,0, VK_IMAGE_TYPE_2D, msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory, VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
+	Image::create(VulkanConfig::swapChainExtent.width,VulkanConfig::swapChainExtent.height, 1, 1,0, VK_IMAGE_TYPE_2D, VulkanConfig::msaaSamples, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory, VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
 	colorImageView = Image::createView(colorImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
@@ -1053,7 +817,7 @@ void ShadowMappingScene::createDepthResources()
 	//VkFormat depthFormat = findDepthFormat();
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 	Image::create(VulkanConfig::swapChainExtent.width, VulkanConfig::swapChainExtent.height, 1, 1,0, VK_IMAGE_TYPE_2D,
-msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory, VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
+VulkanConfig::msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory, VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
 
 	depthImageView = Image::createView(depthImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
@@ -1072,7 +836,7 @@ void ShadowMappingScene::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = shadowMapRenderPass;
+		framebufferInfo.renderPass = renderPasses.shadowMapRenderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -1096,7 +860,7 @@ void ShadowMappingScene::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;
+		framebufferInfo.renderPass = renderPasses.renderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -1118,7 +882,7 @@ void ShadowMappingScene::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = postProcessingRenderPass;
+		framebufferInfo.renderPass = renderPasses.postProcessingRenderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -1139,7 +903,7 @@ void ShadowMappingScene::createModel()
 	model = new Model(MODEL_PATH);
 	vertexBuffers.resize(model->meshes.size());	
 	vertexBufferMemories.resize(model->meshes.size());	
-	MESH_COUNT = model->meshes.size();
+	VulkanConfig::MESH_COUNT = model->meshes.size();
 }
 
 void ShadowMappingScene::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
@@ -1251,12 +1015,12 @@ void ShadowMappingScene::createTextureSampler(VkSampler& sampler)
 void ShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
 {
 	// TODO: move to getTextureCount later, maybe
-	images.resize(MESH_COUNT);
-	imageMemories.resize(MESH_COUNT);
-	modelSamplers.resize(MESH_COUNT);
-	modelImageViews.resize(MESH_COUNT);
+	images.resize(VulkanConfig::MESH_COUNT);
+	imageMemories.resize(VulkanConfig::MESH_COUNT);
+	modelSamplers.resize(VulkanConfig::MESH_COUNT);
+	modelImageViews.resize(VulkanConfig::MESH_COUNT);
 
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		if (model->meshes[i].textures.empty())
 		{
@@ -1271,7 +1035,7 @@ void ShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::
 
 void ShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
 {
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		imageViews[i] = Image::createView(images[i], imageViews[i], VK_IMAGE_VIEW_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, Image::mipLevels, 1, device, graphicsAndComputeQueue);
 	}
@@ -1279,7 +1043,7 @@ void ShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, s
 
 void ShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
 {
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		Image::Texture::Sampler::createTextureSampler(samplers[i], device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	}
@@ -1336,8 +1100,8 @@ void ShadowMappingScene::createShaderStorageBuffers()
 	uint32_t HEIGHT = GLFWWindowContext::getWindowHeight();
 
 	VkDeviceSize bufferSize = sizeof(Particle) * PARTICLE_COUNT;
-	shaderStorageBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	shaderStorageBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+	shaderStorageBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	shaderStorageBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	std::default_random_engine rndEngine((unsigned)time(nullptr));
 	std::uniform_real_distribution<float> rndDist(0.0f, 1.f);
@@ -1364,7 +1128,7 @@ void ShadowMappingScene::createShaderStorageBuffers()
 	memcpy(data, particles.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shaderStorageBuffers[i], shaderStorageBuffersMemory[i], device, physicalDevice);	
 	
@@ -1447,10 +1211,10 @@ void ShadowMappingScene::createQuadIndexBuffer()
 
 void ShadowMappingScene::createModelIndexBuffers()
 {
-	indexModelBuffers.resize(MESH_COUNT);
-	indexModelBufferMemories.resize(MESH_COUNT);
+	indexModelBuffers.resize(VulkanConfig::MESH_COUNT);
+	indexModelBufferMemories.resize(VulkanConfig::MESH_COUNT);
 
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		createModelIndexBuffer(model->meshes[i].indices, indexModelBuffers[i], indexModelBufferMemories[i]);
 	}
@@ -1494,19 +1258,19 @@ void ShadowMappingScene::createUniformBuffers()
 
 void ShadowMappingScene::createMaterialUniformBuffers()
 {
-	materialUniformBuffers.resize(OBJECT_COUNT);
-	materialUniformBuffersMemory.resize(OBJECT_COUNT);
-	materialUniformBuffersMapped.resize(OBJECT_COUNT);
+	materialUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	materialUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	materialUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(Material);
 
-		materialUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		materialUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		materialUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		materialUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		materialUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		materialUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			materialUniformBuffers[j][i], materialUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1519,19 +1283,19 @@ void ShadowMappingScene::createMaterialUniformBuffers()
 
 void ShadowMappingScene::createLightObjectUniformBuffers()
 {
-	lightObjectUniformBuffers.resize(MAX_POINT_LIGHTS);
-	lightObjectUniformBuffersMemory.resize(MAX_POINT_LIGHTS);
-	lightObjectUniformBuffersMapped.resize(MAX_POINT_LIGHTS);
+	lightObjectUniformBuffers.resize(VulkanConfig::MAX_POINT_LIGHTS);
+	lightObjectUniformBuffersMemory.resize(VulkanConfig::MAX_POINT_LIGHTS);
+	lightObjectUniformBuffersMapped.resize(VulkanConfig::MAX_POINT_LIGHTS);
 
-	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)
+	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(PointLight);
 
-		lightObjectUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightObjectUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightObjectUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		lightObjectUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightObjectUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightObjectUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				lightObjectUniformBuffers[j][i], lightObjectUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1544,19 +1308,19 @@ void ShadowMappingScene::createLightObjectUniformBuffers()
 
 void ShadowMappingScene::createModelLightUniformBuffers()
 {
-	modelLightUniformBuffers.resize(MESH_COUNT);
-	modelLightUniformBuffersMemory.resize(MESH_COUNT);
-	modelLightUniformBuffersMapped.resize(MESH_COUNT);
+	modelLightUniformBuffers.resize(VulkanConfig::MESH_COUNT);
+	modelLightUniformBuffersMemory.resize(VulkanConfig::MESH_COUNT);
+	modelLightUniformBuffersMapped.resize(VulkanConfig::MESH_COUNT);
 
-	for (size_t j = 0; j < MESH_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::MESH_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(Lights);
 
-		modelLightUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelLightUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelLightUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		modelLightUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelLightUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelLightUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				modelLightUniformBuffers[j][i], modelLightUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1569,19 +1333,19 @@ void ShadowMappingScene::createModelLightUniformBuffers()
 
 void ShadowMappingScene::createLightUniformBuffers()
 {
-	lightUniformBuffers.resize(OBJECT_COUNT);
-	lightUniformBuffersMemory.resize(OBJECT_COUNT);
-	lightUniformBuffersMapped.resize(OBJECT_COUNT);
+	lightUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	lightUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	lightUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(Lights);
 
-		lightUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		lightUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		lightUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		lightUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				lightUniformBuffers[j][i], lightUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1594,19 +1358,19 @@ void ShadowMappingScene::createLightUniformBuffers()
 
 void ShadowMappingScene::createStencilUniformBuffers()
 {
-	stencilUniformBuffers.resize(OBJECT_COUNT);
-	stencilUniformBuffersMemory.resize(OBJECT_COUNT);
-	stencilUniformBuffersMapped.resize(OBJECT_COUNT);
+	stencilUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	stencilUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	stencilUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		stencilUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		stencilUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		stencilUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		stencilUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		stencilUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		stencilUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			stencilUniformBuffers[j][i], stencilUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1619,19 +1383,19 @@ void ShadowMappingScene::createStencilUniformBuffers()
 
 void ShadowMappingScene::createShadowMapUniformBuffers()
 {
-	shadowMapUniformBuffers.resize(OBJECT_COUNT);
-	shadowMapUniformBuffersMemory.resize(OBJECT_COUNT);
-	shadowMapUniformBuffersMapped.resize(OBJECT_COUNT);
+	shadowMapUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	shadowMapUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	shadowMapUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		shadowMapUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		shadowMapUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		shadowMapUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		shadowMapUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		shadowMapUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		shadowMapUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			shadowMapUniformBuffers[j][i], shadowMapUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1644,19 +1408,19 @@ void ShadowMappingScene::createShadowMapUniformBuffers()
 
 void ShadowMappingScene::createPrimitiveUniformBuffers()
 {
-	primitiveUniformBuffers.resize(OBJECT_COUNT);
-	primitiveUniformBuffersMemory.resize(OBJECT_COUNT);
-	primitiveUniformBuffersMapped.resize(OBJECT_COUNT);
+	primitiveUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	primitiveUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	primitiveUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		primitiveUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		primitiveUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		primitiveUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		primitiveUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		primitiveUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		primitiveUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			primitiveUniformBuffers[j][i], primitiveUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1669,19 +1433,19 @@ void ShadowMappingScene::createPrimitiveUniformBuffers()
 
 void ShadowMappingScene::createModelUniformBuffers()
 {		
-	modelUniformBuffers.resize(MESH_COUNT);
-	modelUniformBuffersMemory.resize(MESH_COUNT);
-	modelUniformBuffersMapped.resize(MESH_COUNT);
+	modelUniformBuffers.resize(VulkanConfig::MESH_COUNT);
+	modelUniformBuffersMemory.resize(VulkanConfig::MESH_COUNT);
+	modelUniformBuffersMapped.resize(VulkanConfig::MESH_COUNT);
 
-	for (size_t j = 0; j < MESH_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::MESH_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		modelUniformBuffers[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelUniformBuffersMemory[j].resize(MAX_FRAMES_IN_FLIGHT);
-		modelUniformBuffersMapped[j].resize(MAX_FRAMES_IN_FLIGHT);
+		modelUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		modelUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				modelUniformBuffers[j][i], modelUniformBuffersMemory[j][i], device, physicalDevice);
@@ -1697,11 +1461,11 @@ void ShadowMappingScene::createCubemapUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	cubemapUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	cubemapUniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	cubemapUniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+	cubemapUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			cubemapUniformBuffers[i], cubemapUniformBuffersMemory[i], device, physicalDevice);
@@ -1715,11 +1479,11 @@ void ShadowMappingScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	uniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 			uniformBuffers[i], uniformBuffersMemory[i], device, physicalDevice);
@@ -1738,15 +1502,15 @@ void ShadowMappingScene::createComputeDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolInfo.maxSets = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &computeDescriptorPool) != VK_SUCCESS)
 	{
@@ -1771,24 +1535,24 @@ void ShadowMappingScene::createDescriptorSets()
 
 void ShadowMappingScene::createLightDescriptorSets()
 {
-	lightDescriptorSets.resize(MAX_POINT_LIGHTS);
+	lightDescriptorSets.resize(VulkanConfig::MAX_POINT_LIGHTS);
 
-	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)
+	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, lightPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::lightPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = lightPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::lightPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		lightDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		lightDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, lightDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = lightObjectUniformBuffers[j][i];
@@ -1812,24 +1576,24 @@ void ShadowMappingScene::createLightDescriptorSets()
 
 void ShadowMappingScene::createStencilDescriptorSets()
 {
-	stencilDescriptorSets.resize(OBJECT_COUNT);
+	stencilDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, stencilPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::stencilPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = stencilPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::stencilPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		stencilDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		stencilDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, stencilDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = stencilUniformBuffers[j][i];
@@ -1852,24 +1616,24 @@ void ShadowMappingScene::createStencilDescriptorSets()
 
 void ShadowMappingScene::createShadowMapDescriptorSets()
 {
-	shadowMapDescriptorSets.resize(OBJECT_COUNT);
+	shadowMapDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, shadowMapPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::shadowMapPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = shadowMapPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::shadowMapPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		shadowMapDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		shadowMapDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, shadowMapDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = primitiveUniformBuffers[j][i];
@@ -1949,24 +1713,24 @@ void ShadowMappingScene::createShadowMapDescriptorSets()
 
 void ShadowMappingScene::createPrimitiveDescriptorSets()
 {
-	primitiveDescriptorSets.resize(OBJECT_COUNT);
+	primitiveDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, primitivePipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::primitivePipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = primitivePipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::primitivePipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		primitiveDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		primitiveDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, primitiveDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = primitiveUniformBuffers[j][i];
@@ -2054,23 +1818,23 @@ void ShadowMappingScene::createPrimitiveDescriptorSets()
 
 void ShadowMappingScene::createModelDescriptorSets()
 {
-	modelDescriptorSets.resize(MESH_COUNT);
-	for (size_t j = 0; j < MESH_COUNT; j++)
+	modelDescriptorSets.resize(VulkanConfig::MESH_COUNT);
+	for (size_t j = 0; j < VulkanConfig::MESH_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, meshPipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::meshPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = meshPipeline.descriptor.pool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		allocInfo.descriptorPool = Pipelines::meshPipeline.descriptor.pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		modelDescriptorSets[j].resize(MAX_FRAMES_IN_FLIGHT);
+		modelDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		if (vkAllocateDescriptorSets(device, &allocInfo, modelDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = modelUniformBuffers[j][i];
@@ -2132,20 +1896,20 @@ void ShadowMappingScene::createModelDescriptorSets()
 
 void ShadowMappingScene::createCubemapDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, cubemapPipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::cubemapPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = cubemapPipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::cubemapPipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	cubemapDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	cubemapDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, cubemapDescriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2182,21 +1946,21 @@ void ShadowMappingScene::createCubemapDescriptorSets()
 
 void ShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, screenSpacePipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::screenSpacePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = screenSpacePipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::screenSpacePipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	screenSpaceDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	screenSpaceDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, screenSpaceDescriptorSets.data()) != VK_SUCCESS)
 	{
 		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo shadowMapImageInfo{};
 		shadowMapImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
@@ -2219,14 +1983,14 @@ void ShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
 
 void ShadowMappingScene::createPostProcessingDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, postProcessingPipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::postProcessingPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = postProcessingPipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::postProcessingPipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	postProcessingDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	postProcessingDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	std::cout << "Creating pipelines\n";
 	if (vkAllocateDescriptorSets(device, &allocInfo, postProcessingDescriptorSets.data()) != VK_SUCCESS)
 	{
@@ -2234,7 +1998,7 @@ void ShadowMappingScene::createPostProcessingDescriptorSets()
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2256,20 +2020,20 @@ void ShadowMappingScene::createPostProcessingDescriptorSets()
 
 void ShadowMappingScene::createGraphicsDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, basePipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::basePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = basePipeline.descriptor.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorPool = Pipelines::basePipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	descriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = uniformBuffers[i];
@@ -2305,19 +2069,19 @@ void ShadowMappingScene::createGraphicsDescriptorSets()
 
 void ShadowMappingScene::createComputeDescriptorSets()
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = computeDescriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+	computeDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, computeDescriptorSets.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}	
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo uniformBufferInfo{};
 		uniformBufferInfo.buffer = uniformBuffers[i];
@@ -2327,7 +2091,7 @@ void ShadowMappingScene::createComputeDescriptorSets()
 		std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
 		VkDescriptorBufferInfo storageBufferInfoLastFrame{};
-		storageBufferInfoLastFrame.buffer = shaderStorageBuffers[(i - 1) % MAX_FRAMES_IN_FLIGHT];
+		storageBufferInfoLastFrame.buffer = shaderStorageBuffers[(i - 1) % VulkanConfig::MAX_FRAMES_IN_FLIGHT];
 		storageBufferInfoLastFrame.offset = 0;
 		storageBufferInfoLastFrame.range = sizeof(Particle) * PARTICLE_COUNT;
 
@@ -2366,7 +2130,7 @@ void ShadowMappingScene::createComputeDescriptorSets()
 
 void ShadowMappingScene::createComputeCommandBuffers()
 {
-	computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+	computeCommandBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -2382,11 +2146,11 @@ void ShadowMappingScene::createComputeCommandBuffers()
 
 void ShadowMappingScene::createSyncObjects()
 {
-	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	computeFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	computeInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+	imageAvailableSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	renderFinishedSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	computeFinishedSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	computeInFlightFences.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	inFlightFences.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -2395,7 +2159,7 @@ void ShadowMappingScene::createSyncObjects()
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
@@ -2504,7 +2268,7 @@ void ShadowMappingScene::drawFrame(GLFWwindow * window)
 		throw std::runtime_error("failed to present swap chain image!");
 	}
 
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	currentFrame = (currentFrame + 1) % VulkanConfig::MAX_FRAMES_IN_FLIGHT;
 
 	double currentTime = glfwGetTime();
 	lastFrameTime = (currentTime - lastTime);
@@ -2526,7 +2290,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = shadowMapRenderPass;
+	renderPassInfo.renderPass = renderPasses.shadowMapRenderPass;
 	renderPassInfo.framebuffer = shadowMapFramebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = { 0,0 };
 	renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
@@ -2541,7 +2305,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	// SHADOW MAP PASS
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	basePipeline.bind(commandBuffer);
+	Pipelines::basePipeline.bind(commandBuffer);
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
 	VkBuffer vertexCubemapBuffers[] = { vertexCubemapBuffer };
@@ -2561,9 +2325,9 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	shadowMapMeshPipeline.bind(commandBuffer);
+	Pipelines::shadowMapMeshPipeline.bind(commandBuffer);
 
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
 
@@ -2571,15 +2335,15 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapMeshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapMeshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
 	}
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		shadowMapPrimitivePipeline.bind(commandBuffer);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
+		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2589,9 +2353,9 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		// STENCIL
 /*
-		stencilPipeline.bind(commandBuffer);
+		Pipelines::stencilPipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2618,22 +2382,22 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
 
-	renderPassInfo.renderPass = renderPass;
+	renderPassInfo.renderPass = renderPasses.renderPass;
 	renderPassInfo.framebuffer = offScreenFramebuffers[imageIndex];
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	basePipeline.bind(commandBuffer);
+	Pipelines::basePipeline.bind(commandBuffer);
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
-	meshPipeline.bind(commandBuffer);
+	Pipelines::meshPipeline.bind(commandBuffer);
 
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
 
@@ -2641,16 +2405,16 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, meshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::meshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
 	}
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		primitivePipeline.bind(commandBuffer);
+		Pipelines::primitivePipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2660,9 +2424,9 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 		// STENCIL
 /*
-		stencilPipeline.bind(commandBuffer);
+		Pipelines::stencilPipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2677,11 +2441,11 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
 */	
 	}
-	for (size_t j = 0; j < MAX_POINT_LIGHTS; j++)
+	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
 	{
-		lightPipeline.bind(commandBuffer);
+		Pipelines::lightPipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, lightPipeline.getLayout(), 0, 1, &lightDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::lightPipeline.getLayout(), 0, 1, &lightDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2690,9 +2454,9 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
 	}
 
-	cubemapPipeline.bind(commandBuffer);
+	Pipelines::cubemapPipeline.bind(commandBuffer);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
 
@@ -2703,14 +2467,14 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
-	renderPassInfo.renderPass = postProcessingRenderPass;
+	renderPassInfo.renderPass = renderPasses.postProcessingRenderPass;
 	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	postProcessingPipeline.bind(commandBuffer);
+	Pipelines::postProcessingPipeline.bind(commandBuffer);
 	
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, postProcessingPipeline.getLayout(), 0, 1, &postProcessingDescriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::postProcessingPipeline.getLayout(), 0, 1, &postProcessingDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2728,7 +2492,7 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 {
-	for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_POINT_LIGHTS; i++)
 	{
 		glm::vec3 lightPos = glm::vec3(sin(3. * glfwGetTime()) + i, cos(3. * i), 3. * i);
 
@@ -2753,7 +2517,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 		memcpy(lightObjectUniformBuffersMapped[i][currentImage], &light, sizeof(light));
 	}
 
-	for (size_t i = 0; i < MESH_COUNT; i++)
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
 		UniformBufferObjectModel meshUBO{};
 		DirectionalLight directionalLight;
@@ -2777,7 +2541,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 
 		memcpy(modelUniformBuffersMapped[i][currentImage], &meshUBO, sizeof(meshUBO));
 
-		for (size_t j = 0; j < MAX_POINT_LIGHTS; ++j)
+		for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; ++j)
 		{
 			lights.pointLights[j] = pointLights[j];
 		}
@@ -2802,7 +2566,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 		memcpy(modelLightUniformBuffersMapped[i][currentImage], &lights, sizeof(lights));
 	}
 
-	for (size_t j = 0; j < OBJECT_COUNT; j++)
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -2827,12 +2591,11 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 		//glm::vec3 transformedPosition = cubePosition;
 		ubom.model = glm::mat4(1.);
 		if (j == 0){
-		ubom.model = glm::translate(ubom.model, camera.cameraPos);
+			ubom.model = glm::translate(ubom.model, camera.cameraPos);
 		}
 		else
 		{
-
-		ubom.model = glm::translate(ubom.model, transformedPosition);
+			ubom.model = glm::translate(ubom.model, transformedPosition);
 		};
 		float angle = 20.f * j;
 
@@ -2863,7 +2626,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 
 		memcpy(materialUniformBuffersMapped[j][currentImage], &material, sizeof(material));
 
-		for (size_t i = 0; i < MAX_POINT_LIGHTS; ++i)
+		for (size_t i = 0; i < VulkanConfig::MAX_POINT_LIGHTS; ++i)
 		{
 			lights.pointLights[i] = pointLights[i];
 		}
@@ -2948,7 +2711,7 @@ void ShadowMappingScene::recreateSwapChain(GLFWwindow * window)
 	createShadowMapResources();
 
 	//TODO: move to own function eventually
-for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -3035,7 +2798,7 @@ void ShadowMappingScene::cleanup(GLFWwindow * window)
 	vkDestroyImage(device, textureImage, nullptr);
 	vkFreeMemory(device, textureImageMemory, nullptr);
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
@@ -3055,7 +2818,7 @@ void ShadowMappingScene::cleanup(GLFWwindow * window)
 		vkFreeMemory(device, vertexBufferMemories[i], nullptr);
 	}
 
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
 		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -3064,7 +2827,7 @@ void ShadowMappingScene::cleanup(GLFWwindow * window)
 
 	vkDestroyCommandPool(device, CommandBuffer::commandPool, nullptr);
 
-	vkDestroyRenderPass(device, renderPass, nullptr);
+	vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
 
 	vkDestroyDevice(device, nullptr);
 

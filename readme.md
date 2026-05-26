@@ -7,3 +7,4 @@
 - Cleanup Pipelines and put in a pipeline manager
 - Cleanup files in root directory and put in own separate directories
 - Replace batch file with CMAKE
+- Use glfwGetCursorPos to allow dependency injection for switching mouse movement function per vulkan App

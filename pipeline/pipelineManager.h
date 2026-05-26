@@ -6,6 +6,7 @@ namespace Pipelines
 {
 	inline	PipelineBuilder pipelineBuilder{};
 	inline	Pipeline primitivePipeline; 
+	inline	Pipeline grassPipeline; 
 	inline	Pipeline shadowMapPipeline; 
 	inline	Pipeline shadowMapPrimitivePipeline; 
 	inline	Pipeline shadowMapMeshPipeline; 
@@ -55,7 +56,7 @@ namespace Pipelines
 	}
 
 	template <typename T>
-	void createPipelines(VkDevice& device, T renderPasses)
+	void createPipelines(VkDevice& device, T& renderPasses)
 	{
 
 		setDescriptorSetLayoutBindings();
@@ -77,7 +78,6 @@ namespace Pipelines
 			layoutBindings.specularUniformLayoutBinding,
 			layoutBindings.samplerUniformLayoutBinding,
 			layoutBindings.vertexLayoutBinding, 
-			layoutBindings.vertexLayoutBinding 
 		};
 
 		std::vector<VkDescriptorType> shadowMapTypes = {
@@ -96,7 +96,6 @@ namespace Pipelines
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
 		};
 		
 		std::vector<VkDescriptorSetLayoutBinding> meshBindings = {
@@ -154,6 +153,18 @@ namespace Pipelines
 		primitivePipeline = 
 			pipelineBuilder
 			.setShaderPaths(
+				{{VK_SHADER_STAGE_VERTEX_BIT, "shaders/primitiveVert.spv"}, 
+				{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/primitiveFrag.spv"}})
+			.setMSAASamples(VulkanConfig::msaaSamples)
+			.setCullMode(VK_CULL_MODE_FRONT_BIT)
+			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+			.setDescriptor(primitiveBindings, primitiveTypes, VulkanConfig::OBJECT_COUNT, device)
+			.setRenderPass(renderPasses.renderPass)
+			.build(device);
+
+		grassPipeline = 
+			pipelineBuilder
+			.setShaderPaths(
 				{{VK_SHADER_STAGE_VERTEX_BIT, "shaders/grass/grassVert.spv"}, 
 				{VK_SHADER_STAGE_GEOMETRY_BIT, "shaders/grass/grassGeom.spv"},
 				{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/grass/grassFrag.spv"}})
@@ -168,7 +179,7 @@ namespace Pipelines
 			.setDescriptor(primitiveBindings, primitiveTypes, VulkanConfig::OBJECT_COUNT, device)
 			.setRenderPass(renderPasses.renderPass)
 			.build(device);
-/*	
+	
 		shadowMapMeshPipeline = pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/shadowMapMeshVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -190,7 +201,7 @@ namespace Pipelines
 			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 			.setRenderPass(renderPasses.shadowMapRenderPass)
 			.build(device);
-*/	
+	
 		basePipeline = 
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/vert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/frag.spv"}})
@@ -249,7 +260,7 @@ namespace Pipelines
 			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 			.setRenderPass(renderPasses.renderPass)
 			.build(device);
-/*	
+	
 		meshPipeline = 
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/meshVert.spv"},{VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/meshFrag.spv"}})
@@ -267,7 +278,7 @@ namespace Pipelines
 			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 			.setRenderPass(renderPasses.renderPass)
 			.build(device);
-*/	
+	
 		cubemapPipeline = 
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, "shaders/cubemapVert.spv"}, {VK_SHADER_STAGE_FRAGMENT_BIT, "shaders/cubemapFrag.spv"}})

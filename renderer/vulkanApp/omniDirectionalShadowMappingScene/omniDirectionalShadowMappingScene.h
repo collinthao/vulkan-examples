@@ -147,10 +147,8 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	VkDebugUtilsMessengerEXT debugMessenger;
 	VkSurfaceKHR surface;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	const int MAX_FRAMES_IN_FLIGHT = 2;
 	VkQueue graphicsAndComputeQueue;
 	VkQueue presentQueue;
-	VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_8_BIT;
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> shadowMapImages;
 	std::vector<VkImage> swapChainImages;
@@ -161,9 +159,12 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	std::vector<VkImageView> offScreenImageViews;
 	std::vector<VkDeviceMemory> offScreenImageMemories;
 	std::vector<VkDeviceMemory> shadowMapImageMemories;
-	VkRenderPass shadowMapRenderPass;
-	VkRenderPass renderPass;
-	VkRenderPass postProcessingRenderPass;
+	struct
+	{
+		VkRenderPass shadowMapRenderPass;
+		VkRenderPass renderPass;
+		VkRenderPass postProcessingRenderPass;
+	} renderPasses{};
 	VkImage textureImage;
 	VkImage shadowMapImage;
 	VkDeviceMemory textureImageMemory;
@@ -188,18 +189,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	VkDescriptorSetLayoutBinding allStagesUniformLayoutBinding{};
 
 	VkPipelineLayout computePipelineLayout;
-
-	Pipeline primitivePipeline; 
-	Pipeline shadowMapPipeline; 
-	Pipeline shadowMapPrimitivePipeline; 
-	Pipeline shadowMapMeshPipeline; 
-	Pipeline basePipeline; 
-	Pipeline stencilPipeline;
-	Pipeline lightPipeline;
-	Pipeline meshPipeline;
-	Pipeline cubemapPipeline;
-	Pipeline postProcessingPipeline;
-	Pipeline screenSpacePipeline;
 
 	VkPipeline computePipeline;
 
@@ -322,10 +311,7 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	const std::string TEXTURE_PATH = "textures/container.png";
 	const std::string CUBEMAP_PATH = "textures/skybox/";
 	const std::string SPECULAR_PATH = "textures/container_specular.png";
-	size_t MESH_COUNT = 0;
 	const uint32_t PARTICLE_COUNT = 8192;
-	const uint32_t OBJECT_COUNT = 10;
-	const uint32_t MAX_POINT_LIGHTS = 1;
 	const float FAR_PLANE = 400.f;
 	float lastFrameTime = 0.f;
 	double lastTime = 0.f;

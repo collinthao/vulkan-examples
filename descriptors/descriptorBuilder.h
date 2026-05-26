@@ -46,6 +46,7 @@ class DescriptorBuilder : protected Descriptors::Builder
 
 		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 		{
+			std::cout << "Layout info: \n";
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		}
 		
