@@ -7,6 +7,10 @@ namespace VulkanConfig
 {
 	extern VkExtent2D swapChainExtent;
 	extern const int MAX_FRAMES_IN_FLIGHT;
+	extern const uint32_t MAX_POINT_LIGHTS;
+	extern const uint32_t OBJECT_COUNT;
+	extern VkSampleCountFlagBits msaaSamples;
+	extern size_t MESH_COUNT;
 };
 
 #endif

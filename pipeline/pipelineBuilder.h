@@ -112,6 +112,7 @@ class PipelineBuilder : private Builder
 	PipelineBuilder& setDescriptor(std::vector<VkDescriptorSetLayoutBinding> bindings, std::vector<VkDescriptorType> types, uint32_t count,VkDevice& device)
 	{
 		DescriptorBuilder builder{};
+		std::cout << "Types: " << types.size() << '\n';
 		builder.setBindings(bindings);
 		builder.setTypes(types);
 		builder.setCount(count);

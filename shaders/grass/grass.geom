@@ -2,7 +2,7 @@
 #define BLADE_SEGMENTS 1.f
 #define BLADE_LENGTH 0.1f
 layout(points) in;
-layout(triangle_strip, max_vertices = 30) out;
+layout(triangle_strip, max_vertices = 100) out;
 
 layout(binding = 0) uniform UniformBufferObjectModel
 {
@@ -45,33 +45,35 @@ void main()
 	float angle = rotation[0];
 	mat4 vp = ubom.proj * ubom.view;
 	
-	fColor = vec3(0.f, 0.1f, 0.f); 
+	fColor = vec3(0.f, 0.0f, 0.f); 
 	
 	vec4 position = gl_in[0].gl_Position;
-	float curveInfluence =(1.0f + sin(DeltaTime[0])) * fract(angle);
+	float curveInfluence =((1.0f + sin(DeltaTime[0] * angle)) + fract(angle))/4.f;
 //	float curveInfluence = 0.0f + sin(DeltaTime[0]);
+//	float curveInfluence = 0.0f + fract(angle);
 
 	for (float i = 0.f; i < BLADE_SEGMENTS; i += 0.1f)
 	{
 		float t = (BLADE_SEGMENTS - i)/20.f;
-		if (i < BLADE_SEGMENTS - 0.2f)
+		float bend = i * i * curveInfluence;
+		if (i < BLADE_SEGMENTS - 0.2f)	
 		{
-			vec4 v0 = rotate(rotation[0]) * vec4(t, (i - BLADE_LENGTH)*(i + BLADE_LENGTH), -(i - BLADE_LENGTH)*(i + BLADE_LENGTH)*curveInfluence, 0.0);
-			vec4 v1 = rotate(rotation[0]) * vec4(-(t), (i - BLADE_LENGTH)*(i + BLADE_LENGTH), -(i - BLADE_LENGTH)*(i + BLADE_LENGTH)*curveInfluence, 0.0);
+			vec4 v0 = rotate(angle) * vec4(t, i,  bend, 0.0);
+			vec4 v1 = rotate(angle) * vec4(-(t), i, bend, 0.0);
 
-			gl_Position = vp * (position + ubom.model * v0 * scale(inScale[0]));	
+			gl_Position = vp * (position + ubom.model * scale(inScale[0]) * rotate(angle) * v0);	
 
 			EmitVertex();
 			
-			gl_Position = vp * (position + ubom.model * v1 * scale(inScale[0]));	
+			gl_Position = vp * (position + ubom.model * scale(inScale[0]) * rotate(angle) * v1);	
 
 			EmitVertex();
-			fColor = vec3(0.f, .1f + i/2, 0.f); 
+			fColor = vec3(0.f, 0.1f + i, 0.f); 
 		}
 		else
 		{
-			vec4 v2 = rotate(rotation[0]) * vec4(0.f, (i - BLADE_LENGTH)*(i + BLADE_LENGTH) * 1.5f, -(i - BLADE_LENGTH)*(i + BLADE_LENGTH)*curveInfluence, 0.0);
-			gl_Position = vp * (position + ubom.model * v2 * scale(inScale[0]));	
+			vec4 v2 = rotate(rotation[0]) * vec4(0.f, i, bend, 0.0);
+			gl_Position = vp * (position + ubom.model * scale(inScale[0]) * rotate(angle) * v2);	
 			EmitVertex();
 		}
 	}

@@ -33,6 +33,7 @@
 #include "../../camera.h"
 #include "../../pipeline/pipelineBuilder.h"
 #include "../../vulkanImage/vulkanImageBuilder.h"
+#include "../../pipeline/pipelineManager.h"
 
 struct SwapChainSupportDetails
 {
@@ -93,16 +94,16 @@ virtual void createModelUniformBuffers()=0;
 	virtual void recreateSwapChain(GLFWwindow * window)=0;
 	virtual void cleanupSwapChain()=0;
 	virtual void setDescriptorSetLayoutBindings()=0;
-		IVulkanApp()=default;
-		virtual ~IVulkanApp(){};
+	IVulkanApp()=default;
+	virtual ~IVulkanApp(){};
 
-		virtual void init(GLFWwindow * window)=0;
-		virtual void drawFrame(GLFWwindow * window)=0;
-		virtual void processInput(GLFWwindow * window)=0;
-		virtual void cleanup(GLFWwindow * window)=0;
-		virtual void deviceWaitIdle()=0;
+	virtual void init(GLFWwindow * window)=0;
+	virtual void drawFrame(GLFWwindow * window)=0;
+	virtual void processInput(GLFWwindow * window)=0;
+	virtual void cleanup(GLFWwindow * window)=0;
+	virtual void deviceWaitIdle()=0;
 
-		static void moveCamera(double xpos, double ypos){std::cout << "Hi\n";};
-		virtual VkDevice* getDevice()=0;
-		VkDevice device;
+	static void moveCamera(double xpos, double ypos){std::cout << "Hi\n";};
+	virtual VkDevice* getDevice()=0;
+	VkDevice device;
 };
