@@ -2829,3 +2829,8 @@ void OmniDirectionalShadowMappingScene::deviceWaitIdle()
 {
 	vkDeviceWaitIdle(device);
 }
+
+void OmniDirectionalShadowMappingScene::moveCamera(double xpos, double ypos)
+{
+	camera.move(xpos, ypos);
+}

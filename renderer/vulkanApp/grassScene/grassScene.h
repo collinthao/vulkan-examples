@@ -455,6 +455,7 @@ class GrassScene : public IVulkanApp
 	void processInput(GLFWwindow * window);
 	void cleanup(GLFWwindow * window);
 	void deviceWaitIdle();
+	void moveCamera(double xpos, double ypos);
 
 	static Camera camera;
 	static glm::vec3 cameraPos;
@@ -464,12 +465,6 @@ class GrassScene : public IVulkanApp
 
 	VkDevice* getDevice();
 	VkDevice device;
-
-	
-	static void moveCamera(double xpos, double ypos)
-	{
-		camera.move(xpos, ypos);
-	}
 
 	static VkResult CreateDebugUtilsMessengerEXT(
 		VkInstance instance, 

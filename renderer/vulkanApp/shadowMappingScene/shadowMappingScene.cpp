@@ -2849,3 +2849,8 @@ void ShadowMappingScene::deviceWaitIdle()
 {
 	vkDeviceWaitIdle(device);
 }
+
+void ShadowMappingScene::moveCamera(double xpos, double ypos)
+{
+	camera.move(xpos, ypos);
+}

@@ -435,11 +435,7 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	VkDevice* getDevice();
 	VkDevice device;
 
-	
-	static void moveCamera(double xpos, double ypos)
-	{
-		camera.move(xpos, ypos);
-	}
+	void moveCamera(double xpos, double ypos);
 
 	static VkResult CreateDebugUtilsMessengerEXT(
 		VkInstance instance, 

@@ -4,9 +4,7 @@
 #include <assimp/postprocess.h>
 #include "./engine/engine.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
 #include <chrono>
 
 #define GLFW_INCLUDE_VULKAN
@@ -26,10 +24,12 @@
 #include <array>
 #include <random>
 #include "particle.h"
+//#include "./renderer/vulkanApp/grassScene/grassScene.h"
+#include "./renderer/vulkanApp/shadowMappingScene/shadowMappingScene.h"
 
 int main()
 {
-	Engine engine = Engine();
+	Engine<ShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

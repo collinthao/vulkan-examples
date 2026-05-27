@@ -2846,3 +2846,8 @@ void GrassScene::deviceWaitIdle()
 {
 	vkDeviceWaitIdle(device);
 }
+
+void GrassScene::moveCamera(double xpos, double ypos)
+{
+	camera.move(xpos, ypos);
+}

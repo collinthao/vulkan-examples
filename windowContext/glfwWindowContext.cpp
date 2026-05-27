@@ -1,11 +1,12 @@
 #include "./glfwWindowContext.h"
 #include <iostream>
 //#include "../renderer/vulkanApp/vulkanApp.h"
-#include "../renderer/vulkanApp/shadowMappingScene/shadowMappingScene.h"
+//#include "../renderer/vulkanApp/shadowMappingScene/shadowMappingScene.h"
 //#include "../renderer/vulkanApp/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
 //#include "../renderer/vulkanApp/grassScene/grassScene.h"
 
-GLFWWindowContext::GLFWWindowContext()
+GLFWWindowContext::GLFWWindowContext(std::shared_ptr<IVulkanApp> vkApp)
+: vkApp(vkApp)
 {
 	initWindow();
 };
@@ -25,12 +26,8 @@ void GLFWWindowContext::initWindow()
 
 void GLFWWindowContext::mouse_callback(GLFWwindow * window, double xpos, double ypos)
 {
-	//Eventually, we want to have either the camera be static or have a class pointer to the move camera method
-	// Edit:Use glfwGetCursorPos
-	//IVulkanApp::moveCamera(xpos, ypos);
-	//GrassScene::moveCamera(xpos, ypos);
-	ShadowMappingScene::moveCamera(xpos, ypos);
-	//OmniDirectionalShadowMappingScene::moveCamera(xpos, ypos);
+	auto windowContext = reinterpret_cast<GLFWWindowContext*>(glfwGetWindowUserPointer(window));
+	windowContext->vkApp->moveCamera(xpos, ypos);
 }
 
 void GLFWWindowContext::framebufferResizeCallback(GLFWwindow* window, int width, int height)

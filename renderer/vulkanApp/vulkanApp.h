@@ -82,7 +82,7 @@ class IVulkanApp
 	virtual void createModelIndexBuffers()=0;
 	virtual void createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)=0;
 	virtual void createUniformBuffers()=0;
-virtual void createModelUniformBuffers()=0;
+	virtual void createModelUniformBuffers()=0;
 	virtual void createDescriptorPools()=0;
 	virtual void createComputeDescriptorPool()=0;
 	virtual void createDescriptorSets()=0;
@@ -103,7 +103,7 @@ virtual void createModelUniformBuffers()=0;
 	virtual void cleanup(GLFWwindow * window)=0;
 	virtual void deviceWaitIdle()=0;
 
-	static void moveCamera(double xpos, double ypos){std::cout << "Hi\n";};
+	virtual void moveCamera(double xpos, double ypos)=0;
 	virtual VkDevice* getDevice()=0;
 	VkDevice device;
 };

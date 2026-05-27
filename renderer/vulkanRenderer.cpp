@@ -1,6 +1,6 @@
 #include "./vulkanRenderer.h"
 
-VulkanRenderer::VulkanRenderer(GLFWwindow * window, IVulkanApp * vkApp)
+VulkanRenderer::VulkanRenderer(GLFWwindow * window, std::shared_ptr<IVulkanApp> vkApp)
 :vkApp(vkApp)
 {
 	vkApp->init(window);
