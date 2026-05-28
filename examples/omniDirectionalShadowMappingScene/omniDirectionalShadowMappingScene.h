@@ -28,8 +28,8 @@
 #include <gtx/hash.hpp>
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
-#include "../../../vulkanImage/vulkanImageBuilder.h"
-#include "../vulkanApp.h"
+#include "../../core/vulkanImage/vulkanImageBuilder.h"
+#include "../../core/renderer/vulkanApp/vulkanApp.h"
 
 namespace fs = std::filesystem;
 

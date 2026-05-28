@@ -2,7 +2,7 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include "./engine/engine.h"
+#include "./core/engine/engine.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <chrono>
@@ -24,12 +24,12 @@
 #include <array>
 #include <random>
 #include "particle.h"
-//#include "./renderer/vulkanApp/grassScene/grassScene.h"
-#include "./renderer/vulkanApp/shadowMappingScene/shadowMappingScene.h"
+#include "./examples/grassScene/grassScene.h"
+//#include "./examples/shadowMappingScene/shadowMappingScene.h"
 
 int main()
 {
-	Engine<ShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<GrassScene, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

@@ -1,6 +1,6 @@
 #include "./commandBuffer.h"
 #include <stdexcept>
-#include "../vulkanConfig.h"
+#include "../../vulkanConfig.h"
 #include "../queueFamily/queueFamily.h"
 
 VkCommandPool CommandBuffer::commandPool{};
