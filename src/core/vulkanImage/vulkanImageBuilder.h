@@ -1,6 +1,6 @@
 #pragma once
 #include "./builder.h"
-#include "../../vulkanConfig.h"
+#include "../../../vulkanConfig.h"
 
 class VulkanImageBuilder : protected Image::Builder
 {

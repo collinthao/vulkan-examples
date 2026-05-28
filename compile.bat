@@ -5,7 +5,7 @@ setlocal
 :: 1. Define variables
 :: -----------------------------
 set SOURCE_FILE=main.cpp camera.cpp model.cpp vertex.cpp vulkanRenderer.cpp
-set OUTPUT_FILE=main.exe
+set OUTPUT_FILE=%BUILD_DIR%\src\app\main.exe
 set RESPONSE_FILE=build.rsp
 set VCPKG_DIR=C:\vcpkg
 set BUILD_DIR=%CD%
@@ -28,7 +28,7 @@ echo /I"%VCPKG_DIR%\packages\vulkan-headers_x64-windows\include"
 echo /I"%VCPKG_DIR%\packages\tinyobjloader_x64-windows\include"
 echo /I"%VCPKG_DIR%\packages\stb_x64-windows\include"
 echo /I"%VCPKG_DIR%\packages\assimp_x64-windows\include"
-echo main.cpp
+echo %BUILD_DIR%\src/app/main.cpp
 for /r "%BUILD_DIR%" %%f in (*.cpp) do (
     if /i not "%%~nxf"=="main.cpp" echo %%f
 )

@@ -1,8 +1,9 @@
-#include "./omniDirectionalShadowMappingScene.h"
+#include "./grassScene.h"
 #include <iostream>
+#include <random>
 #include "../../core/windowContext/GLFWWindowContext.h"
-#include "../../particle.h"
-#include "../../vulkanConfig.h"
+#include "../../../particle.h"
+#include "../../../vulkanConfig.h"
 #include "../../core/image/image.h"
 #include "../../core/image/texture/texture.h"
 #include "../../core/image/texture/sampler/sampler.h"
@@ -10,13 +11,13 @@
 #include "../../core/commandBuffer/commandBuffer.h"
 #include "../../core/buffer/buffer.h"
 
-glm::vec3 OmniDirectionalShadowMappingScene::cameraPos = glm::vec3(0., 0., 3.);
-glm::vec3 OmniDirectionalShadowMappingScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
-glm::vec3 OmniDirectionalShadowMappingScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
+glm::vec3 GrassScene::cameraPos = glm::vec3(0., 0., 3.);
+glm::vec3 GrassScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
+glm::vec3 GrassScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
 
-Camera OmniDirectionalShadowMappingScene::camera = Camera(OmniDirectionalShadowMappingScene::cameraPos, OmniDirectionalShadowMappingScene::cameraFront, OmniDirectionalShadowMappingScene::cameraUp);
+Camera GrassScene::camera = Camera(GrassScene::cameraPos, GrassScene::cameraFront, GrassScene::cameraUp);
 
-void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
+void GrassScene::init(GLFWwindow* window)
 {
 	createInstance();
 	setupDebugMessenger();
@@ -52,6 +53,7 @@ void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
 	//createTextureSamplers(modelSamplers);
 	createShaderStorageBuffers();
 	createVertexBuffers();
+	createInstanceBuffers();
 	createIndexBuffer();
 	createQuadIndexBuffer();
 	//createModelIndexBuffers();
@@ -62,8 +64,35 @@ void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
 	createComputeCommandBuffers();
 	createSyncObjects();
 }
+void GrassScene::setDescriptorSetLayoutBindings()
+	{
+		samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerUniformLayoutBinding.descriptorCount = 1;
+		samplerUniformLayoutBinding.pImmutableSamplers = nullptr;
+		samplerUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-std::vector<const char*> OmniDirectionalShadowMappingScene::getRequiredExtensions()
+		specularUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		specularUniformLayoutBinding.descriptorCount = 1;
+		specularUniformLayoutBinding.pImmutableSamplers = nullptr;
+		specularUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		vertexLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		vertexLayoutBinding.descriptorCount = 1;
+		vertexLayoutBinding.pImmutableSamplers = nullptr;
+		vertexLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+
+		fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		fragmentLayoutBinding.descriptorCount = 1;
+		fragmentLayoutBinding.pImmutableSamplers = nullptr;
+		fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		allStagesUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		allStagesUniformLayoutBinding.descriptorCount = 1;
+		allStagesUniformLayoutBinding.pImmutableSamplers = nullptr;
+		allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+	}
+
+std::vector<const char*> GrassScene::getRequiredExtensions()
 {
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
@@ -80,7 +109,7 @@ std::vector<const char*> OmniDirectionalShadowMappingScene::getRequiredExtension
 	return extensions;
 }
 
-void OmniDirectionalShadowMappingScene::createInstance()
+void GrassScene::createInstance()
 {
 	std::cout << "Creating instance...\n";
 	VkApplicationInfo appInfo{};
@@ -118,7 +147,7 @@ void OmniDirectionalShadowMappingScene::createInstance()
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
 };
 
-void OmniDirectionalShadowMappingScene::setupDebugMessenger()
+void GrassScene::setupDebugMessenger()
 {
 	if (!enableValidationLayers) return;
 		
@@ -131,7 +160,7 @@ void OmniDirectionalShadowMappingScene::setupDebugMessenger()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void GrassScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
 	createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -140,7 +169,7 @@ void OmniDirectionalShadowMappingScene::populateDebugMessengerCreateInfo(VkDebug
 	createInfo.pfnUserCallback = debugCallback;
 }
 
-void OmniDirectionalShadowMappingScene::createSurface(GLFWwindow * window)
+void GrassScene::createSurface(GLFWwindow * window)
 {
 	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
 	{
@@ -148,7 +177,7 @@ void OmniDirectionalShadowMappingScene::createSurface(GLFWwindow * window)
 	}
 }
 
-void OmniDirectionalShadowMappingScene::pickPhysicalDevice()
+void GrassScene::pickPhysicalDevice()
 {
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
@@ -184,7 +213,7 @@ void OmniDirectionalShadowMappingScene::pickPhysicalDevice()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createLogicalDevice()
+void GrassScene::createLogicalDevice()
 {
 	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
 
@@ -238,7 +267,7 @@ void OmniDirectionalShadowMappingScene::createLogicalDevice()
 	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
-bool OmniDirectionalShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device)
+bool GrassScene::isDeviceSuitable(VkPhysicalDevice device)
 {
 	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(device, surface);
 
@@ -257,7 +286,7 @@ bool OmniDirectionalShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device
 	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-SwapChainSupportDetails OmniDirectionalShadowMappingScene::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails GrassScene::querySwapChainSupport(VkPhysicalDevice device)
 {
 	SwapChainSupportDetails details;
 
@@ -284,7 +313,7 @@ SwapChainSupportDetails OmniDirectionalShadowMappingScene::querySwapChainSupport
 	return details;
 }
 
-VkSampleCountFlagBits OmniDirectionalShadowMappingScene::getMaxUsableSampleCount()
+VkSampleCountFlagBits GrassScene::getMaxUsableSampleCount()
 {
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
@@ -301,7 +330,7 @@ VkSampleCountFlagBits OmniDirectionalShadowMappingScene::getMaxUsableSampleCount
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
-bool OmniDirectionalShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool GrassScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
 
 	uint32_t extensionCount;
@@ -321,7 +350,7 @@ bool OmniDirectionalShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDe
 }
 
 
-int OmniDirectionalShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice device)
+int GrassScene::rateDeviceSuitability(VkPhysicalDevice device)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -340,7 +369,7 @@ int OmniDirectionalShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice de
 	return score;
 }
 
-void OmniDirectionalShadowMappingScene::createSwapChain(GLFWwindow * window)
+void GrassScene::createSwapChain(GLFWwindow * window)
 {
 	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 
@@ -402,7 +431,7 @@ void OmniDirectionalShadowMappingScene::createSwapChain(GLFWwindow * window)
 	VulkanConfig::swapChainExtent = extent;
 }
 
-VkPresentModeKHR OmniDirectionalShadowMappingScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+VkPresentModeKHR GrassScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
 	for (const auto& availablePresentMode : availablePresentModes)
 	{
@@ -415,7 +444,7 @@ VkPresentModeKHR OmniDirectionalShadowMappingScene::chooseSwapPresentMode(const 
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkSurfaceFormatKHR OmniDirectionalShadowMappingScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR GrassScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
 	for (const auto& availableFormat : availableFormats)
 	{
@@ -428,7 +457,7 @@ VkSurfaceFormatKHR OmniDirectionalShadowMappingScene::chooseSwapSurfaceFormat(co
 	return availableFormats[0];
 }
 
-VkExtent2D OmniDirectionalShadowMappingScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
+VkExtent2D GrassScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 	{
@@ -453,7 +482,7 @@ VkExtent2D OmniDirectionalShadowMappingScene::chooseSwapExtent(const VkSurfaceCa
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createImageViews()
+void GrassScene::createImageViews()
 {
 	swapChainImageViews.resize(swapChainImages.size());
 	shadowMapImageViews.resize(swapChainImages.size());
@@ -464,7 +493,7 @@ void OmniDirectionalShadowMappingScene::createImageViews()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createShadowMapRenderPass()
+void GrassScene::createShadowMapRenderPass()
 {
 	VkAttachmentDescription depthAttachment{};
 	//depthAttachment.format = findDepthFormat();
@@ -518,7 +547,7 @@ void OmniDirectionalShadowMappingScene::createShadowMapRenderPass()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createRenderPass()
+void GrassScene::createRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -602,7 +631,7 @@ void OmniDirectionalShadowMappingScene::createRenderPass()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createPostProcessingRenderPass()
+void GrassScene::createPostProcessingRenderPass()
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
@@ -649,40 +678,12 @@ void OmniDirectionalShadowMappingScene::createPostProcessingRenderPass()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createDescriptorSetLayouts()
+void GrassScene::createDescriptorSetLayouts()
 {
 	createComputeDescriptorSetLayout();
 }
 
-void OmniDirectionalShadowMappingScene::setDescriptorSetLayoutBindings()
-{
-	samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerUniformLayoutBinding.descriptorCount = 1;
-	samplerUniformLayoutBinding.pImmutableSamplers = nullptr;
-	samplerUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	specularUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	specularUniformLayoutBinding.descriptorCount = 1;
-	specularUniformLayoutBinding.pImmutableSamplers = nullptr;
-	specularUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	vertexLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	vertexLayoutBinding.descriptorCount = 1;
-	vertexLayoutBinding.pImmutableSamplers = nullptr;
-	vertexLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-
-	fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	fragmentLayoutBinding.descriptorCount = 1;
-	fragmentLayoutBinding.pImmutableSamplers = nullptr;
-	fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	allStagesUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	allStagesUniformLayoutBinding.descriptorCount = 1;
-	allStagesUniformLayoutBinding.pImmutableSamplers = nullptr;
-	allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-}
-
-void OmniDirectionalShadowMappingScene::createComputeDescriptorSetLayout()
+void GrassScene::createComputeDescriptorSetLayout()
 {
 	std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
 	layoutBindings[0].binding = 0;
@@ -714,12 +715,13 @@ void OmniDirectionalShadowMappingScene::createComputeDescriptorSetLayout()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createPipelines()
+void GrassScene::createPipelines()
 {
-	Pipelines::createPipelines(device, renderPasses);
+	Pipelines::createPipelines(device, renderPasses); 
 	createComputePipeline();
 }
-void OmniDirectionalShadowMappingScene::createComputePipeline()
+
+void GrassScene::createComputePipeline()
 {
 	auto compShaderCode = readFile("shaders/comp.spv");
 
@@ -752,7 +754,7 @@ void OmniDirectionalShadowMappingScene::createComputePipeline()
 	}
 }
 
-VkShaderModule OmniDirectionalShadowMappingScene::createShaderModule(const std::vector<char>& code)
+VkShaderModule GrassScene::createShaderModule(const std::vector<char>& code)
 {
 
 	VkShaderModuleCreateInfo createInfo{};
@@ -769,7 +771,7 @@ VkShaderModule OmniDirectionalShadowMappingScene::createShaderModule(const std::
 	return shaderModule;
 }
 
-void OmniDirectionalShadowMappingScene::createShadowMapResources()
+void GrassScene::createShadowMapResources()
 {
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
@@ -786,7 +788,7 @@ void OmniDirectionalShadowMappingScene::createShadowMapResources()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createOffscreenResources()
+void GrassScene::createOffscreenResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 
@@ -801,7 +803,7 @@ void OmniDirectionalShadowMappingScene::createOffscreenResources()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createColorResources()
+void GrassScene::createColorResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
 	
@@ -809,7 +811,7 @@ void OmniDirectionalShadowMappingScene::createColorResources()
 	colorImageView = Image::createView(colorImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
-void OmniDirectionalShadowMappingScene::createDepthResources()
+void GrassScene::createDepthResources()
 {
 	//VkFormat depthFormat = findDepthFormat();
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
@@ -819,7 +821,7 @@ VulkanConfig::msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_
 	depthImageView = Image::createView(depthImage, textureImageView, VK_IMAGE_VIEW_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1, device, graphicsAndComputeQueue);
 }
 
-void OmniDirectionalShadowMappingScene::createFramebuffers()
+void GrassScene::createFramebuffers()
 {
 	swapChainFramebuffers.resize(swapChainImageViews.size());
 	offScreenFramebuffers.resize(swapChainImageViews.size());
@@ -895,7 +897,7 @@ void OmniDirectionalShadowMappingScene::createFramebuffers()
 
 }
 
-void OmniDirectionalShadowMappingScene::createModel()
+void GrassScene::createModel()
 {
 	model = new Model(MODEL_PATH);
 	vertexBuffers.resize(model->meshes.size());	
@@ -903,12 +905,12 @@ void OmniDirectionalShadowMappingScene::createModel()
 	VulkanConfig::MESH_COUNT = model->meshes.size();
 }
 
-void OmniDirectionalShadowMappingScene::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
+void GrassScene::createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)
 {
 	imageView = Image::createView(image, imageView, VK_IMAGE_VIEW_TYPE_2D, format, flags, Image::mipLevels, 1, device, graphicsAndComputeQueue);
 }
 
-void OmniDirectionalShadowMappingScene::createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)
+void GrassScene::createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory)
 {
 	std::vector<std::string> faces
 	{
@@ -974,12 +976,12 @@ void OmniDirectionalShadowMappingScene::createCubeTextureImage(const std::string
 	Image::generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, Image::mipLevels, 6, device, physicalDevice, graphicsAndComputeQueue);
 }
 
-void OmniDirectionalShadowMappingScene::createCubeMapResources()
+void GrassScene::createCubeMapResources()
 {
 	cubemapImageView = Image::createView(cubemapImage, cubemapImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 }
 
-void OmniDirectionalShadowMappingScene::createTextureSampler(VkSampler& sampler)
+void GrassScene::createTextureSampler(VkSampler& sampler)
 {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -1009,7 +1011,7 @@ void OmniDirectionalShadowMappingScene::createTextureSampler(VkSampler& sampler)
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
+void GrassScene::createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)
 {
 	// TODO: move to getTextureCount later, maybe
 	images.resize(VulkanConfig::MESH_COUNT);
@@ -1030,7 +1032,7 @@ void OmniDirectionalShadowMappingScene::createTextureImages(std::vector<VkImage>
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
+void GrassScene::createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)
 {
 	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
@@ -1038,7 +1040,7 @@ void OmniDirectionalShadowMappingScene::createTextureImageViews(std::vector<VkIm
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
+void GrassScene::createTextureSamplers(std::vector<VkSampler>& samplers)
 {
 	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
@@ -1046,7 +1048,7 @@ void OmniDirectionalShadowMappingScene::createTextureSamplers(std::vector<VkSamp
 	}
 }
 
-void OmniDirectionalShadowMappingScene::loadModel()
+void GrassScene::loadModel()
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -1091,7 +1093,7 @@ void OmniDirectionalShadowMappingScene::loadModel()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createShaderStorageBuffers()
+void GrassScene::createShaderStorageBuffers()
 {
 	uint32_t WIDTH = GLFWWindowContext::getWindowWidth();
 	uint32_t HEIGHT = GLFWWindowContext::getWindowHeight();
@@ -1136,7 +1138,7 @@ void OmniDirectionalShadowMappingScene::createShaderStorageBuffers()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void OmniDirectionalShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void GrassScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);
 
@@ -1149,25 +1151,53 @@ void OmniDirectionalShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer 
 	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
 }
 
-void OmniDirectionalShadowMappingScene::createVertexBuffers()
+void GrassScene::createInstanceBuffers()
+{
+	std::random_device dev;
+	std::mt19937 rng(dev());
+	std::uniform_int_distribution<> dis(-100, 100);	
+	std::uniform_real_distribution<> rScale(0.1f, 1.f);	
+	std::uniform_int_distribution<> rRotation(0,180);	
+	instanceData.resize(MAX_INSTANCE_COUNT);
+
+	for(uint32_t i = 0; i < MAX_INSTANCE_COUNT; i++)
+	{
+		float scaleX = static_cast<float>(rScale(rng)); 
+		float scaleY = static_cast<float>(rScale(rng)); 
+		float scaleZ = static_cast<float>(rScale(rng)); 
+		float posX = static_cast<float>(dis(rng)); 
+		float posZ = static_cast<float>(dis(rng)); 
+		float rotation = static_cast<float>(rRotation(rng));
+		
+		instanceData[i].pos = glm::vec3(posX, 1.f, posZ);
+		instanceData[i].scale = glm::vec3(scaleX, scaleY, scaleZ);
+		instanceData[i].rot = static_cast<float>(rotation);
+		instanceData[i].id = i;
+	}
+
+	createVertexBuffer<InstanceData>(instanceData, instanceBuffer, instanceBufferMemory);
+}
+
+void GrassScene::createVertexBuffers()
 {
 	// TODO: move to own method
 /*
 	for (size_t i = 0; i < model->meshes.size(); i++)
 	{
 		const Mesh mesh = model->meshes[i];
-		createVertexBuffer<Vertex>(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
+		createVertexBuffer(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
 	}
 */
-	createVertexBuffer<Vertex>(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
-	createVertexBuffer<Vertex>(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
+	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
+	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
+	createVertexBuffer(triangleVertices, vertexTriangleBuffer, vertexTriangleBufferMemory);
 }
 
-void OmniDirectionalShadowMappingScene::createIndexBuffer()
+void GrassScene::createIndexBuffer()
 {
 
 	//VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	VkDeviceSize bufferSize = sizeof(OmniDirectionalShadowMappingScene::cubeIndices[0]) * OmniDirectionalShadowMappingScene::cubeIndices.size();
+	VkDeviceSize bufferSize = sizeof(GrassScene::cubeIndices[0]) * GrassScene::cubeIndices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1175,7 +1205,7 @@ void OmniDirectionalShadowMappingScene::createIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, OmniDirectionalShadowMappingScene::cubeIndices.data(), (size_t)bufferSize);
+	memcpy(data, GrassScene::cubeIndices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, physicalDevice);
@@ -1185,9 +1215,9 @@ void OmniDirectionalShadowMappingScene::createIndexBuffer()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void OmniDirectionalShadowMappingScene::createQuadIndexBuffer()
+void GrassScene::createQuadIndexBuffer()
 {
-	VkDeviceSize bufferSize = sizeof(OmniDirectionalShadowMappingScene::quadIndices[0]) * OmniDirectionalShadowMappingScene::quadIndices.size();
+	VkDeviceSize bufferSize = sizeof(GrassScene::quadIndices[0]) * GrassScene::quadIndices.size();
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1195,7 +1225,7 @@ void OmniDirectionalShadowMappingScene::createQuadIndexBuffer()
 
 	void* data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, OmniDirectionalShadowMappingScene::quadIndices.data(), (size_t)bufferSize);
+	memcpy(data, GrassScene::quadIndices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
 
 	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, quadIndexBuffer, quadIndexBufferMemory, device, physicalDevice);
@@ -1206,7 +1236,7 @@ void OmniDirectionalShadowMappingScene::createQuadIndexBuffer()
 }
 
 
-void OmniDirectionalShadowMappingScene::createModelIndexBuffers()
+void GrassScene::createModelIndexBuffers()
 {
 	indexModelBuffers.resize(VulkanConfig::MESH_COUNT);
 	indexModelBufferMemories.resize(VulkanConfig::MESH_COUNT);
@@ -1217,9 +1247,8 @@ void OmniDirectionalShadowMappingScene::createModelIndexBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
+void GrassScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)
 {
-
 	VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
 
 	VkBuffer stagingBuffer;
@@ -1236,13 +1265,12 @@ void OmniDirectionalShadowMappingScene::createModelIndexBuffer(std::vector<uint3
 	
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
-
 }
 
-void OmniDirectionalShadowMappingScene::createUniformBuffers()
+void GrassScene::createUniformBuffers()
 {
 	createGraphicsUniformBuffers();
-	createPrimitiveUniformBuffers();
+	createGrassUniformBuffers();
 	createCubemapUniformBuffers();
 	createStencilUniformBuffers();
 	createMaterialUniformBuffers();
@@ -1253,7 +1281,7 @@ void OmniDirectionalShadowMappingScene::createUniformBuffers()
 }
 
 
-void OmniDirectionalShadowMappingScene::createMaterialUniformBuffers()
+void GrassScene::createMaterialUniformBuffers()
 {
 	materialUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
 	materialUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
@@ -1278,7 +1306,7 @@ void OmniDirectionalShadowMappingScene::createMaterialUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createLightObjectUniformBuffers()
+void GrassScene::createLightObjectUniformBuffers()
 {
 	lightObjectUniformBuffers.resize(VulkanConfig::MAX_POINT_LIGHTS);
 	lightObjectUniformBuffersMemory.resize(VulkanConfig::MAX_POINT_LIGHTS);
@@ -1303,7 +1331,7 @@ void OmniDirectionalShadowMappingScene::createLightObjectUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createModelLightUniformBuffers()
+void GrassScene::createModelLightUniformBuffers()
 {
 	modelLightUniformBuffers.resize(VulkanConfig::MESH_COUNT);
 	modelLightUniformBuffersMemory.resize(VulkanConfig::MESH_COUNT);
@@ -1328,7 +1356,7 @@ void OmniDirectionalShadowMappingScene::createModelLightUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createLightUniformBuffers()
+void GrassScene::createLightUniformBuffers()
 {
 	lightUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
 	lightUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
@@ -1353,7 +1381,7 @@ void OmniDirectionalShadowMappingScene::createLightUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createStencilUniformBuffers()
+void GrassScene::createStencilUniformBuffers()
 {
 	stencilUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
 	stencilUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
@@ -1378,7 +1406,7 @@ void OmniDirectionalShadowMappingScene::createStencilUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createShadowMapUniformBuffers()
+void GrassScene::createShadowMapUniformBuffers()
 {
 	shadowMapUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
 	shadowMapUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
@@ -1403,32 +1431,49 @@ void OmniDirectionalShadowMappingScene::createShadowMapUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createPrimitiveUniformBuffers()
+void GrassScene::createInstanceUniformBuffers()
 {
-	primitiveUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
-	primitiveUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
-	primitiveUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
+	VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
+
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		instanceUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+		instanceUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+		instanceUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
+
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+		instanceUniformBuffers[i], instanceUniformBuffersMemory[i], device, physicalDevice);
+
+		vkMapMemory(device, instanceUniformBuffersMemory[i], 0, bufferSize, 0, &instanceUniformBuffersMapped[i]);
+	}
+}
+
+void GrassScene::createGrassUniformBuffers()
+{
+	grassUniformBuffers.resize(VulkanConfig::OBJECT_COUNT);
+	grassUniformBuffersMemory.resize(VulkanConfig::OBJECT_COUNT);
+	grassUniformBuffersMapped.resize(VulkanConfig::OBJECT_COUNT);
 
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
 		VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-		primitiveUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-		primitiveUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-		primitiveUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		grassUniformBuffers[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		grassUniformBuffersMemory[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		grassUniformBuffersMapped[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			primitiveUniformBuffers[j][i], primitiveUniformBuffersMemory[j][i], device, physicalDevice);
+			grassUniformBuffers[j][i], grassUniformBuffersMemory[j][i], device, physicalDevice);
 
-			vkMapMemory(device, primitiveUniformBuffersMemory[j][i], 0, bufferSize, 0, &primitiveUniformBuffersMapped[j][i]);
+			vkMapMemory(device, grassUniformBuffersMemory[j][i], 0, bufferSize, 0, &grassUniformBuffersMapped[j][i]);
 
 		}
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createModelUniformBuffers()
+void GrassScene::createModelUniformBuffers()
 {		
 	modelUniformBuffers.resize(VulkanConfig::MESH_COUNT);
 	modelUniformBuffersMemory.resize(VulkanConfig::MESH_COUNT);
@@ -1454,7 +1499,7 @@ void OmniDirectionalShadowMappingScene::createModelUniformBuffers()
 }
 
 
-void OmniDirectionalShadowMappingScene::createCubemapUniformBuffers()
+void GrassScene::createCubemapUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1472,7 +1517,7 @@ void OmniDirectionalShadowMappingScene::createCubemapUniformBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createGraphicsUniformBuffers()
+void GrassScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -1490,12 +1535,12 @@ void OmniDirectionalShadowMappingScene::createGraphicsUniformBuffers()
 	}
 }
 	
-void OmniDirectionalShadowMappingScene::createDescriptorPools()
+void GrassScene::createDescriptorPools()
 {
 	createComputeDescriptorPool();
 }
 
-void OmniDirectionalShadowMappingScene::createComputeDescriptorPool()
+void GrassScene::createComputeDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 2> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1516,10 +1561,10 @@ void OmniDirectionalShadowMappingScene::createComputeDescriptorPool()
 }
 
 
-void OmniDirectionalShadowMappingScene::createDescriptorSets()
+void GrassScene::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
-	createPrimitiveDescriptorSets();
+	createGrassDescriptorSets();
 	createShadowMapDescriptorSets();
 	createStencilDescriptorSets();
 	//createModelDescriptorSets();
@@ -1530,7 +1575,7 @@ void OmniDirectionalShadowMappingScene::createDescriptorSets()
 	createComputeDescriptorSets();
 }
 
-void OmniDirectionalShadowMappingScene::createLightDescriptorSets()
+void GrassScene::createLightDescriptorSets()
 {
 	lightDescriptorSets.resize(VulkanConfig::MAX_POINT_LIGHTS);
 
@@ -1571,7 +1616,7 @@ void OmniDirectionalShadowMappingScene::createLightDescriptorSets()
 }
 
 
-void OmniDirectionalShadowMappingScene::createStencilDescriptorSets()
+void GrassScene::createStencilDescriptorSets()
 {
 	stencilDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
@@ -1611,7 +1656,7 @@ void OmniDirectionalShadowMappingScene::createStencilDescriptorSets()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createShadowMapDescriptorSets()
+void GrassScene::createShadowMapDescriptorSets()
 {
 	shadowMapDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
@@ -1633,7 +1678,7 @@ void OmniDirectionalShadowMappingScene::createShadowMapDescriptorSets()
 		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = primitiveUniformBuffers[j][i];
+			bufferInfo.buffer = grassUniformBuffers[j][i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObjectModel);
 
@@ -1657,10 +1702,10 @@ void OmniDirectionalShadowMappingScene::createShadowMapDescriptorSets()
 			specularImageInfo.imageView = specularImageView;
 			specularImageInfo.sampler = specularSampler;
 
-			VkDescriptorImageInfo primitiveImageInfo{};
-			primitiveImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-			primitiveImageInfo.imageView = shadowMapImageViews[i];
-			primitiveImageInfo.sampler = textureSampler;
+			VkDescriptorImageInfo grassImageInfo{};
+			grassImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			grassImageInfo.imageView = shadowMapImageViews[i];
+			grassImageInfo.sampler = textureSampler;
 
 			std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1708,21 +1753,21 @@ void OmniDirectionalShadowMappingScene::createShadowMapDescriptorSets()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
+void GrassScene::createGrassDescriptorSets()
 {
-	primitiveDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
+	grassDescriptorSets.resize(VulkanConfig::OBJECT_COUNT);
 
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::primitivePipeline.descriptor.layout);
+		std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::grassPipeline.descriptor.layout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = Pipelines::primitivePipeline.descriptor.pool;
+		allocInfo.descriptorPool = Pipelines::grassPipeline.descriptor.pool;
 		allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		primitiveDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-		if (vkAllocateDescriptorSets(device, &allocInfo, primitiveDescriptorSets[j].data()) != VK_SUCCESS)
+		grassDescriptorSets[j].resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+		if (vkAllocateDescriptorSets(device, &allocInfo, grassDescriptorSets[j].data()) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor sets!");
 		}
@@ -1730,7 +1775,7 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = primitiveUniformBuffers[j][i];
+			bufferInfo.buffer = grassUniformBuffers[j][i];
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObjectModel);
 
@@ -1761,7 +1806,7 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 
 			std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[0].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1769,7 +1814,7 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 	
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[1].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1777,7 +1822,7 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 			descriptorWrites[1].pBufferInfo = &materialsBufferInfo;
 		
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[2].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[2].dstBinding = 2;
 			descriptorWrites[2].dstArrayElement = 0;
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1785,7 +1830,7 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 			descriptorWrites[2].pImageInfo = &imageInfo;
 
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[3].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[3].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[3].dstBinding = 3;
 			descriptorWrites[3].dstArrayElement = 0;
 			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1793,7 +1838,7 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 			descriptorWrites[3].pBufferInfo = &lightBufferInfo;
 			
 			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[4].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[4].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[4].dstBinding = 4;
 			descriptorWrites[4].dstArrayElement = 0;
 			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1801,19 +1846,28 @@ void OmniDirectionalShadowMappingScene::createPrimitiveDescriptorSets()
 			descriptorWrites[4].pImageInfo = &specularImageInfo;
 
 			descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[5].dstSet = primitiveDescriptorSets[j][i];
+			descriptorWrites[5].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[5].dstBinding = 5;
 			descriptorWrites[5].dstArrayElement = 0;
 			descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[5].descriptorCount = 1;
 			descriptorWrites[5].pImageInfo = &shadowMapImageInfo;
 
+			descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[6].dstSet = grassDescriptorSets[j][i];
+			descriptorWrites[6].dstBinding = 6;
+			descriptorWrites[6].dstArrayElement = 0;
+			descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[6].descriptorCount = 1;
+			descriptorWrites[6].pBufferInfo = &bufferInfo;
+	
+
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createModelDescriptorSets()
+void GrassScene::createModelDescriptorSets()
 {
 	modelDescriptorSets.resize(VulkanConfig::MESH_COUNT);
 	for (size_t j = 0; j < VulkanConfig::MESH_COUNT; j++)
@@ -1891,9 +1945,10 @@ void OmniDirectionalShadowMappingScene::createModelDescriptorSets()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createCubemapDescriptorSets()
+void GrassScene::createCubemapDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::cubemapPipeline.descriptor.layout);
+
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = Pipelines::cubemapPipeline.descriptor.pool;
@@ -1941,7 +1996,7 @@ void OmniDirectionalShadowMappingScene::createCubemapDescriptorSets()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createShadowMapScreenSpaceQuadDescriptorSets()
+void GrassScene::createShadowMapScreenSpaceQuadDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::screenSpacePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -1978,7 +2033,7 @@ void OmniDirectionalShadowMappingScene::createShadowMapScreenSpaceQuadDescriptor
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createPostProcessingDescriptorSets()
+void GrassScene::createPostProcessingDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::postProcessingPipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2015,7 +2070,7 @@ void OmniDirectionalShadowMappingScene::createPostProcessingDescriptorSets()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
+void GrassScene::createGraphicsDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::basePipeline.descriptor.layout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2064,7 +2119,7 @@ void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
 }
 
 
-void OmniDirectionalShadowMappingScene::createComputeDescriptorSets()
+void GrassScene::createComputeDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, computeDescriptorSetLayout);
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -2125,7 +2180,7 @@ void OmniDirectionalShadowMappingScene::createComputeDescriptorSets()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createComputeCommandBuffers()
+void GrassScene::createComputeCommandBuffers()
 {
 	computeCommandBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
@@ -2141,7 +2196,7 @@ void OmniDirectionalShadowMappingScene::createComputeCommandBuffers()
 	}
 }
 
-void OmniDirectionalShadowMappingScene::createSyncObjects()
+void GrassScene::createSyncObjects()
 {
 	imageAvailableSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	renderFinishedSemaphores.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
@@ -2174,7 +2229,7 @@ void OmniDirectionalShadowMappingScene::createSyncObjects()
 }
 
 
-void OmniDirectionalShadowMappingScene::drawFrame(GLFWwindow * window)
+void GrassScene::drawFrame(GLFWwindow * window)
 {
 	camera.update();
 	VkSubmitInfo submitInfo{};
@@ -2273,7 +2328,7 @@ void OmniDirectionalShadowMappingScene::drawFrame(GLFWwindow * window)
 
 }
 
-void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2306,6 +2361,8 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
 	VkBuffer vertexCubemapBuffers[] = { vertexCubemapBuffer };
+	VkBuffer vertexTriangleBuffers[] = { vertexTriangleBuffer };
+	VkBuffer instanceBuffers[] = { instanceBuffer };
 	VkDeviceSize offsets[] = { 0 };
 	
 	VkViewport viewport{};
@@ -2322,36 +2379,18 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
+	for (size_t j = 0; j < 1; j++)
 	{
 		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::triangleVertices.size()), MAX_INSTANCE_COUNT, 0, 0);
 
-		// STENCIL
-/*
-		Pipelines::stencilPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-*/
-/*
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-*/	
 	}
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -2377,37 +2416,18 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
-	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
+	for (size_t j = 0; j < 1; j++)
 	{
 		Pipelines::grassPipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::grassPipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::grassPipeline.getLayout(), 0, 1, &grassDescriptorSets[j][currentFrame], 0, nullptr);
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
 
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
-
-		// STENCIL
-/*
-		Pipelines::stencilPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-*/	
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::triangleVertices.size()), MAX_INSTANCE_COUNT, 0, 0);
 	}
+
 	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
 	{
 		Pipelines::lightPipeline.bind(commandBuffer);
@@ -2418,7 +2438,7 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::cubeIndices.size()), 1, 0, 0, 0);
 	}
 
 	Pipelines::cubemapPipeline.bind(commandBuffer);
@@ -2427,13 +2447,13 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
 
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::cubemapVertices.size()), 1, 0, 0);
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(GrassScene::cubemapVertices.size()), 1, 0, 0);
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 
 // DEBUG FOR SHADOWMAP
-	Pipelines::screenSpacePipeline.bind(commandBuffer);
+/*	Pipelines::screenSpacePipeline.bind(commandBuffer);
 		
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
 
@@ -2441,8 +2461,8 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
-
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::quadIndices.size()), 1, 0, 0, 0);
+*/
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
@@ -2459,7 +2479,7 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(GrassScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -2469,7 +2489,7 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 	}
 }
 
-void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
+void GrassScene::updateUniformBuffer(uint32_t currentImage)
 {
 	for (size_t i = 0; i < VulkanConfig::MAX_POINT_LIGHTS; i++)
 	{
@@ -2545,7 +2565,7 @@ void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImag
 		memcpy(modelLightUniformBuffersMapped[i][currentImage], &lights, sizeof(lights));
 	}
 
-	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
+	for (size_t j = 0; j < 1; j++)
 	{
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -2565,21 +2585,17 @@ void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImag
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
 
-		glm::vec3 cubePosition = OmniDirectionalShadowMappingScene::cubePositions[j];
-		glm::vec3 transformedPosition = glm::vec3(cubePosition.x + 2.f, cubePosition.y - 1.f, cubePosition.z);
+		glm::vec3 cubePosition = GrassScene::cubePositions[j];
+		glm::vec3 transformedPosition = glm::vec3(cubePosition.x, cubePosition.y, cubePosition.z);
 		//glm::vec3 transformedPosition = cubePosition;
 		ubom.model = glm::mat4(1.);
-		if (j == 0){
-		ubom.model = glm::translate(ubom.model, camera.cameraPos);
-		}
-		else
-		{
 
 		ubom.model = glm::translate(ubom.model, transformedPosition);
-		};
 		float angle = 20.f * j;
 
 		ubom.model = glm::rotate(ubom.model, glm::radians(angle), glm::vec3(1.f, 0.3f, 0.5f));
+
+		ubom.model = glm::scale(ubom.model, glm::vec3(10.));
 
 		ubom.view = camera.getViewMatrix();
 		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
@@ -2589,8 +2605,9 @@ void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImag
 		ubom.fragColor = glm::vec3(0., 1., 1.);
 	
 		ubom.proj[1][1] *= -1;
+		ubom.deltaTime = glfwGetTime();
 
-		memcpy(primitiveUniformBuffersMapped[j][currentImage], &ubom, sizeof(ubom));
+		memcpy(grassUniformBuffersMapped[j][currentImage], &ubom, sizeof(ubom));
 
 		// STENCIL
 		ubom.model = glm::scale(ubom.model, glm::vec3(1.1));
@@ -2643,7 +2660,7 @@ void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImag
 	memcpy(cubemapUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));
 }
 
-void OmniDirectionalShadowMappingScene::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
+void GrassScene::recordComputeCommandBuffer(VkCommandBuffer commandBuffer)
 {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -2668,7 +2685,7 @@ void OmniDirectionalShadowMappingScene::recordComputeCommandBuffer(VkCommandBuff
 	}
 }
 
-void OmniDirectionalShadowMappingScene::recreateSwapChain(GLFWwindow * window)
+void GrassScene::recreateSwapChain(GLFWwindow * window)
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(window, &width, &height);
@@ -2714,7 +2731,7 @@ for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 }
 
 
-void OmniDirectionalShadowMappingScene::cleanupSwapChain()
+void GrassScene::cleanupSwapChain()
 {
 	vkDestroyImageView(device, colorImageView, nullptr);
 	vkDestroyImage(device, colorImage, nullptr);
@@ -2738,12 +2755,12 @@ void OmniDirectionalShadowMappingScene::cleanupSwapChain()
 
 }
 
-VkDevice* OmniDirectionalShadowMappingScene::getDevice()
+VkDevice* GrassScene::getDevice()
 {
 	return &device;
 }
 
-void OmniDirectionalShadowMappingScene::processInput(GLFWwindow * window)
+void GrassScene::processInput(GLFWwindow * window)
 {
 	camera.cameraSpeed = 10.f * lastFrameTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -2766,7 +2783,7 @@ void OmniDirectionalShadowMappingScene::processInput(GLFWwindow * window)
 //		verticalSteps -= 0.1;
 }
 
-void OmniDirectionalShadowMappingScene::cleanup(GLFWwindow * window)
+void GrassScene::cleanup(GLFWwindow * window)
 {
 	cleanupSwapChain();
 
@@ -2825,12 +2842,12 @@ void OmniDirectionalShadowMappingScene::cleanup(GLFWwindow * window)
 	glfwTerminate();
 }
 
-void OmniDirectionalShadowMappingScene::deviceWaitIdle()
+void GrassScene::deviceWaitIdle()
 {
 	vkDeviceWaitIdle(device);
 }
 
-void OmniDirectionalShadowMappingScene::moveCamera(double xpos, double ypos)
+void GrassScene::moveCamera(double xpos, double ypos)
 {
 	camera.move(xpos, ypos);
 }
