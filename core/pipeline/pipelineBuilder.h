@@ -112,7 +112,6 @@ class PipelineBuilder : private Builder
 	PipelineBuilder& setDescriptor(std::vector<VkDescriptorSetLayoutBinding> bindings, std::vector<VkDescriptorType> types, uint32_t count,VkDevice& device)
 	{
 		DescriptorBuilder builder{};
-		std::cout << "Types: " << types.size() << '\n';
 		builder.setBindings(bindings);
 		builder.setTypes(types);
 		builder.setCount(count);
@@ -256,6 +255,7 @@ class PipelineBuilder : private Builder
 
 		for (const auto& shader : shaders)
 		{
+			std::cout << "Starting compilation for path: " << shader.path << '\n';
 			auto shaderCode = FileContext::readFile(shader.path);
 
 			VkShaderModule shaderModule = createShaderModule(shaderCode, device);
@@ -266,6 +266,7 @@ class PipelineBuilder : private Builder
 			shaderStageInfo.pName = "main";
 
 			shaderStages.push_back(shaderStageInfo);
+			std::cout << "Ending compilation for path: " << shader.path << '\n';
 		}
 
 		std::vector<VkVertexInputBindingDescription> bindings{bindingDescriptions.begin(), bindingDescriptions.end()};

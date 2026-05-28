@@ -24,12 +24,12 @@
 #include <array>
 #include <random>
 #include "particle.h"
-#include "./examples/grassScene/grassScene.h"
-//#include "./examples/shadowMappingScene/shadowMappingScene.h"
+//#include "./examples/grassScene/grassScene.h"
+#include "./examples/shadowMappingScene/shadowMappingScene.h"
 
 int main()
 {
-	Engine<GrassScene, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<ShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
@@ -41,5 +41,4 @@ int main()
 	}
 
 	return EXIT_SUCCESS;
-
 }
