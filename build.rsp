@@ -6,7 +6,7 @@
 /I"C:\vcpkg\packages\tinyobjloader_x64-windows\include"
 /I"C:\vcpkg\packages\stb_x64-windows\include"
 /I"C:\vcpkg\packages\assimp_x64-windows\include"
-C:\Users\colli\projects\vulkan-learnopengl-modules\src/app/main.cpp
+C:\Users\colli\projects\vulkan-learnopengl-modules\src\app\main.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\camera.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\fileContext.cpp
 C:\Users\colli\projects\vulkan-learnopengl-modules\model.cpp
@@ -42,4 +42,4 @@ gdi32.lib
 shell32.lib
 ole32.lib
 winmm.lib
-/OUT:"\src\app\main.exe"
+/OUT:test.exe

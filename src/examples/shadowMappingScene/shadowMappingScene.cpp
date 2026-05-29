@@ -19,8 +19,11 @@ Camera ShadowMappingScene::camera = Camera(ShadowMappingScene::cameraPos, Shadow
 void ShadowMappingScene::init(GLFWwindow* window)
 {
 	createInstance();
+	std::cout << "Instance created\n";
 	setupDebugMessenger();
+	std::cout << "Debug messenger created\n";
 	createSurface(window);
+	std::cout << "Surface created\n";
 	pickPhysicalDevice();
 	createLogicalDevice();
 	createSwapChain(window);
@@ -95,7 +98,6 @@ void ShadowMappingScene::createInstance()
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-
 	auto extensions = getRequiredExtensions();
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
@@ -103,17 +105,19 @@ void ShadowMappingScene::createInstance()
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 	if (enableValidationLayers)
 	{
-	createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	createInfo.ppEnabledLayerNames = validationLayers.data();
+		std::cout << "Validation layers enabled\n";
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
 
-	populateDebugMessengerCreateInfo(debugCreateInfo);
-	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+		populateDebugMessengerCreateInfo(debugCreateInfo);
+		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 	}
 	else
 	{
-	createInfo.enabledLayerCount = 0;
+		std::cout << "Validation layers disabled\n";
+		createInfo.enabledLayerCount = 0;
 	
-	createInfo.pNext = nullptr;
+		createInfo.pNext = nullptr;
 	}
 
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
