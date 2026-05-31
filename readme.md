@@ -1,6 +1,6 @@
 To run, go to the /build directory in your cli of choice and run:
 ```
-cmake .
+cmake CMakeLists.txt ..
 ```
 ```
 cmake --build .
