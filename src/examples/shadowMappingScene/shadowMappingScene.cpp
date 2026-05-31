@@ -2258,6 +2258,10 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
+
+	// SHADOW MAP PASS
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
 	Pipelines::basePipeline.bind(commandBuffer);
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
@@ -2278,6 +2282,55 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	Pipelines::shadowMapMeshPipeline.bind(commandBuffer);
+
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
+	{
+		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapMeshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
+	}
+
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
+	{
+		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+
+		// STENCIL
+/*
+		Pipelines::stencilPipeline.bind(commandBuffer);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
+*/
+/*
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
+*/	
+	}
+
+	vkCmdEndRenderPass(commandBuffer);
+
 	scissor.extent = VulkanConfig::swapChainExtent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	// NORMAL PASS
@@ -2291,6 +2344,14 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+	Pipelines::basePipeline.bind(commandBuffer);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
+
 	Pipelines::meshPipeline.bind(commandBuffer);
 
 	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
@@ -2298,13 +2359,85 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
+
 		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::meshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
 
-		std::cout << "DRAWING...\n";
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
 	}
+
+	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
+	{
+		Pipelines::primitivePipeline.bind(commandBuffer);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+
+		// STENCIL
+/*
+		Pipelines::stencilPipeline.bind(commandBuffer);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
+
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
+*/	
+	}
+	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
+	{
+		Pipelines::lightPipeline.bind(commandBuffer);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::lightPipeline.getLayout(), 0, 1, &lightDescriptorSets[j][currentFrame], 0, nullptr);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
+	}
+
+	Pipelines::cubemapPipeline.bind(commandBuffer);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
+
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubemapVertices.size()), 1, 0, 0);
+
+	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdEndRenderPass(commandBuffer);
+
+	// POST PROCESSING PASS
+	renderPassInfo.renderPass = renderPasses.postProcessingRenderPass;
+	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	Pipelines::postProcessingPipeline.bind(commandBuffer);
+	
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::postProcessingPipeline.getLayout(), 0, 1, &postProcessingDescriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -2313,7 +2446,6 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 		throw std::runtime_error("failed to record command buffer!");
 	}
 }
-
 void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 {
 	for (size_t i = 0; i < VulkanConfig::MAX_POINT_LIGHTS; i++)

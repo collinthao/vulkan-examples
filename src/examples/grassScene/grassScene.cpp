@@ -111,7 +111,6 @@ std::vector<const char*> GrassScene::getRequiredExtensions()
 
 void GrassScene::createInstance()
 {
-	std::cout << "Creating instance...\n";
 	VkApplicationInfo appInfo{};
 	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	appInfo.pApplicationName = "Hello Triangle";
@@ -723,7 +722,7 @@ void GrassScene::createPipelines()
 
 void GrassScene::createComputePipeline()
 {
-	auto compShaderCode = readFile("shaders/comp.spv");
+	auto compShaderCode = readFile(std::string{PROJECT_ROOT_DIR} + "/src/shaders/comp.spv");
 
 	VkShaderModule compShaderModule = createShaderModule(compShaderCode);
 
@@ -1759,7 +1758,7 @@ void GrassScene::createGrassDescriptorSets()
 			shadowMapImageInfo.imageView = shadowMapImageViews[i];
 			shadowMapImageInfo.sampler = shadowSampler;
 
-			std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
+			std::array<VkWriteDescriptorSet, 7> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[0].dstBinding = 0;
@@ -1784,6 +1783,7 @@ void GrassScene::createGrassDescriptorSets()
 			descriptorWrites[2].descriptorCount = 1;
 			descriptorWrites[2].pImageInfo = &imageInfo;
 
+			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[3].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[3].dstBinding = 3;
@@ -1963,7 +1963,6 @@ void GrassScene::createShadowMapScreenSpaceQuadDescriptorSets()
 	screenSpaceDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	if (vkAllocateDescriptorSets(device, &allocInfo, screenSpaceDescriptorSets.data()) != VK_SUCCESS)
 	{
-		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
@@ -1998,10 +1997,8 @@ void GrassScene::createPostProcessingDescriptorSets()
 	allocInfo.pSetLayouts = layouts.data();
 
 	postProcessingDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	std::cout << "Creating pipelines\n";
 	if (vkAllocateDescriptorSets(device, &allocInfo, postProcessingDescriptorSets.data()) != VK_SUCCESS)
 	{
-		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 

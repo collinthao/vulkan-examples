@@ -4,10 +4,11 @@ project(vulkan_examples)
 
 set(CMAKE_CXX_STANDARD 23)
 
+
+
 set(SOURCE_DIR src)
 set(VENDOR_DIR vendor)
 
-test
 set(SOURCES
 ${SOURCE_DIR}/main/main.cpp
 ./camera.cpp
@@ -44,9 +45,7 @@ target_link_libraries(vulkan_examples PRIVATE
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/glfw/lib/glfw3dll.lib"
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/glm/lib/glm.lib"
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/vulkan/lib/vulkan-1.lib"
-"${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/spirv/lib/SPIRV-Tools.lib"
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/spirv/lib/SPIRV-Tools-diff.lib"
-"${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/spirv/lib/SPIRV-Tools-opt.lib"
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/glslang/lib/GenericCodeGen.lib"
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/glslang/lib/glslang.lib"
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/glslang/lib/glslang-default-resource-limits.lib"

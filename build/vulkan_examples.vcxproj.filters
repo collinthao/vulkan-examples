@@ -1,16 +1,70 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="C:\Users\colli\projects\vulkan-learnopengl-modules\src\app\main.cpp">
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\main\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\fileContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\vulkanConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\buffer\buffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\commandBuffer\commandBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\descriptors\descriptor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\image\image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\image\texture\texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\image\texture\sampler\sampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\pipeline\pipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\queueFamily\queueFamily.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\renderer\vulkanRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\vulkanImage\vulkanImage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\windowContext\glfwWindowContext.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\examples\grassScene\grassScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\examples\shadowMappingScene\shadowMappingScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\examples\omniDirectionalShadowMappingScene\omniDirectionalShadowMappingScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\colli\projects\vulkan-learnopengl-modules\build\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\colli\projects\vulkan-examples\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{B4E5A25C-160B-38C5-B98B-95D4237F93C7}</UniqueIdentifier>
+      <UniqueIdentifier>{CB22D30E-0068-3B37-8E96-EC5BB6F7F26B}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

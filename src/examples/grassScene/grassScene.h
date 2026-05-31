@@ -332,11 +332,6 @@ class GrassScene : public IVulkanApp
 
 	uint32_t currentFrame = 0;
 
-	const std::string MODEL_PATH = "models/Sponza-master/sponza.obj";
-	const std::string MODEL_TEXTURE_DIRECTORY = "models/Sponza-master/";
-	const std::string TEXTURE_PATH = "textures/container.png";
-	const std::string CUBEMAP_PATH = "textures/skybox/";
-	const std::string SPECULAR_PATH = "textures/container_specular.png";
 	const uint32_t PARTICLE_COUNT = 8192;
 	const float FAR_PLANE = 400.f;
 	float lastFrameTime = 0.f;

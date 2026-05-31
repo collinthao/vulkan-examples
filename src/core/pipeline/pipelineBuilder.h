@@ -73,6 +73,7 @@ class PipelineBuilder : private Builder
 	VkFrontFace cullFace;
 	VkCullModeFlags cullMode;
 	VkCompareOp depthCompareOp;
+	int pipelineCounter = 0;
 
 	VkShaderModule createShaderModule(const std::vector<char>& code, VkDevice& device)
 	{
@@ -113,7 +114,6 @@ class PipelineBuilder : private Builder
 	{
 		for (int i = 0; i < bindings.size(); i++)
 		{
-			std::cout << "Binding pipeline: " << bindings[i].stageFlags << '\n';
 		}
 
 		DescriptorBuilder builder{};
@@ -122,7 +122,6 @@ class PipelineBuilder : private Builder
 		builder.setCount(count);
 		descriptor = builder.build(device);
 		
-		std::cout << "Built\n";
 	
 		return *this;
 	}
@@ -148,6 +147,9 @@ class PipelineBuilder : private Builder
 
 	PipelineBuilder& setShaderPaths(std::vector<ShaderContext> shaderInfo)
 	{
+		for (size_t i = 0; i < shaderInfo.size(); i++)
+		{
+		}
 		shaders = shaderInfo;
 		return *this;
 	};

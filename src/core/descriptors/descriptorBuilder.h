@@ -22,10 +22,13 @@ class DescriptorBuilder : protected Descriptors::Builder
 
 		for (size_t i = 0; i < setLayoutBindings.size(); i++)
 		{
-			std::cout << "Binding BEFORE: " << setLayoutBindings[i].stageFlags << '\n';
 		}
 
-		bindings = setLayoutBindings;		
+		bindings = setLayoutBindings; 
+
+		for (size_t i = 0; i < bindings.size(); i++)
+		{
+		}
 		return *this;
 	};
 
@@ -42,7 +45,6 @@ class DescriptorBuilder : protected Descriptors::Builder
 
 		for (size_t i = 0; i < bindings.size(); i++)
 		{
-			std::cout << "Binding BEFORE: " << bindings[i].stageFlags << '\n';
 			bindings[i].binding = i;
 		}
 

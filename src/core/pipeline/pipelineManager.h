@@ -70,17 +70,19 @@ namespace Pipelines
 		SHADER_DIRECTORY + "/frag.spv"};	
 	} shaderPaths{};
 
-	struct
+	template <typename T>
+	void createPipelines(VkDevice& device, T& renderPasses)
 	{
-		VkDescriptorSetLayoutBinding samplerUniformLayoutBinding{};
-		VkDescriptorSetLayoutBinding specularUniformLayoutBinding{};
-		VkDescriptorSetLayoutBinding vertexLayoutBinding{};
-		VkDescriptorSetLayoutBinding fragmentLayoutBinding{};
-		VkDescriptorSetLayoutBinding allStagesUniformLayoutBinding{};
-	} layoutBindings{};
+		struct
+		{
+			VkDescriptorSetLayoutBinding samplerUniformLayoutBinding{};
+			VkDescriptorSetLayoutBinding specularUniformLayoutBinding{};
+			VkDescriptorSetLayoutBinding vertexLayoutBinding{};
+			VkDescriptorSetLayoutBinding fragmentLayoutBinding{};
+			VkDescriptorSetLayoutBinding allStagesUniformLayoutBinding{};
+		} layoutBindings{};
 
-	inline void setDescriptorSetLayoutBindings()
-	{
+
 		layoutBindings.samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		layoutBindings.samplerUniformLayoutBinding.descriptorCount = 1;
 		layoutBindings.samplerUniformLayoutBinding.pImmutableSamplers = nullptr;
@@ -105,13 +107,6 @@ namespace Pipelines
 		layoutBindings.allStagesUniformLayoutBinding.descriptorCount = 1;
 		layoutBindings.allStagesUniformLayoutBinding.pImmutableSamplers = nullptr;
 		layoutBindings.allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-	}
-
-	template <typename T>
-	void createPipelines(VkDevice& device, T& renderPasses)
-	{
-
-		setDescriptorSetLayoutBindings();
 
 		std::vector<VkDescriptorSetLayoutBinding> shadowMapBindings = 
 		{
@@ -238,12 +233,12 @@ namespace Pipelines
 
 		shadowMapMeshPipeline = pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMapMesh.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.shadowMapMesh.frag}})
-			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-			.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
-			.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
-			.clearAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
-			.clearAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 8)
-			.clearAttributeDescription(1, 7, VK_FORMAT_R32G32_UINT, sizeof(float) * 9)
+			//.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+			//.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+			//.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
+			//.clearAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
+			//.clearAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 8)
+			//.clearAttributeDescription(1, 7, VK_FORMAT_R32G32_UINT, sizeof(float) * 9)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 			.setDescriptor(meshBindings, meshTypes, VulkanConfig::MESH_COUNT, device)
@@ -262,11 +257,6 @@ namespace Pipelines
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.base.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.base.frag}})
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-			.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
-			.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
-			.clearAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
-			.clearAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 8)
-			.clearAttributeDescription(1, 7, VK_FORMAT_R32_UINT, sizeof(float) * 9)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
 			.setMSAASamples(VulkanConfig::msaaSamples)
 			.setDescriptor({layoutBindings.vertexLayoutBinding, layoutBindings.samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
@@ -283,8 +273,8 @@ namespace Pipelines
 
 		stencilPipeline = 
 			pipelineBuilder
-			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.stencil.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.stencil.vert}})
-			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.stencil.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.stencil.frag}})
+
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setMSAASamples(VulkanConfig::msaaSamples)
 			.setDescriptor({layoutBindings.vertexLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, VulkanConfig::OBJECT_COUNT, device)
