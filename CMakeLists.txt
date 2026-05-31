@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(SOURCE_DIR src)
 set(VENDOR_DIR vendor)
 
+test
 set(SOURCES
 ${SOURCE_DIR}/main/main.cpp
 ./camera.cpp
