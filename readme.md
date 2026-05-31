@@ -1,3 +1,11 @@
+To run, go to the /build directory in your cli of choice and run:
+```
+cmake .
+```
+```
+cmake --build .
+```
+
 ***TODO***
 - have shadow map view from light perspective // DONE
 - remove shadowmap from primitives and make shadowmap screen space quad instead // DONE
