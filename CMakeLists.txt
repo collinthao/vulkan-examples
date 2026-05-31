@@ -53,3 +53,4 @@ target_link_libraries(vulkan_examples PRIVATE
 "${CMAKE_CURRENT_SOURCE_DIR}/${VENDOR_DIR}/assimp/lib/assimp-vc143-mt.lib")
 
 target_compile_definitions(vulkan_examples PRIVATE PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+

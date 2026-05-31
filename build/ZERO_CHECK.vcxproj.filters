@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\colli\projects\vulkan-learnopengl-modules\build\CMakeFiles\0ec28099c1be0c3f5ef212ca6dc784b8\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{90D3F3E8-1F14-3DF5-9805-08E41F7E75C7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
