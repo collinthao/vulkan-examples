@@ -2,8 +2,8 @@
 #define PIPELINEBUILDER_H
 #include "./builder.h"
 #include <stdexcept>
-#include "../../../vulkanConfig.h"
-#include "../../../fileContext.h"
+#include "../../config/vulkanConfig.h"
+#include "../../fileContext/fileContext.h"
 #include <unordered_set>
 
 namespace std 

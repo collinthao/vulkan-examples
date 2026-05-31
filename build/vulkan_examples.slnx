@@ -7,7 +7,7 @@
 		<BuildType Name="RelWithDebInfo"/>
 		<Platform Name="x64"/>
 	</Configurations>
-	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bd52e822-e388-30f5-90f7-5b347bbdcaa4" DefaultStartup="true">
+	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c4e3c973-686e-34a3-911a-25eeeb1cbf32" DefaultStartup="true">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 		<BuildDependency Project="vulkan_examples.vcxproj"/>
 		<Build Solution="Debug|*" Project="false"/>
@@ -15,8 +15,8 @@
 		<Build Solution="MinSizeRel|*" Project="false"/>
 		<Build Solution="RelWithDebInfo|*" Project="false"/>
 	</Project>
-	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="63a53658-4133-34b9-b578-220fa355272a"/>
-	<Project Path="vulkan_examples.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="56bd8a9c-f546-3001-b411-71871e24bd4e">
+	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="2513e9c4-3ee9-3763-8b88-5b7949cb0ffc"/>
+	<Project Path="vulkan_examples.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3540bcd8-311b-3aca-ae6a-8ed4a7d8eb8f">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 	</Project>
 </Solution>

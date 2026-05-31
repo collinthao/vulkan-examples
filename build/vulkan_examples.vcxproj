@@ -22,7 +22,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{56BD8A9C-F546-3001-B411-71871E24BD4E}</ProjectGuid>
+    <ProjectGuid>{3540BCD8-311B-3ACA-AE6A-8ED4A7D8EB8F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
     <Platform>x64</Platform>
@@ -59,25 +59,25 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\colli\projects\vulkan-examples\build\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\Collin\Projects\vulkan-examples\build\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">vulkan_examples.dir\Debug\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">vulkan_examples</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\colli\projects\vulkan-examples\build\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\Collin\Projects\vulkan-examples\build\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">vulkan_examples.dir\Release\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">vulkan_examples</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\colli\projects\vulkan-examples\build\MinSizeRel\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\Collin\Projects\vulkan-examples\build\MinSizeRel\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">vulkan_examples.dir\MinSizeRel\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">vulkan_examples</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
     <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\colli\projects\vulkan-examples\build\RelWithDebInfo\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\Collin\Projects\vulkan-examples\build\RelWithDebInfo\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">vulkan_examples.dir\RelWithDebInfo\</IntDir>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">vulkan_examples</TargetName>
     <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
@@ -86,7 +86,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <BufferSecurityCheck></BufferSecurityCheck>
@@ -105,16 +105,16 @@
       <SupportJustMyCode></SupportJustMyCode>
       <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
       <UseFullPaths>false</UseFullPaths>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;PROJECT_ROOT_DIR="C:/Users/colli/projects/vulkan-examples";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;PROJECT_ROOT_DIR="C:/Users/Collin/Projects/vulkan-examples";CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;PROJECT_ROOT_DIR=\"C:/Users/colli/projects/vulkan-examples\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;PROJECT_ROOT_DIR=\"C:/Users/Collin/Projects/vulkan-examples\";CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -122,16 +122,16 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>C:\Users\colli\projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\colli\projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\colli\projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\colli\projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
-      <ImportLibrary>C:/Users/colli/projects/vulkan-examples/build/Debug/vulkan_examples.lib</ImportLibrary>
+      <ImportLibrary>C:/Users/Collin/Projects/vulkan-examples/build/Debug/vulkan_examples.lib</ImportLibrary>
       <LinkErrorReporting></LinkErrorReporting>
-      <ProgramDataBaseFile>C:/Users/colli/projects/vulkan-examples/build/Debug/vulkan_examples.pdb</ProgramDataBaseFile>
+      <ProgramDataBaseFile>C:/Users/Collin/Projects/vulkan-examples/build/Debug/vulkan_examples.pdb</ProgramDataBaseFile>
       <RandomizedBaseAddress></RandomizedBaseAddress>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -141,7 +141,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <BufferSecurityCheck></BufferSecurityCheck>
@@ -159,18 +159,18 @@
       <SupportJustMyCode></SupportJustMyCode>
       <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
       <UseFullPaths>false</UseFullPaths>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR="C:/Users/colli/projects/vulkan-examples";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR="C:/Users/Collin/Projects/vulkan-examples";CMAKE_INTDIR="Release"</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR=\"C:/Users/colli/projects/vulkan-examples\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR=\"C:/Users/Collin/Projects/vulkan-examples\";CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -178,16 +178,16 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>C:\Users\colli\projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\colli\projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\colli\projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\colli\projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
-      <ImportLibrary>C:/Users/colli/projects/vulkan-examples/build/Release/vulkan_examples.lib</ImportLibrary>
+      <ImportLibrary>C:/Users/Collin/Projects/vulkan-examples/build/Release/vulkan_examples.lib</ImportLibrary>
       <LinkErrorReporting></LinkErrorReporting>
-      <ProgramDataBaseFile>C:/Users/colli/projects/vulkan-examples/build/Release/vulkan_examples.pdb</ProgramDataBaseFile>
+      <ProgramDataBaseFile>C:/Users/Collin/Projects/vulkan-examples/build/Release/vulkan_examples.pdb</ProgramDataBaseFile>
       <RandomizedBaseAddress></RandomizedBaseAddress>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -197,7 +197,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <BufferSecurityCheck></BufferSecurityCheck>
@@ -215,18 +215,18 @@
       <SupportJustMyCode></SupportJustMyCode>
       <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
       <UseFullPaths>false</UseFullPaths>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR="C:/Users/colli/projects/vulkan-examples";CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR="C:/Users/Collin/Projects/vulkan-examples";CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR=\"C:/Users/colli/projects/vulkan-examples\";CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR=\"C:/Users/Collin/Projects/vulkan-examples\";CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -234,16 +234,16 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>C:\Users\colli\projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\colli\projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\colli\projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\colli\projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
-      <ImportLibrary>C:/Users/colli/projects/vulkan-examples/build/MinSizeRel/vulkan_examples.lib</ImportLibrary>
+      <ImportLibrary>C:/Users/Collin/Projects/vulkan-examples/build/MinSizeRel/vulkan_examples.lib</ImportLibrary>
       <LinkErrorReporting></LinkErrorReporting>
-      <ProgramDataBaseFile>C:/Users/colli/projects/vulkan-examples/build/MinSizeRel/vulkan_examples.pdb</ProgramDataBaseFile>
+      <ProgramDataBaseFile>C:/Users/Collin/Projects/vulkan-examples/build/MinSizeRel/vulkan_examples.pdb</ProgramDataBaseFile>
       <RandomizedBaseAddress></RandomizedBaseAddress>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -253,7 +253,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <BufferSecurityCheck></BufferSecurityCheck>
@@ -272,16 +272,16 @@
       <SupportJustMyCode></SupportJustMyCode>
       <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
       <UseFullPaths>false</UseFullPaths>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR="C:/Users/colli/projects/vulkan-examples";CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR="C:/Users/Collin/Projects/vulkan-examples";CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR=\"C:/Users/colli/projects/vulkan-examples\";CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;PROJECT_ROOT_DIR=\"C:/Users/Collin/Projects/vulkan-examples\";CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>C:\Users\colli\projects\vulkan-examples\src;C:\Users\colli\projects\vulkan-examples\vendor\glfw\include;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\include;C:\Users\colli\projects\vulkan-examples\vendor\glm\include;C:\Users\colli\projects\vulkan-examples\vendor\stb\include;C:\Users\colli\projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Collin\Projects\vulkan-examples\src;C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\include;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\include;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\include;C:\Users\Collin\Projects\vulkan-examples\vendor\stb\include;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -289,16 +289,16 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>C:\Users\colli\projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\colli\projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\colli\projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\colli\projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\colli\projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\colli\projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Collin\Projects\vulkan-examples\vendor\glfw\lib\glfw3dll.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glm\lib\glm.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\vulkan\lib\vulkan-1.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\spirv\lib\SPIRV-Tools-diff.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\GenericCodeGen.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\glslang-default-resource-limits.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\glslang\lib\MachineIndependent.lib;C:\Users\Collin\Projects\vulkan-examples\vendor\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
-      <ImportLibrary>C:/Users/colli/projects/vulkan-examples/build/RelWithDebInfo/vulkan_examples.lib</ImportLibrary>
+      <ImportLibrary>C:/Users/Collin/Projects/vulkan-examples/build/RelWithDebInfo/vulkan_examples.lib</ImportLibrary>
       <LinkErrorReporting></LinkErrorReporting>
-      <ProgramDataBaseFile>C:/Users/colli/projects/vulkan-examples/build/RelWithDebInfo/vulkan_examples.pdb</ProgramDataBaseFile>
+      <ProgramDataBaseFile>C:/Users/Collin/Projects/vulkan-examples/build/RelWithDebInfo/vulkan_examples.pdb</ProgramDataBaseFile>
       <RandomizedBaseAddress></RandomizedBaseAddress>
       <SubSystem>Console</SubSystem>
     </Link>
@@ -307,11 +307,11 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\colli\projects\vulkan-examples\CMakeLists.txt">
+    <CustomBuild Include="C:\Users\Collin\Projects\vulkan-examples\CMakeLists.txt">
       <UseUtf8Encoding>Always</UseUtf8Encoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/colli/projects/vulkan-examples/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/Collin/Projects/vulkan-examples/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/colli/projects/vulkan-examples -BC:/Users/colli/projects/vulkan-examples/build --check-stamp-file C:/Users/colli/projects/vulkan-examples/build/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Collin/Projects/vulkan-examples -BC:/Users/Collin/Projects/vulkan-examples/build --check-stamp-file C:/Users/Collin/Projects/vulkan-examples/build/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -319,12 +319,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCXXCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeRCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCXXCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeRCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/colli/projects/vulkan-examples/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/Users/Collin/Projects/vulkan-examples/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/colli/projects/vulkan-examples -BC:/Users/colli/projects/vulkan-examples/build --check-stamp-file C:/Users/colli/projects/vulkan-examples/build/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Collin/Projects/vulkan-examples -BC:/Users/Collin/Projects/vulkan-examples/build --check-stamp-file C:/Users/Collin/Projects/vulkan-examples/build/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -332,12 +332,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCXXCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeRCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCXXCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeRCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/colli/projects/vulkan-examples/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/Users/Collin/Projects/vulkan-examples/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/colli/projects/vulkan-examples -BC:/Users/colli/projects/vulkan-examples/build --check-stamp-file C:/Users/colli/projects/vulkan-examples/build/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Collin/Projects/vulkan-examples -BC:/Users/Collin/Projects/vulkan-examples/build --check-stamp-file C:/Users/Collin/Projects/vulkan-examples/build/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -345,12 +345,12 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCXXCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeRCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCXXCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeRCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/colli/projects/vulkan-examples/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/Users/Collin/Projects/vulkan-examples/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/colli/projects/vulkan-examples -BC:/Users/colli/projects/vulkan-examples/build --check-stamp-file C:/Users/colli/projects/vulkan-examples/build/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Collin/Projects/vulkan-examples -BC:/Users/Collin/Projects/vulkan-examples/build --check-stamp-file C:/Users/Collin/Projects/vulkan-examples/build/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -358,36 +358,36 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.3\Modules\Platform\WindowsPaths.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeCXXCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeRCCompiler.cmake;C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\4.3.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\colli\projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.2\Modules\Platform\WindowsPaths.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeCXXCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeRCCompiler.cmake;C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\4.2.3\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Users\Collin\Projects\vulkan-examples\build\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\main\main.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\camera.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\fileContext.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\model.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\vulkanConfig.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\buffer\buffer.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\commandBuffer\commandBuffer.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\descriptors\descriptor.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\image\image.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\image\texture\texture.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\image\texture\sampler\sampler.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\pipeline\pipeline.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\queueFamily\queueFamily.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\renderer\vulkanRenderer.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\vulkanImage\vulkanImage.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\core\windowContext\glfwWindowContext.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\examples\grassScene\grassScene.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\examples\shadowMappingScene\shadowMappingScene.cpp" />
-    <ClCompile Include="C:\Users\colli\projects\vulkan-examples\src\examples\omniDirectionalShadowMappingScene\omniDirectionalShadowMappingScene.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\main.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\camera\camera.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\fileContext\fileContext.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\model\model.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\config\vulkanConfig.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\buffer\buffer.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\commandBuffer\commandBuffer.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\descriptors\descriptor.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\image\image.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\image\texture\texture.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\image\texture\sampler\sampler.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\pipeline\pipeline.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\queueFamily\queueFamily.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\renderer\vulkanRenderer.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\vulkanImage\vulkanImage.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\core\windowContext\glfwWindowContext.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\examples\grassScene\grassScene.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\examples\shadowMappingScene\shadowMappingScene.cpp" />
+    <ClCompile Include="C:\Users\Collin\Projects\vulkan-examples\src\examples\omniDirectionalShadowMappingScene\omniDirectionalShadowMappingScene.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="C:\Users\colli\projects\vulkan-examples\build\ZERO_CHECK.vcxproj">
-      <Project>{63A53658-4133-34B9-B578-220FA355272A}</Project>
+    <ProjectReference Include="C:\Users\Collin\Projects\vulkan-examples\build\ZERO_CHECK.vcxproj">
+      <Project>{2513E9C4-3EE9-3763-8B88-5B7949CB0FFC}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>

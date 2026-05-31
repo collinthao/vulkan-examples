@@ -1,7 +1,7 @@
 #include <string>
 #include <vector>
 #include <glm/glm.hpp>
-#include "vertex.h"
+#include "../bindings/vertex.h"
 
 struct Texture
 {

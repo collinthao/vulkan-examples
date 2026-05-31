@@ -10,11 +10,11 @@ set(SOURCE_DIR src)
 set(VENDOR_DIR vendor)
 
 set(SOURCES
-${SOURCE_DIR}/main/main.cpp
-./camera.cpp
-./fileContext.cpp
-./model.cpp
-./vulkanConfig.cpp
+${SOURCE_DIR}/main.cpp
+${SOURCE_DIR}/camera/camera.cpp
+${SOURCE_DIR}/fileContext/fileContext.cpp
+${SOURCE_DIR}/model/model.cpp
+${SOURCE_DIR}/config/vulkanConfig.cpp
 ${SOURCE_DIR}/core/buffer/buffer.cpp
 ${SOURCE_DIR}/core/commandBuffer/commandBuffer.cpp
 ${SOURCE_DIR}/core/descriptors/descriptor.cpp

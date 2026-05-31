@@ -2,7 +2,7 @@
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include "../core/engine/engine.h"
+#include "./core/engine/engine.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <chrono>
@@ -23,9 +23,9 @@
 #include <unordered_map>
 #include <array>
 #include <random>
-#include "../../particle.h"
-//#include "../examples/grassScene/grassScene.h"
-#include "../examples/shadowMappingScene/shadowMappingScene.h"
+#include "./bindings/particle.h"
+//#include "./examples/grassScene/grassScene.h"
+#include "./examples/shadowMappingScene/shadowMappingScene.h"
 
 int main()
 {

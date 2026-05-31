@@ -1,8 +1,8 @@
 #include "./shadowMappingScene.h"
 #include <iostream>
 #include "../../core/windowContext/GLFWWindowContext.h"
-#include "../../../particle.h"
-#include "../../../vulkanConfig.h"
+#include "../../bindings/particle.h"
+#include "../../config/vulkanConfig.h"
 #include "../../core/image/image.h"
 #include "../../core/image/texture/texture.h"
 #include "../../core/image/texture/sampler/sampler.h"

@@ -21,7 +21,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
-#include "../../../model.h"
+#include "../../../model/model.h"
 #include <stb_image.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -29,7 +29,7 @@
 #include <glm/gtx/hash.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "../../../../camera.h"
+#include "../../../camera/camera.h"
 #include "../../pipeline/pipelineBuilder.h"
 #include "../../vulkanImage/vulkanImageBuilder.h"
 #include "../../pipeline/pipelineManager.h"

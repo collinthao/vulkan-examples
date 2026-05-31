@@ -70,4 +70,3 @@ void Camera::move(CameraDirection direction)
 	}	
 }
 
-
