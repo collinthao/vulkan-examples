@@ -7,6 +7,7 @@ void Image::Texture::loadTexture(const std::string imagePath, int& width, int& h
 
 	if (!texture)
 	{
+		std::cout << "failed to load texture image! Path: " + imagePath << "\n";
 		throw std::runtime_error("failed to load texture image! Path: " + imagePath);
 	}
 }

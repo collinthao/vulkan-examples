@@ -1,6 +1,6 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include <array>
 #include <iostream>
 

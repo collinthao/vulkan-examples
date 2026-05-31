@@ -19,8 +19,11 @@ Camera ShadowMappingScene::camera = Camera(ShadowMappingScene::cameraPos, Shadow
 void ShadowMappingScene::init(GLFWwindow* window)
 {
 	createInstance();
+	std::cout << "Instance created\n";
 	setupDebugMessenger();
+	std::cout << "Debug messenger created\n";
 	createSurface(window);
+	std::cout << "Surface created\n";
 	pickPhysicalDevice();
 	createLogicalDevice();
 	createSwapChain(window);
@@ -50,7 +53,6 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	createTextureImages(modelImages, modelImageMemories);	
 	createTextureImageViews(modelImages, modelImageViews);
 	createTextureSamplers(modelSamplers);
-	loadModel();
 	createShaderStorageBuffers();
 	createVertexBuffers();
 	createIndexBuffer();
@@ -95,7 +97,6 @@ void ShadowMappingScene::createInstance()
 	VkInstanceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	createInfo.pApplicationInfo = &appInfo;
-
 	auto extensions = getRequiredExtensions();
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 	createInfo.ppEnabledExtensionNames = extensions.data();
@@ -103,17 +104,19 @@ void ShadowMappingScene::createInstance()
 	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 	if (enableValidationLayers)
 	{
-	createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	createInfo.ppEnabledLayerNames = validationLayers.data();
+		std::cout << "Validation layers enabled\n";
+		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+		createInfo.ppEnabledLayerNames = validationLayers.data();
 
-	populateDebugMessengerCreateInfo(debugCreateInfo);
-	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+		populateDebugMessengerCreateInfo(debugCreateInfo);
+		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
 	}
 	else
 	{
-	createInfo.enabledLayerCount = 0;
+		std::cout << "Validation layers disabled\n";
+		createInfo.enabledLayerCount = 0;
 	
-	createInfo.pNext = nullptr;
+		createInfo.pNext = nullptr;
 	}
 
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
@@ -741,7 +744,7 @@ VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& c
 
 void ShadowMappingScene::createComputePipeline()
 {
-	auto compShaderCode = readFile("shaders/comp.spv");
+	auto compShaderCode = readFile(std::string{PROJECT_ROOT_DIR} + "/src/shaders/comp.spv");
 
 	VkShaderModule compShaderModule = createShaderModule(compShaderCode);
 
@@ -770,6 +773,7 @@ void ShadowMappingScene::createComputePipeline()
 	{
 			throw std::runtime_error("failed to create compute pipeline!");
 	}
+	std::cout << "Path: " << std::string{PROJECT_ROOT_DIR} + "/src/shaders/comp.spv\n";
 }
 
 void ShadowMappingScene::createShadowMapResources()
@@ -871,7 +875,6 @@ void ShadowMappingScene::createFramebuffers()
 		{
 			throw std::runtime_error("failed to create framebuffer!");
 		};
-
 	}
 
 	for (size_t i = 0; i < swapChainImageViews.size(); i++)
@@ -1049,51 +1052,6 @@ void ShadowMappingScene::createTextureSamplers(std::vector<VkSampler>& samplers)
 	}
 }
 
-void ShadowMappingScene::loadModel()
-{
-	tinyobj::attrib_t attrib;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string err;
-	std::string warn;
-	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
-	{
-		throw std::runtime_error(err);
-	}
-
-	for (const auto& shape : shapes)
-	{
-		for (const auto& index : shape.mesh.indices)
-		{
-			Vertex vertex{};
-			
-			vertex.pos = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-			};
-
-			vertex.texCoord = {
-				attrib.texcoords[2 * index.texcoord_index + 0],
-				1.f - attrib.texcoords[2 * index.texcoord_index + 1]
-			};
-
-			vertex.color = {1.f, 1.f, 1.f};
-			vertex.normal = {1.f, 1.f, 1.f};
-
-			if (uniqueVertices.count(vertex) == 0)
-			{
-				uniqueVertices[vertex] = static_cast<uint32_t>(modelVertices.size());
-				modelVertices.push_back(vertex);
-			}
-
-			indices.push_back(uniqueVertices[vertex]);
-		}
-	}
-}
-
 void ShadowMappingScene::createShaderStorageBuffers()
 {
 	uint32_t WIDTH = GLFWWindowContext::getWindowWidth();
@@ -1207,7 +1165,6 @@ void ShadowMappingScene::createQuadIndexBuffer()
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
-
 
 void ShadowMappingScene::createModelIndexBuffers()
 {
@@ -2301,10 +2258,6 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
-
-	// SHADOW MAP PASS
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 	Pipelines::basePipeline.bind(commandBuffer);
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
@@ -2325,55 +2278,6 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	Pipelines::shadowMapMeshPipeline.bind(commandBuffer);
-
-	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
-	{
-		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapMeshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
-	}
-
-	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
-	{
-		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
-
-		// STENCIL
-/*
-		Pipelines::stencilPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-*/
-/*
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-*/	
-	}
-
-	vkCmdEndRenderPass(commandBuffer);
-
 	scissor.extent = VulkanConfig::swapChainExtent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 	// NORMAL PASS
@@ -2387,14 +2291,6 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	Pipelines::basePipeline.bind(commandBuffer);
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets);
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-
-	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
-
 	Pipelines::meshPipeline.bind(commandBuffer);
 
 	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
@@ -2402,85 +2298,13 @@ void ShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint
 		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
-
 		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::meshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
 
+		std::cout << "DRAWING...\n";
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
 	}
-
-	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
-	{
-		Pipelines::primitivePipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
-
-		// STENCIL
-/*
-		Pipelines::stencilPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::stencilPipeline.getLayout(), 0, 1, &stencilDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
-*/	
-	}
-	for (size_t j = 0; j < VulkanConfig::MAX_POINT_LIGHTS; j++)
-	{
-		Pipelines::lightPipeline.bind(commandBuffer);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::lightPipeline.getLayout(), 0, 1, &lightDescriptorSets[j][currentFrame], 0, nullptr);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubeIndices.size()), 1, 0, 0, 0);
-	}
-
-	Pipelines::cubemapPipeline.bind(commandBuffer);
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::cubemapPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
-
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::cubemapVertices.size()), 1, 0, 0);
-
-	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-	vkCmdEndRenderPass(commandBuffer);
-
-	// POST PROCESSING PASS
-	renderPassInfo.renderPass = renderPasses.postProcessingRenderPass;
-	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
-
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	Pipelines::postProcessingPipeline.bind(commandBuffer);
-	
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::postProcessingPipeline.getLayout(), 0, 1, &postProcessingDescriptorSets[currentFrame], 0, nullptr);
-
-	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 

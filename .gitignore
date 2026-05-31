@@ -7,6 +7,8 @@
 *.hdr
 *.jpg
 *.jpeg
+/vendor/spirv/lib/SPIRV-Tools.lib
+/vendor/spirv/lib/SPIRV-Tools-opt.lib
 /.vs/
 /.vs
 .vs/
@@ -18,5 +20,17 @@
 *.swo
 <<<<<<< HEAD
 *.swm
+CMakeCache.txt
+*.yaml
+*.json
+*.list
+*.vcxproj
+*.tlog
+*.recipe
+*.cmake
+*.slnx
+*.filters
+build/CMakeFiles/TargetDirectories.txt
+*.depend
 =======
 >>>>>>> fix/compute-shader-render

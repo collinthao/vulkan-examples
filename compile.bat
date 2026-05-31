@@ -5,10 +5,10 @@ setlocal
 :: 1. Define variables
 :: -----------------------------
 set SOURCE_FILE=main.cpp camera.cpp model.cpp vertex.cpp vulkanRenderer.cpp
-set OUTPUT_FILE=%BUILD_DIR%\src\app\main.exe
 set RESPONSE_FILE=build.rsp
 set VCPKG_DIR=C:\vcpkg
 set BUILD_DIR=%CD%
+set OUTPUT_FILE=%BUILD_DIR%\src\app\main.exe
 
 :: -----------------------------
 :: 2. Visual Studio environment
@@ -28,7 +28,7 @@ echo /I"%VCPKG_DIR%\packages\vulkan-headers_x64-windows\include"
 echo /I"%VCPKG_DIR%\packages\tinyobjloader_x64-windows\include"
 echo /I"%VCPKG_DIR%\packages\stb_x64-windows\include"
 echo /I"%VCPKG_DIR%\packages\assimp_x64-windows\include"
-echo %BUILD_DIR%\src/app/main.cpp
+echo %BUILD_DIR%\src\app\main.cpp
 for /r "%BUILD_DIR%" %%f in (*.cpp) do (
     if /i not "%%~nxf"=="main.cpp" echo %%f
 )
@@ -49,7 +49,7 @@ echo gdi32.lib
 echo shell32.lib
 echo ole32.lib
 echo winmm.lib
-echo /OUT:"%OUTPUT_FILE%"
+echo /OUT:test.exe
 ) > "%RESPONSE_FILE%"
 
 :: -----------------------------
@@ -76,7 +76,7 @@ for %%dll in (
         glslang_x64-windows
 	assimp_x64-windows
     ) do (
-        if exist "%VCPKG_DIR%\packages\%%libdir\bin\%%dll" copy "%VCPKG_DIR%\packages\%%libdir\bin\%%dll" "%BUILD_DIR%"
+        if exist "%VCPKG_DIR%\packages\%%libdir\bin\%%dll" copy "%VCPKG_DIR%\packages\%%libdir\bin\%%dll" "%BUILD_DIR%\src\app"
     )
 )
 
@@ -84,6 +84,6 @@ for %%dll in (
 :: 6. Run the executable
 :: -----------------------------
 echo Running %OUTPUT_FILE%...
-"%BUILD_DIR%\%OUTPUT_FILE%"
+"%OUTPUT_FILE%"
 
 pause

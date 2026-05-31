@@ -21,13 +21,12 @@
 #include <fstream>
 #include <random>
 #include <stb_image.h>
-#include <tiny_obj_loader.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include <gtx/hash.hpp>
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "../../core/vulkanImage/vulkanImageBuilder.h"
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
@@ -354,7 +353,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories);
 	void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews);
 	void createTextureSamplers(std::vector<VkSampler>& samplers);
-	void loadModel();
 	void createShaderStorageBuffers();
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createVertexBuffers();

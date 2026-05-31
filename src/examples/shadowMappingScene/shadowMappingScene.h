@@ -21,13 +21,12 @@
 #include <fstream>
 #include <random>
 #include <stb_image.h>
-#include <tiny_obj_loader.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include <gtx/hash.hpp>
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "../../core/vulkanImage/vulkanImageBuilder.h"
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
@@ -305,12 +304,6 @@ class ShadowMappingScene : public IVulkanApp
 	Lights lights;
 
 	uint32_t currentFrame = 0;
-
-	const std::string MODEL_PATH = "models/Sponza-master/sponza.obj";
-	const std::string MODEL_TEXTURE_DIRECTORY = "models/Sponza-master/";
-	const std::string TEXTURE_PATH = "textures/container.png";
-	const std::string CUBEMAP_PATH = "textures/skybox/";
-	const std::string SPECULAR_PATH = "textures/container_specular.png";
 	size_t MESH_COUNT = 0;
 	const uint32_t PARTICLE_COUNT = 8192;
 	const float FAR_PLANE = 400.f;
@@ -355,7 +348,6 @@ class ShadowMappingScene : public IVulkanApp
 	void createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories);
 	void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews);
 	void createTextureSamplers(std::vector<VkSampler>& samplers);
-	void loadModel();
 	void createShaderStorageBuffers();
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createVertexBuffers();

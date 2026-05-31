@@ -11,19 +11,25 @@ class DescriptorBuilder : protected Descriptors::Builder
 	std::vector<VkDescriptorType> types;
 	uint32_t count;
 		
-	Builder& setCount(uint32_t poolCount)
+	DescriptorBuilder& setCount(uint32_t poolCount)
 	{
 		count = poolCount;
 		return *this;	
 	}
 
-	Builder& setBindings(std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings)
+	DescriptorBuilder& setBindings(std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings)
 	{
+
+		for (size_t i = 0; i < setLayoutBindings.size(); i++)
+		{
+			std::cout << "Binding BEFORE: " << setLayoutBindings[i].stageFlags << '\n';
+		}
+
 		bindings = setLayoutBindings;		
 		return *this;
 	};
 
-	Builder& setTypes(std::vector<VkDescriptorType> descriptorTypes)
+	DescriptorBuilder& setTypes(std::vector<VkDescriptorType> descriptorTypes)
 	{
 		types = descriptorTypes;	
 		return *this;
@@ -36,6 +42,7 @@ class DescriptorBuilder : protected Descriptors::Builder
 
 		for (size_t i = 0; i < bindings.size(); i++)
 		{
+			std::cout << "Binding BEFORE: " << bindings[i].stageFlags << '\n';
 			bindings[i].binding = i;
 		}
 

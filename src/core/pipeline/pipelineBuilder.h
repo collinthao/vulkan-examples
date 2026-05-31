@@ -111,11 +111,19 @@ class PipelineBuilder : private Builder
 
 	PipelineBuilder& setDescriptor(std::vector<VkDescriptorSetLayoutBinding> bindings, std::vector<VkDescriptorType> types, uint32_t count,VkDevice& device)
 	{
+		for (int i = 0; i < bindings.size(); i++)
+		{
+			std::cout << "Binding pipeline: " << bindings[i].stageFlags << '\n';
+		}
+
 		DescriptorBuilder builder{};
 		builder.setBindings(bindings);
 		builder.setTypes(types);
 		builder.setCount(count);
 		descriptor = builder.build(device);
+		
+		std::cout << "Built\n";
+	
 		return *this;
 	}
 
@@ -255,7 +263,6 @@ class PipelineBuilder : private Builder
 
 		for (const auto& shader : shaders)
 		{
-			std::cout << "Starting compilation for path: " << shader.path << '\n';
 			auto shaderCode = FileContext::readFile(shader.path);
 
 			VkShaderModule shaderModule = createShaderModule(shaderCode, device);
@@ -264,9 +271,10 @@ class PipelineBuilder : private Builder
 			shaderStageInfo.stage = shader.stage;
 			shaderStageInfo.module = shaderModule;
 			shaderStageInfo.pName = "main";
+		
+			assert(shader.stage != 0);
 
 			shaderStages.push_back(shaderStageInfo);
-			std::cout << "Ending compilation for path: " << shader.path << '\n';
 		}
 
 		std::vector<VkVertexInputBindingDescription> bindings{bindingDescriptions.begin(), bindingDescriptions.end()};
@@ -389,12 +397,10 @@ class PipelineBuilder : private Builder
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		std::cout << "build start\n";
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
-		std::cout << "build end\n";
 
 		//END
 

@@ -23,13 +23,12 @@
 #include <random>
 #include "../../../model.h"
 #include <stb_image.h>
-#include <tiny_obj_loader.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include <gtx/hash.hpp>
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "../../../../camera.h"
 #include "../../pipeline/pipelineBuilder.h"
 #include "../../vulkanImage/vulkanImageBuilder.h"
@@ -45,6 +44,13 @@ struct SwapChainSupportDetails
 class IVulkanApp
 {
 	public:
+	const std::string ROOT_DIR = PROJECT_ROOT_DIR;
+	const std::string MODEL_PATH = ROOT_DIR + "/resource/models/Sponza-master/sponza.obj";
+	const std::string MODEL_TEXTURE_DIRECTORY = ROOT_DIR + "/resource/models/Sponza-master/";
+	const std::string TEXTURE_PATH = ROOT_DIR + "/resource/textures/container.png";
+	const std::string CUBEMAP_PATH = ROOT_DIR + "/resource/textures/skybox/";
+	const std::string SPECULAR_PATH = ROOT_DIR + "/resource/textures/container_specular.png";
+
 	virtual void createInstance()=0;
 	virtual void createSurface(GLFWwindow * window)=0;
 	virtual void setupDebugMessenger()=0;
@@ -73,7 +79,6 @@ class IVulkanApp
 	virtual void createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)=0;
 	virtual void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)=0;
 	virtual void createTextureSamplers(std::vector<VkSampler>& samplers)=0;
-	virtual void loadModel()=0;
 	virtual void createShaderStorageBuffers()=0;
 	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)=0;
 	virtual void createVertexBuffers()=0;

@@ -1,6 +1,6 @@
 #include <string>
 #include <vector>
-#include <glm.hpp>
+#include <glm/glm.hpp>
 #include "vertex.h"
 
 struct Texture
