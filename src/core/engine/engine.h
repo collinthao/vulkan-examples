@@ -16,7 +16,7 @@ class Engine
 		std::unique_ptr<Renderer> renderer;
 		std::shared_ptr<App> app;
 
-		Engine<App, Window, Renderer>()
+		Engine()
 		{
 			app = std::make_shared<App>();
 			windowContext = std::make_unique<Window>(app);

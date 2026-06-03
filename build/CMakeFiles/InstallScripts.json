@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"C:/Users/Collin/Projects/vulkan-examples/build/cmake_install.cmake"
+		"/home/collin/Projects/vulkan-examples/build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

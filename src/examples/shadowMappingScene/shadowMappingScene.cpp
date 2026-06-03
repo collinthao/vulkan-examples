@@ -1,6 +1,6 @@
 #include "./shadowMappingScene.h"
 #include <iostream>
-#include "../../core/windowContext/GLFWWindowContext.h"
+#include "../../core/windowContext/glfwWindowContext.h"
 #include "../../bindings/particle.h"
 #include "../../config/vulkanConfig.h"
 #include "../../core/image/image.h"
@@ -223,19 +223,9 @@ void ShadowMappingScene::createLogicalDevice()
 	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 	createInfo.pNext = &extendedDynamicStateFeatures;
 
-	if (enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else
-	{
-		createInfo.enabledLayerCount = 0;
-	}
-
 	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
 	{
-	throw std::runtime_error("failed to create logical device!");
+		throw std::runtime_error("failed to create logical device!");
 	}
 
 	vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &graphicsAndComputeQueue);

@@ -1,6 +1,6 @@
 #include "./omniDirectionalShadowMappingScene.h"
 #include <iostream>
-#include "../../core/windowContext/GLFWWindowContext.h"
+#include "../../core/windowContext/glfwWindowContext.h"
 #include "../../bindings/particle.h"
 #include "../../config/vulkanConfig.h"
 #include "../../core/image/image.h"
