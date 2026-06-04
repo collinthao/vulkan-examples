@@ -533,7 +533,7 @@ CMakeFiles/vulkan_examples.dir/src/main.cpp.o: \
  /usr/include/c++/16.1.1/pstl/glue_memory_defs.h \
  /home/collin/Projects/vulkan-examples/src/./core/engine/../windowContext/glfwWindowContext.h \
  /home/collin/Projects/vulkan-examples/src/./bindings/particle.h \
- /home/collin/Projects/vulkan-examples/src/./examples/shadowMappingScene/shadowMappingScene.h \
+ /home/collin/Projects/vulkan-examples/src/./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h \
  /usr/include/c++/16.1.1/math.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/emmintrin.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/xmmintrin.h \

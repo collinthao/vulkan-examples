@@ -25,11 +25,12 @@
 #include <random>
 #include "./bindings/particle.h"
 //#include "./examples/grassScene/grassScene.h"
-#include "./examples/shadowMappingScene/shadowMappingScene.h"
+//#include "./examples/shadowMappingScene/shadowMappingScene.h"
+#include "./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
 
 int main()
 {
-	Engine<ShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<OmniDirectionalShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
