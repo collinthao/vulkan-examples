@@ -5876,7 +5876,7 @@ CMakeFiles/vulkan_examples.dir/src/main.cpp.o
  /home/collin/Projects/vulkan-examples/src/core/renderer/vulkanRenderer.h
  /home/collin/Projects/vulkan-examples/src/core/windowContext/glfwWindowContext.h
  /home/collin/Projects/vulkan-examples/src/core/engine/engine.h
- /home/collin/Projects/vulkan-examples/src/examples/grassScene/grassScene.h
+ /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/shadowMappingScene.h
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/common.hpp
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/detail/func_exponential.inl
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/detail/func_vector_relational.inl

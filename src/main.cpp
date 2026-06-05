@@ -24,13 +24,14 @@
 #include <array>
 #include <random>
 #include "./bindings/particle.h"
-//#include "./examples/grassScene/grassScene.h"
+#include "./examples/grassScene/grassScene.h"
 //#include "./examples/shadowMappingScene/shadowMappingScene.h"
-#include "./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
+//#include "./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
 
+//hello
 int main()
 {
-	Engine<OmniDirectionalShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<GrassScene, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
