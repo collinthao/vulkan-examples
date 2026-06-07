@@ -4,6 +4,7 @@
 #include <assimp/postprocess.h>
 #include "./core/engine/engine.h"
 #define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <chrono>
 
@@ -24,14 +25,15 @@
 #include <array>
 #include <random>
 #include "./bindings/particle.h"
-#include "./examples/grassScene/grassScene.h"
-//#include "./examples/shadowMappingScene/shadowMappingScene.h"
-//#include "./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
 
-//hello
+#include "./examples/basicApp/basicApp.h"
+#include "./examples/grassScene/grassScene.h"
+#include "./examples/shadowMappingScene/shadowMappingScene.h"
+#include "./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
+
 int main()
 {
-	Engine<GrassScene, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<BasicApp, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

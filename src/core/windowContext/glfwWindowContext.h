@@ -1,7 +1,10 @@
+#pragma once
 #include "../renderer/vulkanApp/vulkanApp.h"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <memory>
+
+class IVulkanApp;
 
 class GLFWWindowContext
 {

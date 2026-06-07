@@ -16,8 +16,10 @@ vulkan_examples: \
   CMakeFiles/vulkan_examples.dir/src/core/pipeline/pipeline.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/core/queueFamily/queueFamily.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.o \
+  CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o \
+  CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o \
   CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o \
@@ -93,9 +95,13 @@ CMakeFiles/vulkan_examples.dir/src/core/queueFamily/queueFamily.cpp.o:
 
 CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.o:
 
+CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o:
+
 CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o:
 
 CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o:
+
+CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o:
 
 CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o:
 

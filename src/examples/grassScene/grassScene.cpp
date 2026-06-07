@@ -1,21 +1,8 @@
 #include "./grassScene.h"
 #include <iostream>
 #include <random>
-#include "../../core/windowContext/glfwWindowContext.h"
 #include "../../bindings/particle.h"
-#include "../../config/vulkanConfig.h"
-#include "../../core/image/image.h"
-#include "../../core/image/texture/texture.h"
-#include "../../core/image/texture/sampler/sampler.h"
 #include "../../core/queueFamily/queueFamily.h"
-#include "../../core/commandBuffer/commandBuffer.h"
-#include "../../core/buffer/buffer.h"
-
-glm::vec3 GrassScene::cameraPos = glm::vec3(0., 0., 3.);
-glm::vec3 GrassScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
-glm::vec3 GrassScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
-
-Camera GrassScene::camera = Camera(GrassScene::cameraPos, GrassScene::cameraFront, GrassScene::cameraUp);
 
 void GrassScene::init(GLFWwindow* window)
 {
@@ -29,9 +16,7 @@ void GrassScene::init(GLFWwindow* window)
 	createShadowMapRenderPass();
 	createRenderPass();
 	createPostProcessingRenderPass();
-	setDescriptorSetLayoutBindings();
 	createDescriptorSetLayouts();	
-	//createModel();
 	createPipelines();
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
 	createOffscreenResources();
@@ -48,15 +33,11 @@ void GrassScene::init(GLFWwindow* window)
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(specularSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(shadowSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	//createTextureImages(modelImages, modelImageMemories);	
-	//createTextureImageViews(modelImages, modelImageViews);
-	//createTextureSamplers(modelSamplers);
 	createShaderStorageBuffers();
 	createVertexBuffers();
 	createInstanceBuffers();
 	createIndexBuffer();
 	createQuadIndexBuffer();
-	//createModelIndexBuffers();
 	createUniformBuffers();
 	createDescriptorPools();
 	createDescriptorSets();
@@ -64,421 +45,11 @@ void GrassScene::init(GLFWwindow* window)
 	createComputeCommandBuffers();
 	createSyncObjects();
 }
-void GrassScene::setDescriptorSetLayoutBindings()
-	{
-		samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerUniformLayoutBinding.descriptorCount = 1;
-		samplerUniformLayoutBinding.pImmutableSamplers = nullptr;
-		samplerUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		specularUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		specularUniformLayoutBinding.descriptorCount = 1;
-		specularUniformLayoutBinding.pImmutableSamplers = nullptr;
-		specularUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		vertexLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		vertexLayoutBinding.descriptorCount = 1;
-		vertexLayoutBinding.pImmutableSamplers = nullptr;
-		vertexLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-
-		fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		fragmentLayoutBinding.descriptorCount = 1;
-		fragmentLayoutBinding.pImmutableSamplers = nullptr;
-		fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		allStagesUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		allStagesUniformLayoutBinding.descriptorCount = 1;
-		allStagesUniformLayoutBinding.pImmutableSamplers = nullptr;
-		allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-	}
-
-std::vector<const char*> GrassScene::getRequiredExtensions()
+void GrassScene::createPipelines()
 {
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	if (enableValidationLayers)
-	{
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
-
-	extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-	return extensions;
-}
-
-void GrassScene::createInstance()
-{
-	VkApplicationInfo appInfo{};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "Hello Triangle";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "No Engine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	VkInstanceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = &appInfo;
-
-	auto extensions = getRequiredExtensions();
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-	createInfo.ppEnabledExtensionNames = extensions.data();
-
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-	if (enableValidationLayers)
-	{
-	createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	createInfo.ppEnabledLayerNames = validationLayers.data();
-
-	populateDebugMessengerCreateInfo(debugCreateInfo);
-	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-	}
-	else
-	{
-	createInfo.enabledLayerCount = 0;
-	
-	createInfo.pNext = nullptr;
-	}
-
-	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
-};
-
-void GrassScene::setupDebugMessenger()
-{
-	if (!enableValidationLayers) return;
-		
-	VkDebugUtilsMessengerCreateInfoEXT createInfo;
-	populateDebugMessengerCreateInfo(createInfo);
-
-	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to set up debug messenger!");
-	}
-}
-
-void GrassScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-	createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-}
-
-void GrassScene::createSurface(GLFWwindow * window)
-{
-	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create window surface!");
-	}
-}
-
-void GrassScene::pickPhysicalDevice()
-{
-	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-
-	if (deviceCount == 0)
-	{
-		throw std::runtime_error("failed to find GPUs with Vulkan support!");
-	}
-
-	std::vector<VkPhysicalDevice> devices(deviceCount);
-	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-
-	std::multimap<int, VkPhysicalDevice> candidates;
-
-	for (const auto& device : devices)
-	{
-		if (isDeviceSuitable(device))
-		{
-			int score = rateDeviceSuitability(device);
-			candidates.insert(std::make_pair(score, device));
-		}
-	}
-
-	if (candidates.rbegin()->first > 0)
-	{
-		physicalDevice = candidates.rbegin()->second;
-		VulkanConfig::msaaSamples = getMaxUsableSampleCount();
-		//VulkanConfig::msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-	}
-	else
-	{
-		throw std::runtime_error("failed to find a suitable GPU");
-	}
-}
-
-void GrassScene::createLogicalDevice()
-{
-	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
-
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsAndComputeFamily.value() , indices.presentFamily.value() };
-	
-	float queuePriority = 1.f;
-	for (uint32_t queueFamily : uniqueQueueFamilies)
-	{
-	VkDeviceQueueCreateInfo queueCreateInfo{};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = queueFamily;
-	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
-	queueCreateInfos.push_back(queueCreateInfo);
-	}
-
-	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{};
-	extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
-	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
-	extendedDynamicStateFeatures.pNext = nullptr;
-
-	VkDeviceCreateInfo createInfo{};
-	VkPhysicalDeviceFeatures deviceFeatures{};
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
-	deviceFeatures.sampleRateShading = VK_TRUE;
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-	createInfo.pNext = &extendedDynamicStateFeatures;
-
-	if (enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else
-	{
-		createInfo.enabledLayerCount = 0;
-	}
-
-	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
-	{
-	throw std::runtime_error("failed to create logical device!");
-	}
-
-	vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &graphicsAndComputeQueue);
-	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-}
-
-bool GrassScene::isDeviceSuitable(VkPhysicalDevice device)
-{
-	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(device, surface);
-
-	bool extensionsSupported = checkDeviceExtensionSupport(device);
-
-	bool swapChainAdequate = false;
-	if (extensionsSupported)
-	{
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-	}
-	
-	VkPhysicalDeviceFeatures supportedFeatures;
-	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-
-SwapChainSupportDetails GrassScene::querySwapChainSupport(VkPhysicalDevice device)
-{
-	SwapChainSupportDetails details;
-
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,nullptr);
-
-	if (formatCount != 0)
-	{
-	details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-	}
-
-	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-
-	if (presentModeCount != 0)
-	{
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-	}
-
-	return details;
-}
-
-VkSampleCountFlagBits GrassScene::getMaxUsableSampleCount()
-{
-	VkPhysicalDeviceProperties physicalDeviceProperties;
-	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-
-	VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-
-	if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT;}
-	if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT;}
-	if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT;}
-	if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT;}
-	if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT;}
-	if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT;}
-
-	return VK_SAMPLE_COUNT_1_BIT;
-}
-
-bool GrassScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
-{
-
-	uint32_t extensionCount;
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-	std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-
-	for (const auto& extension : availableExtensions)
-	{
-	requiredExtensions.erase(extension.extensionName);
-	}
-
-	return requiredExtensions.empty();
-}
-
-
-int GrassScene::rateDeviceSuitability(VkPhysicalDevice device)
-{
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-	VkPhysicalDeviceFeatures deviceFeatures;
-	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-	int score = 0;
-
-	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) score += 1000;
-
-	score += deviceProperties.limits.maxImageDimension2D;
-
-	if (!deviceFeatures.geometryShader) return 0;
-
-	return score;
-}
-
-void GrassScene::createSwapChain(GLFWwindow * window)
-{
-	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
-
-	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
-
-	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-
-	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-	{
-		imageCount = swapChainSupport.capabilities.maxImageCount;
-	}
-
-	VkSwapchainCreateInfoKHR createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = surface;
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat.format;
-	createInfo.imageColorSpace = surfaceFormat.colorSpace;
-	createInfo.imageExtent = extent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
-	uint32_t queueFamilyIndices[] = {indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()};
-
-	if (indices.graphicsAndComputeFamily != indices.presentFamily)
-	{
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
-	}
-	else
-	{
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		createInfo.queueFamilyIndexCount = 0;
-		createInfo.pQueueFamilyIndices = nullptr;
-	}
-
-	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = presentMode;
-	createInfo.clipped = VK_TRUE;
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-	if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
-	{
-		throw std::runtime_error("faild to create swap chain!");
-	}
-
-	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
-	swapChainImages.resize(imageCount);
-	shadowMapImages.resize(imageCount);
-	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
-	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, shadowMapImages.data());
-
-	swapChainImageFormat = surfaceFormat.format;
-	VulkanConfig::swapChainExtent = extent;
-}
-
-VkPresentModeKHR GrassScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-{
-	for (const auto& availablePresentMode : availablePresentModes)
-	{
-		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-		{
-			return availablePresentMode;
-		}
-	}
-
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkSurfaceFormatKHR GrassScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-{
-	for (const auto& availableFormat : availableFormats)
-	{
-		if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-		{
-			return availableFormat;
-		}
-	}
-
-	return availableFormats[0];
-}
-
-VkExtent2D GrassScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
-{
-	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-	{
-		return capabilities.currentExtent;
-	}
-	else
-	{
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-
-		VkExtent2D actualExtent =
-		{
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
-		};
-
-		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-		return actualExtent;
-
-	}
+	Pipelines::createPipelines(device, renderPasses);
+	createComputePipeline();
 }
 
 void GrassScene::createImageViews()
@@ -712,12 +283,6 @@ void GrassScene::createComputeDescriptorSetLayout()
 	{
 		throw std::runtime_error("failed to create compute descriptor set layout!");
 	}
-}
-
-void GrassScene::createPipelines()
-{
-	Pipelines::createPipelines(device, renderPasses); 
-	createComputePipeline();
 }
 
 void GrassScene::createComputePipeline()
@@ -1092,19 +657,6 @@ void GrassScene::createShaderStorageBuffers()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
-void GrassScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
-{
-	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);
-
-	VkBufferCopy copyRegion{};
-	copyRegion.srcOffset = 0;
-	copyRegion.dstOffset = 0;
-	copyRegion.size = size;
-	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
-}
-
 void GrassScene::createInstanceBuffers()
 {
 	std::random_device dev;
@@ -1221,6 +773,7 @@ void GrassScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffe
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
+// TODO: eventually be a manager like the pipeline
 void GrassScene::createUniformBuffers()
 {
 	createGraphicsUniformBuffers();
@@ -1467,24 +1020,6 @@ void GrassScene::createCubemapUniformBuffers()
 			cubemapUniformBuffers[i], cubemapUniformBuffersMemory[i], device, physicalDevice);
 
 		vkMapMemory(device, cubemapUniformBuffersMemory[i], 0, bufferSize, 0, &cubemapUniformBuffersMapped[i]);
-
-	}
-}
-
-void GrassScene::createGraphicsUniformBuffers()
-{
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i], uniformBuffersMemory[i], device, physicalDevice);
-
-		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
 
 	}
 }
@@ -2180,9 +1715,9 @@ void GrassScene::createSyncObjects()
 	}
 }
 
-
 void GrassScene::drawFrame(GLFWwindow * window)
 {
+	std::cout << "Drawing...\n";
 	camera.update();
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -2682,7 +2217,6 @@ for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	createFramebuffers();
 }
 
-
 void GrassScene::cleanupSwapChain()
 {
 	vkDestroyImageView(device, colorImageView, nullptr);
@@ -2705,11 +2239,6 @@ void GrassScene::cleanupSwapChain()
 
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
 
-}
-
-VkDevice* GrassScene::getDevice()
-{
-	return &device;
 }
 
 void GrassScene::processInput(GLFWwindow * window)
@@ -2794,12 +2323,3 @@ void GrassScene::cleanup(GLFWwindow * window)
 	glfwTerminate();
 }
 
-void GrassScene::deviceWaitIdle()
-{
-	vkDeviceWaitIdle(device);
-}
-
-void GrassScene::moveCamera(double xpos, double ypos)
-{
-	camera.move(xpos, ypos);
-}

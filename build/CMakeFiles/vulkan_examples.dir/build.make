@@ -268,10 +268,24 @@ CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.s: cmake_for
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/collin/Projects/vulkan-examples/src/core/renderer/vulkanRenderer.cpp -o CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.s
 
+CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
+CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o: /home/collin/Projects/vulkan-examples/src/core/renderer/vulkanApp/vulkanApp.cpp
+CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o -c /home/collin/Projects/vulkan-examples/src/core/renderer/vulkanApp/vulkanApp.cpp
+
+CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/collin/Projects/vulkan-examples/src/core/renderer/vulkanApp/vulkanApp.cpp > CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.i
+
+CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/collin/Projects/vulkan-examples/src/core/renderer/vulkanApp/vulkanApp.cpp -o CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.s
+
 CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
 CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o: /home/collin/Projects/vulkan-examples/src/core/vulkanImage/vulkanImage.cpp
 CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o -c /home/collin/Projects/vulkan-examples/src/core/vulkanImage/vulkanImage.cpp
 
 CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.i: cmake_force
@@ -285,7 +299,7 @@ CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.s: cmake_for
 CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
 CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o: /home/collin/Projects/vulkan-examples/src/core/windowContext/glfwWindowContext.cpp
 CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o -c /home/collin/Projects/vulkan-examples/src/core/windowContext/glfwWindowContext.cpp
 
 CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.i: cmake_force
@@ -296,10 +310,24 @@ CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.s: c
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/collin/Projects/vulkan-examples/src/core/windowContext/glfwWindowContext.cpp -o CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.s
 
+CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
+CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o: /home/collin/Projects/vulkan-examples/src/examples/basicApp/basicApp.cpp
+CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o -c /home/collin/Projects/vulkan-examples/src/examples/basicApp/basicApp.cpp
+
+CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/collin/Projects/vulkan-examples/src/examples/basicApp/basicApp.cpp > CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.i
+
+CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/collin/Projects/vulkan-examples/src/examples/basicApp/basicApp.cpp -o CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.s
+
 CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
 CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o: /home/collin/Projects/vulkan-examples/src/examples/grassScene/grassScene.cpp
 CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o -c /home/collin/Projects/vulkan-examples/src/examples/grassScene/grassScene.cpp
 
 CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.i: cmake_force
@@ -313,7 +341,7 @@ CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.s: cmake_f
 CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
 CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o: /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/shadowMappingScene.cpp
 CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o -c /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/shadowMappingScene.cpp
 
 CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.i: cmake_force
@@ -327,7 +355,7 @@ CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScen
 CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o: CMakeFiles/vulkan_examples.dir/flags.make
 CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o: /home/collin/Projects/vulkan-examples/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp
 CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o: CMakeFiles/vulkan_examples.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o -MF CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o.d -o CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o -c /home/collin/Projects/vulkan-examples/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp
 
 CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.i: cmake_force
@@ -354,8 +382,10 @@ vulkan_examples_OBJECTS = \
 "CMakeFiles/vulkan_examples.dir/src/core/pipeline/pipeline.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/core/queueFamily/queueFamily.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.o" \
+"CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o" \
+"CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o" \
 "CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o"
@@ -377,8 +407,10 @@ vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/image/texture/sampler/s
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/pipeline/pipeline.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/queueFamily/queueFamily.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanRenderer.cpp.o
+vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/vulkanImage/vulkanImage.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o
+vulkan_examples: CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/examples/grassScene/grassScene.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o
 vulkan_examples: CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp.o
@@ -390,7 +422,7 @@ vulkan_examples: /usr/lib/libglfw.so.3.4
 vulkan_examples: /usr/lib/libglm.a
 vulkan_examples: /usr/lib/libz.so
 vulkan_examples: CMakeFiles/vulkan_examples.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Linking CXX executable vulkan_examples"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/collin/Projects/vulkan-examples/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Linking CXX executable vulkan_examples"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/vulkan_examples.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

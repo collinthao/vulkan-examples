@@ -1,14 +1,7 @@
 #include "./omniDirectionalShadowMappingScene.h"
 #include <iostream>
-#include "../../core/windowContext/glfwWindowContext.h"
 #include "../../bindings/particle.h"
-#include "../../config/vulkanConfig.h"
-#include "../../core/image/image.h"
-#include "../../core/image/texture/texture.h"
-#include "../../core/image/texture/sampler/sampler.h"
 #include "../../core/queueFamily/queueFamily.h"
-#include "../../core/commandBuffer/commandBuffer.h"
-#include "../../core/buffer/buffer.h"
 
 glm::vec3 OmniDirectionalShadowMappingScene::cameraPos = glm::vec3(0., 0., 3.);
 glm::vec3 OmniDirectionalShadowMappingScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
@@ -426,31 +419,6 @@ VkSurfaceFormatKHR OmniDirectionalShadowMappingScene::chooseSwapSurfaceFormat(co
 	}
 
 	return availableFormats[0];
-}
-
-VkExtent2D OmniDirectionalShadowMappingScene::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)
-{
-	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-	{
-		return capabilities.currentExtent;
-	}
-	else
-	{
-		int width, height;
-		glfwGetFramebufferSize(window, &width, &height);
-
-		VkExtent2D actualExtent =
-		{
-			static_cast<uint32_t>(width),
-			static_cast<uint32_t>(height)
-		};
-
-		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-		return actualExtent;
-
-	}
 }
 
 void OmniDirectionalShadowMappingScene::createImageViews()
@@ -1089,19 +1057,6 @@ void OmniDirectionalShadowMappingScene::createShaderStorageBuffers()
 
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
-
-void OmniDirectionalShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
-{
-	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);
-
-	VkBufferCopy copyRegion{};
-	copyRegion.srcOffset = 0;
-	copyRegion.dstOffset = 0;
-	copyRegion.size = size;
-	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
 }
 
 void OmniDirectionalShadowMappingScene::createVertexBuffers()

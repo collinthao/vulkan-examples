@@ -446,8 +446,6 @@ CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o: \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/integer.hpp \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/detail/func_integer.inl \
  /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../../model/../bindings/vertex.h \
- /home/collin/Projects/vulkan-examples/vendor/stb/include/stb_image.h \
- /usr/include/c++/16.1.1/stdlib.h \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/gtx/hash.hpp \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/gtx/../gtc/vec1.hpp \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/gtx/../gtc/../ext/vector_bool1.hpp \
@@ -519,6 +517,14 @@ CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.o: \
  /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../pipeline/pipelineManager.h \
  /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../pipeline/./pipelineBuilder.h \
  /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../pipeline/./pipeline.h \
+ /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../queueFamily/queueFamily.h \
+ /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../../config/vulkanConfig.h \
+ /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../../core/image/image.h \
+ /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../../core/image/texture/texture.h \
+ /home/collin/Projects/vulkan-examples/vendor/stb/include/stb_image.h \
+ /usr/include/c++/16.1.1/stdlib.h \
+ /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../../core/image/texture/sampler/sampler.h \
+ /home/collin/Projects/vulkan-examples/src/core/windowContext/./../renderer/vulkanApp/../../../core/commandBuffer/commandBuffer.h \
  /usr/include/c++/16.1.1/memory \
  /usr/include/c++/16.1.1/bits/stl_raw_storage_iter.h \
  /usr/include/c++/16.1.1/bits/shared_ptr_atomic.h \

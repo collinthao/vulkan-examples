@@ -448,8 +448,6 @@ CMakeFiles/vulkan_examples.dir/src/main.cpp.o: \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/integer.hpp \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/detail/func_integer.inl \
  /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../model/../bindings/vertex.h \
- /home/collin/Projects/vulkan-examples/vendor/stb/include/stb_image.h \
- /usr/include/c++/16.1.1/stdlib.h \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/gtx/hash.hpp \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/gtx/../gtc/vec1.hpp \
  /home/collin/Projects/vulkan-examples/vendor/glm/include/glm/gtx/../gtc/../ext/vector_bool1.hpp \
@@ -521,6 +519,15 @@ CMakeFiles/vulkan_examples.dir/src/main.cpp.o: \
  /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../pipeline/pipelineManager.h \
  /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../pipeline/./pipelineBuilder.h \
  /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../pipeline/./pipeline.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../queueFamily/queueFamily.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../config/vulkanConfig.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../core/image/image.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../core/image/texture/texture.h \
+ /home/collin/Projects/vulkan-examples/vendor/stb/include/stb_image.h \
+ /usr/include/c++/16.1.1/stdlib.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../core/image/texture/sampler/sampler.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../core/commandBuffer/commandBuffer.h \
+ /home/collin/Projects/vulkan-examples/src/./core/engine/../renderer/./vulkanApp/../../../core/windowContext/glfwWindowContext.h \
  /usr/include/c++/16.1.1/memory \
  /usr/include/c++/16.1.1/bits/stl_raw_storage_iter.h \
  /usr/include/c++/16.1.1/bits/shared_ptr_atomic.h \
@@ -531,11 +538,13 @@ CMakeFiles/vulkan_examples.dir/src/main.cpp.o: \
  /usr/include/c++/16.1.1/bits/ranges_uninitialized.h \
  /usr/include/c++/16.1.1/bits/out_ptr.h \
  /usr/include/c++/16.1.1/pstl/glue_memory_defs.h \
- /home/collin/Projects/vulkan-examples/src/./core/engine/../windowContext/glfwWindowContext.h \
- /home/collin/Projects/vulkan-examples/src/./bindings/particle.h \
- /home/collin/Projects/vulkan-examples/src/./examples/grassScene/grassScene.h \
  /usr/include/c++/16.1.1/math.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/emmintrin.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/xmmintrin.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/mmintrin.h \
- /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/mm_malloc.h
+ /usr/lib/gcc/x86_64-pc-linux-gnu/16.1.1/include/mm_malloc.h \
+ /home/collin/Projects/vulkan-examples/src/./bindings/particle.h \
+ /home/collin/Projects/vulkan-examples/src/./examples/basicApp/basicApp.h \
+ /home/collin/Projects/vulkan-examples/src/./examples/grassScene/grassScene.h \
+ /home/collin/Projects/vulkan-examples/src/./examples/shadowMappingScene/shadowMappingScene.h \
+ /home/collin/Projects/vulkan-examples/src/./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h

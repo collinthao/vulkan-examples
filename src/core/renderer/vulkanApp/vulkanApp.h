@@ -22,7 +22,6 @@
 #include <fstream>
 #include <random>
 #include "../../../model/model.h"
-#include <stb_image.h>
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
@@ -33,6 +32,14 @@
 #include "../../pipeline/pipelineBuilder.h"
 #include "../../vulkanImage/vulkanImageBuilder.h"
 #include "../../pipeline/pipelineManager.h"
+#include "../../queueFamily/queueFamily.h"
+#include "../../../config/vulkanConfig.h"
+#include "../../../core/image/image.h"
+#include "../../../core/image/texture/texture.h"
+#include "../../../core/image/texture/sampler/sampler.h"
+#include "../../../core/commandBuffer/commandBuffer.h"
+#include "../../../core/buffer/buffer.h"
+#include "../../../core/windowContext/glfwWindowContext.h"
 
 namespace fs = std::filesystem;
 
@@ -157,73 +164,126 @@ const std::vector<const char*> validationLayers =
 class IVulkanApp
 {
 	public:
+	VkSurfaceKHR surface;
+	VkInstance instance;
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT debugMessenger;
+	VkQueue graphicsAndComputeQueue;
+	VkQueue presentQueue;
+	VkSwapchainKHR swapChain;
+	VkFormat swapChainImageFormat;
+	VkBuffer vertexCubeBuffer;
+	VkDeviceMemory vertexCubeBufferMemory;
+	static Camera camera;
+	const float FAR_PLANE = 400.f;
+	static glm::vec3 cameraPos;
+	static glm::vec3 cameraFront;
+	static glm::vec3 cameraUp; 
+	float lastFrameTime = 0.f;
+	double lastTime = 0.f;
+
+	std::vector<VkFramebuffer> swapChainFramebuffers;
+	std::vector<VkImage> swapChainImages;
+	std::vector<VkImageView> swapChainImageViews;
+	std::vector<VkSemaphore> imageAvailableSemaphores;
+	std::vector<VkSemaphore> renderFinishedSemaphores;
+	std::vector<VkFence> inFlightFences;
+	void drawFrame(GLFWwindow * window);
+
+	VkSampler textureSampler;
+	VkImageView textureImageView;
+
+	std::vector<VkDescriptorSet> descriptorSets;
+
+	struct
+	{
+		VkRenderPass shadowMapRenderPass;
+		VkRenderPass renderPass;
+		VkRenderPass postProcessingRenderPass;
+	} renderPasses{};
+
+	Pipeline basePipeline; 
+	std::vector<VkBuffer> uniformBuffers;
+	std::vector<VkDeviceMemory> uniformBuffersMemory;
+	std::vector<void*> uniformBuffersMapped;
+
 	const std::string ROOT_DIR = PROJECT_ROOT_DIR;
 	const std::string MODEL_PATH = ROOT_DIR + "/resource/models/Sponza-master/sponza.obj";
 	const std::string MODEL_TEXTURE_DIRECTORY = ROOT_DIR + "/resource/models/Sponza-master/";
 	const std::string TEXTURE_PATH = ROOT_DIR + "/resource/textures/container.png";
 	const std::string CUBEMAP_PATH = ROOT_DIR + "/resource/textures/skybox/";
 	const std::string SPECULAR_PATH = ROOT_DIR + "/resource/textures/container_specular.png";
+	uint32_t currentFrame = 0;
 
-	virtual void createInstance()=0;
-	virtual void createSurface(GLFWwindow * window)=0;
-	virtual void setupDebugMessenger()=0;
-	virtual void pickPhysicalDevice()=0;
-	virtual void createLogicalDevice()=0;
-	virtual void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)=0;
-	virtual bool isDeviceSuitable(VkPhysicalDevice device)=0;
-	virtual int rateDeviceSuitability(VkPhysicalDevice device)=0;
-	virtual bool checkDeviceExtensionSupport(VkPhysicalDevice device)=0;
-	virtual void createSwapChain(GLFWwindow * window)=0;
-	virtual void createImageViews()=0;
-	virtual void createRenderPass()=0;
-	virtual void createDescriptorSetLayouts()=0;	
-	virtual void createComputeDescriptorSetLayout()=0;
-	virtual void createPipelines()=0;
-	virtual void createFramebuffers()=0;
-	virtual void createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags)=0;
-	virtual VkShaderModule createShaderModule(const std::vector<char>& code)=0;
-	virtual VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)=0;
-	virtual VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)=0;
-	virtual	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window)=0;
-	virtual SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device)=0;
-	virtual VkSampleCountFlagBits getMaxUsableSampleCount()=0;
-	virtual std::vector<const char*>getRequiredExtensions()=0;
-	virtual void createTextureSampler(VkSampler& sampler)=0;
-	virtual void createTextureImages(std::vector<VkImage>& images, std::vector<VkDeviceMemory>& imageMemories)=0;
-	virtual void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews)=0;
-	virtual void createTextureSamplers(std::vector<VkSampler>& samplers)=0;
-	virtual void createShaderStorageBuffers()=0;
-	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)=0;
-	virtual void createVertexBuffers()=0;
-	virtual void createIndexBuffer()=0;
-	virtual void createQuadIndexBuffer()=0;
-	virtual void createModelIndexBuffers()=0;
-	virtual void createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory)=0;
-	virtual void createUniformBuffers()=0;
-	virtual void createModelUniformBuffers()=0;
-	virtual void createDescriptorPools()=0;
-	virtual void createComputeDescriptorPool()=0;
-	virtual void createDescriptorSets()=0;
-	virtual void createComputeCommandBuffers()=0;
-	virtual void createSyncObjects()=0;
-	virtual void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)=0;
-	virtual void updateUniformBuffer(uint32_t currentImage)=0;
-	virtual void recordComputeCommandBuffer(VkCommandBuffer commandBuffer)=0;
-	virtual void recreateSwapChain(GLFWwindow * window)=0;
-	virtual void cleanupSwapChain()=0;
-	virtual void setDescriptorSetLayoutBindings()=0;
+	// Virtuals
+	virtual void createInstance();
+	virtual void createSurface(GLFWwindow * window);
+	virtual SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+	virtual void createLogicalDevice();
+	virtual void pickPhysicalDevice();
+	virtual bool isDeviceSuitable(VkPhysicalDevice device);
+	virtual int rateDeviceSuitability(VkPhysicalDevice device);
+	virtual VkSampleCountFlagBits getMaxUsableSampleCount();
+	virtual bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+	virtual void setupDebugMessenger();
+	virtual void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	virtual VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+	virtual VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	virtual	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window);
+	virtual void createSwapChain(GLFWwindow * window);
+	virtual void createPipelines();
+	virtual std::vector<const char*>getRequiredExtensions();
+	virtual void recreateSwapChain(GLFWwindow * window);
+	virtual void createImageViews();
+	virtual void createRenderPass();
+	virtual void createFramebuffers();
+	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+	virtual void createVertexBuffers();
+	virtual void createUniformBuffers();
+	virtual void createGraphicsUniformBuffers();
+	virtual void createGraphicsDescriptorSets();
+	virtual VkDevice* getDevice();
+	virtual void createSyncObjects();
+	virtual void cleanupSwapChain();
+	virtual void updateUniformBuffer(uint32_t currentImage);
+	virtual void createDescriptorSets();
+	virtual void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	virtual void init(GLFWwindow * window);
+	virtual void moveCamera(double xpos, double ypos);
+	virtual void deviceWaitIdle();
+
+	// Pure Virtuals
 	IVulkanApp()=default;
 	virtual ~IVulkanApp(){};
 
-	virtual void init(GLFWwindow * window)=0;
-	virtual void drawFrame(GLFWwindow * window)=0;
-	virtual void processInput(GLFWwindow * window)=0;
-	virtual void cleanup(GLFWwindow * window)=0;
-	virtual void deviceWaitIdle()=0;
+	virtual void processInput(GLFWwindow * window) = 0;
+	virtual void cleanup(GLFWwindow * window) = 0;
 
-	virtual void moveCamera(double xpos, double ypos)=0;
-	virtual VkDevice* getDevice()=0;
 	VkDevice device;
+
+	template <typename T = Vertex>
+	void createVertexBuffer(std::vector<T> vertices, VkBuffer& buffer, VkDeviceMemory& memory)
+	{
+		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+
+		void* data;
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, vertices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemory);
+
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, device, physicalDevice);
+
+		copyBuffer(stagingBuffer, buffer, bufferSize);
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+	};	
+
 
 	static VkResult CreateDebugUtilsMessengerEXT(
 		VkInstance instance, 

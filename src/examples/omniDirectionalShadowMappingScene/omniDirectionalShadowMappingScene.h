@@ -1,33 +1,5 @@
 #pragma once
 
-#include <assimp/mesh.h>
-#include <assimp/scene.h>
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-#include <vector>
-#include <stdexcept>
-#include <map>
-#include <set>
-#include <unordered_map>
-#include <optional>
-#include <iostream>
-#include <limits>
-#include <algorithm>
-#include <array>
-#include <filesystem>
-#include <fstream>
-#include <random>
-#include <stb_image.h>
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include "../../core/vulkanImage/vulkanImageBuilder.h"
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
 class OmniDirectionalShadowMappingScene : public IVulkanApp
@@ -235,7 +207,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow * window);
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkSampleCountFlagBits getMaxUsableSampleCount();
 	std::vector<const char*>getRequiredExtensions();
@@ -246,7 +217,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews);
 	void createTextureSamplers(std::vector<VkSampler>& samplers);
 	void createShaderStorageBuffers();
-	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createVertexBuffers();
 	void createIndexBuffer();
 	void createQuadIndexBuffer();

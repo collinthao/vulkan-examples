@@ -369,6 +369,30 @@ src/core/queueFamily/queueFamily.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/core/queueFamily/queueFamily.cpp.s
 .PHONY : src/core/queueFamily/queueFamily.cpp.s
 
+src/core/renderer/vulkanApp/vulkanApp.o: src/core/renderer/vulkanApp/vulkanApp.cpp.o
+.PHONY : src/core/renderer/vulkanApp/vulkanApp.o
+
+# target to build an object file
+src/core/renderer/vulkanApp/vulkanApp.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.o
+.PHONY : src/core/renderer/vulkanApp/vulkanApp.cpp.o
+
+src/core/renderer/vulkanApp/vulkanApp.i: src/core/renderer/vulkanApp/vulkanApp.cpp.i
+.PHONY : src/core/renderer/vulkanApp/vulkanApp.i
+
+# target to preprocess a source file
+src/core/renderer/vulkanApp/vulkanApp.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.i
+.PHONY : src/core/renderer/vulkanApp/vulkanApp.cpp.i
+
+src/core/renderer/vulkanApp/vulkanApp.s: src/core/renderer/vulkanApp/vulkanApp.cpp.s
+.PHONY : src/core/renderer/vulkanApp/vulkanApp.s
+
+# target to generate assembly for a file
+src/core/renderer/vulkanApp/vulkanApp.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/core/renderer/vulkanApp/vulkanApp.cpp.s
+.PHONY : src/core/renderer/vulkanApp/vulkanApp.cpp.s
+
 src/core/renderer/vulkanRenderer.o: src/core/renderer/vulkanRenderer.cpp.o
 .PHONY : src/core/renderer/vulkanRenderer.o
 
@@ -440,6 +464,30 @@ src/core/windowContext/glfwWindowContext.s: src/core/windowContext/glfwWindowCon
 src/core/windowContext/glfwWindowContext.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/core/windowContext/glfwWindowContext.cpp.s
 .PHONY : src/core/windowContext/glfwWindowContext.cpp.s
+
+src/examples/basicApp/basicApp.o: src/examples/basicApp/basicApp.cpp.o
+.PHONY : src/examples/basicApp/basicApp.o
+
+# target to build an object file
+src/examples/basicApp/basicApp.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.o
+.PHONY : src/examples/basicApp/basicApp.cpp.o
+
+src/examples/basicApp/basicApp.i: src/examples/basicApp/basicApp.cpp.i
+.PHONY : src/examples/basicApp/basicApp.i
+
+# target to preprocess a source file
+src/examples/basicApp/basicApp.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.i
+.PHONY : src/examples/basicApp/basicApp.cpp.i
+
+src/examples/basicApp/basicApp.s: src/examples/basicApp/basicApp.cpp.s
+.PHONY : src/examples/basicApp/basicApp.s
+
+# target to generate assembly for a file
+src/examples/basicApp/basicApp.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vulkan_examples.dir/build.make CMakeFiles/vulkan_examples.dir/src/examples/basicApp/basicApp.cpp.s
+.PHONY : src/examples/basicApp/basicApp.cpp.s
 
 src/examples/grassScene/grassScene.o: src/examples/grassScene/grassScene.cpp.o
 .PHONY : src/examples/grassScene/grassScene.o
@@ -624,6 +672,9 @@ help:
 	@echo "... src/core/queueFamily/queueFamily.o"
 	@echo "... src/core/queueFamily/queueFamily.i"
 	@echo "... src/core/queueFamily/queueFamily.s"
+	@echo "... src/core/renderer/vulkanApp/vulkanApp.o"
+	@echo "... src/core/renderer/vulkanApp/vulkanApp.i"
+	@echo "... src/core/renderer/vulkanApp/vulkanApp.s"
 	@echo "... src/core/renderer/vulkanRenderer.o"
 	@echo "... src/core/renderer/vulkanRenderer.i"
 	@echo "... src/core/renderer/vulkanRenderer.s"
@@ -633,6 +684,9 @@ help:
 	@echo "... src/core/windowContext/glfwWindowContext.o"
 	@echo "... src/core/windowContext/glfwWindowContext.i"
 	@echo "... src/core/windowContext/glfwWindowContext.s"
+	@echo "... src/examples/basicApp/basicApp.o"
+	@echo "... src/examples/basicApp/basicApp.i"
+	@echo "... src/examples/basicApp/basicApp.s"
 	@echo "... src/examples/grassScene/grassScene.o"
 	@echo "... src/examples/grassScene/grassScene.i"
 	@echo "... src/examples/grassScene/grassScene.s"

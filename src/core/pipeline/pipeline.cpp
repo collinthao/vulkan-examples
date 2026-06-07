@@ -1,4 +1,5 @@
 #include "pipeline.h"
+#include <iostream>
 
 Pipeline::Pipeline(){};
 

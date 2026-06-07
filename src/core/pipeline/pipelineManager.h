@@ -257,7 +257,6 @@ namespace Pipelines
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.base.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.base.frag}})
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-			.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
 			.setMSAASamples(VulkanConfig::msaaSamples)
 			.setDescriptor({layoutBindings.vertexLayoutBinding, layoutBindings.samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
 			.setStencilTest(VK_TRUE)
