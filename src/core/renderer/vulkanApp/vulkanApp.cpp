@@ -19,6 +19,7 @@ void IVulkanApp::init(GLFWwindow* window)
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
 	createFramebuffers();
 	createVertexBuffers();
+	createIndexBuffer();
 	createUniformBuffers();
 	createDescriptorSets();
 	CommandBuffer::createCommandBuffers(device);
@@ -70,7 +71,7 @@ void IVulkanApp::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize
 
 void IVulkanApp::createGraphicsUniformBuffers()
 {
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+	VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
 	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
@@ -130,7 +131,7 @@ void IVulkanApp::createGraphicsDescriptorSets()
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = uniformBuffers[i];
 		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
+		bufferInfo.range = sizeof(UniformBufferObjectModel);
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -684,7 +685,7 @@ void IVulkanApp::updateUniformBuffer(uint32_t currentImage)
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
 
-		glm::vec3 cubePosition = cubePositions[j];
+		glm::vec3 cubePosition = glm::vec3(1.);
 		glm::vec3 transformedPosition = glm::vec3(cubePosition.x, cubePosition.y, cubePosition.z);
 		ubom.model = glm::mat4(1.);
 
@@ -693,7 +694,7 @@ void IVulkanApp::updateUniformBuffer(uint32_t currentImage)
 
 		ubom.model = glm::rotate(ubom.model, glm::radians(angle), glm::vec3(1.f, 0.3f, 0.5f));
 
-		ubom.model = glm::scale(ubom.model, glm::vec3(1.));
+		ubom.model = glm::scale(ubom.model, glm::vec3(10.));
 
 		ubom.view = camera.getViewMatrix();
 		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
