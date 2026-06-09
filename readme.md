@@ -16,3 +16,6 @@ cmake --build .
 - Cleanup files in root directory and put in own separate directories
 - Replace batch file with CMAKE
 - Use glfwGetCursorPos to allow dependency injection for switching mouse movement function per vulkan App
+- Fix shadow mapping scene and grass scene to align with work done in vulkanApp header file
+
+XDG_SESSION_TYPE=x11

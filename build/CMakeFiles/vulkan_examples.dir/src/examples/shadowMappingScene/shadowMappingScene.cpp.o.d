@@ -536,5 +536,4 @@ CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScen
  /usr/include/c++/16.1.1/bits/ranges_uninitialized.h \
  /usr/include/c++/16.1.1/bits/out_ptr.h \
  /usr/include/c++/16.1.1/pstl/glue_memory_defs.h \
- /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/../../bindings/particle.h \
- /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/../../config/vulkanConfig.h
+ /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/../../bindings/particle.h

@@ -218,7 +218,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void createTextureSamplers(std::vector<VkSampler>& samplers);
 	void createShaderStorageBuffers();
 	void createVertexBuffers();
-	void createIndexBuffer();
 	void createQuadIndexBuffer();
 	void createModelIndexBuffers();
 	void createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory);

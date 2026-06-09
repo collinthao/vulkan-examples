@@ -30,6 +30,26 @@ void IVulkanApp::createVertexBuffers()
 	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
 }
 
+void IVulkanApp::createIndexBuffer()
+{
+	VkDeviceSize bufferSize = sizeof(IVulkanApp::cubeIndices[0]) * IVulkanApp::cubeIndices.size();
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+
+	void* data;
+	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, IVulkanApp::cubeIndices.data(), (size_t)bufferSize);
+	vkUnmapMemory(device, stagingBufferMemory);
+
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, physicalDevice);
+	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+	
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
 void IVulkanApp::createUniformBuffers()
 {
 	createGraphicsUniformBuffers();
@@ -673,7 +693,7 @@ void IVulkanApp::updateUniformBuffer(uint32_t currentImage)
 
 		ubom.model = glm::rotate(ubom.model, glm::radians(angle), glm::vec3(1.f, 0.3f, 0.5f));
 
-		ubom.model = glm::scale(ubom.model, glm::vec3(10.));
+		ubom.model = glm::scale(ubom.model, glm::vec3(1.));
 
 		ubom.view = camera.getViewMatrix();
 		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
@@ -795,6 +815,8 @@ void IVulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	VkDeviceSize offsets[] = { 0 };
 
+	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
+
 	VkRect2D scissor{};
 	scissor.offset = {0, 0};
 	scissor.extent = VulkanConfig::swapChainExtent;
@@ -811,9 +833,11 @@ void IVulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexCubeBuffer, offsets);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(cubeVertices.size()), 1, 0, 0);
+	vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(IVulkanApp::cubeIndices.size()), 1, 0, 0, 0);
 
 	vkCmdEndRenderPass(commandBuffer);
 

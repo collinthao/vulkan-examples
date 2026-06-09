@@ -699,28 +699,6 @@ void GrassScene::createVertexBuffers()
 	createVertexBuffer(triangleVertices, vertexTriangleBuffer, vertexTriangleBufferMemory);
 }
 
-void GrassScene::createIndexBuffer()
-{
-
-	//VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	VkDeviceSize bufferSize = sizeof(GrassScene::cubeIndices[0]) * GrassScene::cubeIndices.size();
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
-
-	void* data;
-	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, GrassScene::cubeIndices.data(), (size_t)bufferSize);
-	vkUnmapMemory(device, stagingBufferMemory);
-
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, physicalDevice);
-	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-	
-	vkDestroyBuffer(device, stagingBuffer, nullptr);
-	vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
-
 void GrassScene::createQuadIndexBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(GrassScene::quadIndices[0]) * GrassScene::quadIndices.size();

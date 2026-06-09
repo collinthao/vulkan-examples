@@ -6363,7 +6363,6 @@ CMakeFiles/vulkan_examples.dir/src/examples/omniDirectionalShadowMappingScene/om
 CMakeFiles/vulkan_examples.dir/src/examples/shadowMappingScene/shadowMappingScene.cpp.o
  /home/collin/Projects/vulkan-examples/src/examples/shadowMappingScene/shadowMappingScene.cpp
  /home/collin/Projects/vulkan-examples/src/bindings/particle.h
- /home/collin/Projects/vulkan-examples/src/config/vulkanConfig.h
  /home/collin/Projects/vulkan-examples/src/camera/camera.h
  /home/collin/Projects/vulkan-examples/src/config/vulkanConfig.h
  /home/collin/Projects/vulkan-examples/src/core/commandBuffer/commandBuffer.h

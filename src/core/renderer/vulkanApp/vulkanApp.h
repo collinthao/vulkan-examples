@@ -193,6 +193,9 @@ class IVulkanApp
 	VkSampler textureSampler;
 	VkImageView textureImageView;
 
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
+
 	std::vector<VkDescriptorSet> descriptorSets;
 
 	struct
@@ -238,6 +241,7 @@ class IVulkanApp
 	virtual void createRenderPass();
 	virtual void createFramebuffers();
 	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+	virtual void createIndexBuffer();
 	virtual void createVertexBuffers();
 	virtual void createUniformBuffers();
 	virtual void createGraphicsUniformBuffers();

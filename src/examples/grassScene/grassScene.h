@@ -69,9 +69,6 @@ class GrassScene : public IVulkanApp
 	VkImageView specularImageView;
 	VkSampler specularSampler;
 	
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-		
 	std::vector<VkBuffer> indexModelBuffers;
 	std::vector<VkDeviceMemory> indexModelBufferMemories;
 	
@@ -188,7 +185,6 @@ class GrassScene : public IVulkanApp
 	void createShaderStorageBuffers();
 	void createVertexBuffers();
 	void createInstanceBuffers();
-	void createIndexBuffer();
 	void createQuadIndexBuffer();
 	void createModelIndexBuffers();
 	void createModelIndexBuffer(std::vector<uint32_t> m_Indices, VkBuffer& modelBuffer,VkDeviceMemory& modelMemory);

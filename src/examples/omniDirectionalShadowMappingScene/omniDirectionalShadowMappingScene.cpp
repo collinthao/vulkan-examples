@@ -1073,28 +1073,6 @@ void OmniDirectionalShadowMappingScene::createVertexBuffers()
 	createVertexBuffer<Vertex>(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 }
 
-void OmniDirectionalShadowMappingScene::createIndexBuffer()
-{
-
-	//VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-	VkDeviceSize bufferSize = sizeof(OmniDirectionalShadowMappingScene::cubeIndices[0]) * OmniDirectionalShadowMappingScene::cubeIndices.size();
-
-	VkBuffer stagingBuffer;
-	VkDeviceMemory stagingBufferMemory;
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
-
-	void* data;
-	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, OmniDirectionalShadowMappingScene::cubeIndices.data(), (size_t)bufferSize);
-	vkUnmapMemory(device, stagingBufferMemory);
-
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, physicalDevice);
-	copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-	
-	vkDestroyBuffer(device, stagingBuffer, nullptr);
-	vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
-
 void OmniDirectionalShadowMappingScene::createQuadIndexBuffer()
 {
 	VkDeviceSize bufferSize = sizeof(OmniDirectionalShadowMappingScene::quadIndices[0]) * OmniDirectionalShadowMappingScene::quadIndices.size();
