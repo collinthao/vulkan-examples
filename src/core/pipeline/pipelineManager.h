@@ -173,10 +173,10 @@ namespace Pipelines
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMap.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT,  shaderPaths.shadowMap.frag}})
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-			.setAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0)
-			.setAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
-			.setAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 8)
-			.setAttributeDescription(0, 3, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 12)
+			.setAttributeDescription(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos))
+			.setAttributeDescription(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color))
+			.setAttributeDescription(0, 2, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal))
+			.setAttributeDescription(0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texCoord))
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 			.setDescriptor(shadowMapBindings, shadowMapTypes, VulkanConfig::OBJECT_COUNT, device)
@@ -219,10 +219,10 @@ namespace Pipelines
 				{VK_SHADER_STAGE_GEOMETRY_BIT,shaderPaths.grass.geom},
 				{VK_SHADER_STAGE_FRAGMENT_BIT,shaderPaths.grass.frag}})
 			.setBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
-			.setAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
-			.setAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3)
-			.setAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 6)
-			.setAttributeDescription(1, 7, VK_FORMAT_R32_UINT, sizeof(float) * 7)
+			.setAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, pos))
+			.setAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, scale))
+			.setAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, rot))
+			.setAttributeDescription(1, 7, VK_FORMAT_R32_UINT, offsetof(InstanceData, id))
 			.setMSAASamples(VulkanConfig::msaaSamples)
 			.setCullMode(VK_CULL_MODE_NONE)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
@@ -342,7 +342,6 @@ namespace Pipelines
 			.setRenderPass(renderPasses.renderPass)
 			.build(device);
 
-
 		postProcessingPipeline = 
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.postProcessing.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.postProcessing.frag}})
@@ -360,7 +359,6 @@ namespace Pipelines
 			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
 			.setRenderPass(renderPasses.postProcessingRenderPass)
 			.build(device);
-
 
 		screenSpacePipeline = 
 			pipelineBuilder

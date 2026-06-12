@@ -80,7 +80,6 @@ VkImageView Image::createView(VkImage image, VkImageView imageView, VkImageViewT
 	{
 		throw std::runtime_error("failed to create texture image view");
 	}
-	std::cout << "Creating...\n";
 
 	return imageView;
 }

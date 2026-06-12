@@ -33,23 +33,21 @@ void GrassScene::init(GLFWwindow* window)
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(specularSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(shadowSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	createShaderStorageBuffers();
-	createVertexBuffers();
 	createInstanceBuffers();
-	createIndexBuffer();
-	createQuadIndexBuffer();
+	createShaderStorageBuffers();
 	createUniformBuffers();
+	createQuadIndexBuffer();
+	createIndexBuffer();
+	createVertexBuffers();
 	createDescriptorPools();
 	createDescriptorSets();
 	CommandBuffer::createCommandBuffers(device);
-	createComputeCommandBuffers();
 	createSyncObjects();
 }
 
 void GrassScene::createPipelines()
 {
 	Pipelines::createPipelines(device, renderPasses);
-	createComputePipeline();
 }
 
 void GrassScene::createImageViews()
@@ -335,6 +333,67 @@ VkShaderModule GrassScene::createShaderModule(const std::vector<char>& code)
 	return shaderModule;
 }
 
+void GrassScene::createSwapChain(GLFWwindow * window)
+{
+	SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+
+	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
+
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
+	{
+		imageCount = swapChainSupport.capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = surface;
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
+	uint32_t queueFamilyIndices[] = {indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()};
+
+	if (indices.graphicsAndComputeFamily != indices.presentFamily)
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+	else
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.queueFamilyIndexCount = 0;
+		createInfo.pQueueFamilyIndices = nullptr;
+	}
+
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+	if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
+	{
+		throw std::runtime_error("faild to create swap chain!");
+	}
+
+	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+	swapChainImages.resize(imageCount);
+	shadowMapImages.resize(imageCount);
+	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, shadowMapImages.data());
+
+	swapChainImageFormat = surfaceFormat.format;
+	VulkanConfig::swapChainExtent = extent;
+}
 void GrassScene::createShadowMapResources()
 {
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
@@ -664,6 +723,7 @@ void GrassScene::createInstanceBuffers()
 	std::uniform_int_distribution<> dis(-100, 100);	
 	std::uniform_real_distribution<> rScale(0.1f, 1.f);	
 	std::uniform_int_distribution<> rRotation(0,180);	
+
 	instanceData.resize(MAX_INSTANCE_COUNT);
 
 	for(uint32_t i = 0; i < MAX_INSTANCE_COUNT; i++)
@@ -686,14 +746,6 @@ void GrassScene::createInstanceBuffers()
 
 void GrassScene::createVertexBuffers()
 {
-	// TODO: move to own method
-/*
-	for (size_t i = 0; i < model->meshes.size(); i++)
-	{
-		const Mesh mesh = model->meshes[i];
-		createVertexBuffer(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
-	}
-*/
 	createVertexBuffer(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
 	createVertexBuffer(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 	createVertexBuffer(triangleVertices, vertexTriangleBuffer, vertexTriangleBufferMemory);
@@ -718,7 +770,6 @@ void GrassScene::createQuadIndexBuffer()
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
-
 
 void GrassScene::createModelIndexBuffers()
 {
@@ -1296,7 +1347,6 @@ void GrassScene::createGrassDescriptorSets()
 			descriptorWrites[2].descriptorCount = 1;
 			descriptorWrites[2].pImageInfo = &imageInfo;
 
-			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[3].dstSet = grassDescriptorSets[j][i];
 			descriptorWrites[3].dstBinding = 3;
@@ -1844,9 +1894,10 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
+
 	for (size_t j = 0; j < 1; j++)
 	{
-		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
@@ -1873,18 +1924,9 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	Pipelines::basePipeline.bind(commandBuffer);
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets);
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-
-	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
-
+	Pipelines::grassPipeline.bind(commandBuffer);
 	for (size_t j = 0; j < 1; j++)
 	{
-		Pipelines::grassPipeline.bind(commandBuffer);
-
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::grassPipeline.getLayout(), 0, 1, &grassDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexTriangleBuffers, offsets);
@@ -2254,10 +2296,24 @@ void GrassScene::cleanup(GLFWwindow * window)
 	vkDestroyImage(device, textureImage, nullptr);
 	vkFreeMemory(device, textureImageMemory, nullptr);
 
+	vkDestroyBuffer(device, instanceBuffer, nullptr);
+	vkFreeMemory(device, instanceBufferMemory, nullptr);
+
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+		vkDestroyBuffer(device, cubemapUniformBuffers[i], nullptr);
+		vkDestroyBuffer(device, instanceUniformBuffers[i], nullptr);
+
 		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+		vkFreeMemory(device, vertexBufferMemories[i], nullptr);
+		vkFreeMemory(device, shaderStorageBuffersMemory[i], nullptr);
+		vkFreeMemory(device, offScreenImageMemories[i], nullptr);
+		vkFreeMemory(device, shadowMapImageMemories[i], nullptr);
+		vkFreeMemory(device, cubemapUniformBuffersMemory[i], nullptr);
+		vkFreeMemory(device, instanceUniformBuffersMemory[i], nullptr);
+		vkFreeMemory(device, indexModelBufferMemories[i], nullptr);
+		vkFreeMemory(device, modelImageMemories[i], nullptr);
 	}
 
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);

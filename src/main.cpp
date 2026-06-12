@@ -33,7 +33,7 @@
 
 int main()
 {
-	Engine<BasicApp, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<GrassScene, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

@@ -17,7 +17,6 @@ float deltaTime;
 
 void main() 
 {
-
     gl_Position = ubom.proj * ubom.view * ubom.model * vec4(inPosition, 1.0);
     fragColor = inColor.rgb;
 }

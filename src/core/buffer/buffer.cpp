@@ -1,6 +1,7 @@
 #include "./buffer.h"
 #include "../image/image.h"
 #include <stdexcept>
+#include <iostream>
 
 void Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage , VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice device, VkPhysicalDevice physicalDevice)
 {

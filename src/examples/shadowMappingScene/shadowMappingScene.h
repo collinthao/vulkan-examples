@@ -57,9 +57,6 @@ class ShadowMappingScene : public IVulkanApp
 	VkImageView specularImageView;
 	VkSampler specularSampler;
 	
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-		
 	std::vector<VkBuffer> indexModelBuffers;
 	std::vector<VkDeviceMemory> indexModelBufferMemories;
 	
@@ -138,7 +135,7 @@ class ShadowMappingScene : public IVulkanApp
 
 	Lights lights;
 
-	size_t MESH_COUNT = 0;
+	size_t MESH_COUNT = 9;
 	const uint32_t PARTICLE_COUNT = 8192;
 
 	void createImageViews();
@@ -201,7 +198,6 @@ class ShadowMappingScene : public IVulkanApp
 	void recordComputeCommandBuffer(VkCommandBuffer commandBuffer);
 	void recreateSwapChain(GLFWwindow * window);
 	void cleanupSwapChain();
-	void setDescriptorSetLayoutBindings();
 
 	template <typename T = Vertex>
 	void createVertexBuffer(std::vector<T> vertices, VkBuffer& buffer, VkDeviceMemory& memory)

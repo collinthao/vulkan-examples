@@ -48,7 +48,7 @@ void main()
 	fColor = vec3(0.f, 0.0f, 0.f); 
 	
 	vec4 position = gl_in[0].gl_Position;
-	float curveInfluence =((1.0f + sin(DeltaTime[0] * angle)) + fract(angle))/4.f;
+	float curveInfluence =((1.0f + sin(DeltaTime[0] * angle * 0.01)) + fract(angle))/4.f;
 //	float curveInfluence = 0.0f + sin(DeltaTime[0]);
 //	float curveInfluence = 0.0f + fract(angle);
 

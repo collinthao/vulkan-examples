@@ -15,7 +15,6 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	createShadowMapRenderPass();
 	createRenderPass();
 	createPostProcessingRenderPass();
-	setDescriptorSetLayoutBindings();
 	createDescriptorSetLayouts();	
 	createModel();
 	createPipelines();
@@ -311,34 +310,6 @@ void ShadowMappingScene::createPostProcessingRenderPass()
 void ShadowMappingScene::createDescriptorSetLayouts()
 {
 	createComputeDescriptorSetLayout();
-}
-
-void ShadowMappingScene::setDescriptorSetLayoutBindings()
-{
-	samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerUniformLayoutBinding.descriptorCount = 1;
-	samplerUniformLayoutBinding.pImmutableSamplers = nullptr;
-	samplerUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	specularUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	specularUniformLayoutBinding.descriptorCount = 1;
-	specularUniformLayoutBinding.pImmutableSamplers = nullptr;
-	specularUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	vertexLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	vertexLayoutBinding.descriptorCount = 1;
-	vertexLayoutBinding.pImmutableSamplers = nullptr;
-	vertexLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-
-	fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	fragmentLayoutBinding.descriptorCount = 1;
-	fragmentLayoutBinding.pImmutableSamplers = nullptr;
-	fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	allStagesUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	allStagesUniformLayoutBinding.descriptorCount = 1;
-	allStagesUniformLayoutBinding.pImmutableSamplers = nullptr;
-	allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
 }
 
 void ShadowMappingScene::createComputeDescriptorSetLayout()
@@ -767,7 +738,6 @@ void ShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDe
 
 void ShadowMappingScene::createVertexBuffers()
 {
-	// TODO: move to own method
 	for (size_t i = 0; i < model->meshes.size(); i++)
 	{
 		const Mesh mesh = model->meshes[i];
@@ -1580,10 +1550,8 @@ void ShadowMappingScene::createPostProcessingDescriptorSets()
 	allocInfo.pSetLayouts = layouts.data();
 
 	postProcessingDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	std::cout << "Creating pipelines\n";
 	if (vkAllocateDescriptorSets(device, &allocInfo, postProcessingDescriptorSets.data()) != VK_SUCCESS)
 	{
-		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
@@ -1764,7 +1732,6 @@ void ShadowMappingScene::createSyncObjects()
 		}
 	}
 }
-
 
 void ShadowMappingScene::drawFrame(GLFWwindow * window)
 {

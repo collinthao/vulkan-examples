@@ -161,4 +161,51 @@ CMakeFiles/vulkan_examples.dir/src/core/buffer/buffer.cpp.o: \
  /usr/include/c++/16.1.1/bits/uses_allocator.h \
  /usr/include/c++/16.1.1/bits/uses_allocator_args.h \
  /usr/include/c++/16.1.1/tuple \
- /usr/include/c++/16.1.1/bits/stdexcept_except.h
+ /usr/include/c++/16.1.1/bits/stdexcept_except.h \
+ /usr/include/c++/16.1.1/iostream /usr/include/c++/16.1.1/ostream \
+ /usr/include/c++/16.1.1/bits/ostream.h /usr/include/c++/16.1.1/ios \
+ /usr/include/c++/16.1.1/bits/ios_base.h \
+ /usr/include/c++/16.1.1/ext/atomicity.h \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/gthr.h \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/gthr-default.h \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/atomic_word.h \
+ /usr/include/sys/single_threaded.h \
+ /usr/include/c++/16.1.1/bits/locale_classes.h \
+ /usr/include/c++/16.1.1/bits/functexcept.h \
+ /usr/include/c++/16.1.1/bits/locale_classes.tcc \
+ /usr/include/c++/16.1.1/system_error \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/error_constants.h \
+ /usr/include/c++/16.1.1/streambuf \
+ /usr/include/c++/16.1.1/bits/streambuf.tcc \
+ /usr/include/c++/16.1.1/bits/basic_ios.h \
+ /usr/include/c++/16.1.1/bits/locale_facets.h \
+ /usr/include/c++/16.1.1/cwctype /usr/include/wctype.h \
+ /usr/include/bits/wctype-wchar.h \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/ctype_base.h \
+ /usr/include/c++/16.1.1/bits/streambuf_iterator.h \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/ctype_inline.h \
+ /usr/include/c++/16.1.1/bits/locale_facets.tcc \
+ /usr/include/c++/16.1.1/bits/basic_ios.tcc \
+ /usr/include/c++/16.1.1/format /usr/include/c++/16.1.1/array \
+ /usr/include/c++/16.1.1/charconv /usr/include/c++/16.1.1/locale \
+ /usr/include/c++/16.1.1/bits/locale_facets_nonio.h \
+ /usr/include/c++/16.1.1/ctime \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/time_members.h \
+ /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/messages_members.h \
+ /usr/include/libintl.h /usr/include/c++/16.1.1/bits/codecvt.h \
+ /usr/include/c++/16.1.1/bits/locale_facets_nonio.tcc \
+ /usr/include/c++/16.1.1/bits/locale_conv.h \
+ /usr/include/c++/16.1.1/optional \
+ /usr/include/c++/16.1.1/bits/enable_special_members.h \
+ /usr/include/c++/16.1.1/span /usr/include/c++/16.1.1/bits/monostate.h \
+ /usr/include/c++/16.1.1/bits/formatfwd.h \
+ /usr/include/c++/16.1.1/bits/unicode.h /usr/include/c++/16.1.1/cstdint \
+ /usr/include/c++/16.1.1/bits/stl_algo.h \
+ /usr/include/c++/16.1.1/bits/algorithmfwd.h \
+ /usr/include/c++/16.1.1/bits/stl_heap.h \
+ /usr/include/c++/16.1.1/bits/uniform_int_dist.h \
+ /usr/include/c++/16.1.1/bits/stl_tempbuf.h \
+ /usr/include/c++/16.1.1/bits/unicode-data.h \
+ /usr/include/c++/16.1.1/bits/ostream_print.h \
+ /usr/include/c++/16.1.1/bits/ostream.tcc /usr/include/c++/16.1.1/istream \
+ /usr/include/c++/16.1.1/bits/istream.tcc

@@ -4,7 +4,6 @@
 class GrassScene : public IVulkanApp
 {
 	private:
-	PipelineBuilder pipelineBuilder{};
 	const int MAX_INSTANCE_COUNT = 100000;
 
 	std::vector<VkImage> shadowMapImages;
@@ -35,18 +34,6 @@ class GrassScene : public IVulkanApp
 	VkDescriptorSetLayoutBinding allStagesUniformLayoutBinding{};
 
 	VkPipelineLayout computePipelineLayout;
-
-	Pipeline grassPipeline; 
-	Pipeline shadowMapPipeline; 
-	Pipeline shadowMapGrassPipeline; 
-	Pipeline shadowMapMeshPipeline; 
-	Pipeline stencilPipeline;
-	Pipeline lightPipeline;
-	Pipeline meshPipeline;
-	Pipeline cubemapPipeline;
-	Pipeline postProcessingPipeline;
-	Pipeline screenSpacePipeline;
-
 	VkPipeline computePipeline;
 
 	VkImage cubemapImage;
@@ -88,9 +75,9 @@ class GrassScene : public IVulkanApp
 	VkDeviceMemory vertexCubemapBufferMemory;
 
 	std::vector<VkBuffer> cubemapUniformBuffers;
+	std::vector<VkBuffer> instanceUniformBuffers;
 	std::vector<std::vector<VkBuffer>> modelUniformBuffers;
 	std::vector<std::vector<VkBuffer>> grassUniformBuffers;
-	std::vector<VkBuffer> instanceUniformBuffers;
 	std::vector<std::vector<VkBuffer>> shadowMapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> stencilUniformBuffers;
 	std::vector<std::vector<VkBuffer>> materialUniformBuffers;
@@ -99,10 +86,11 @@ class GrassScene : public IVulkanApp
 	std::vector<std::vector<VkBuffer>> lightObjectUniformBuffers;
 
 	std::vector<VkDeviceMemory> cubemapUniformBuffersMemory;
+	std::vector<VkDeviceMemory> instanceUniformBuffersMemory;
+
 	std::vector<std::vector<VkDeviceMemory>> modelUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> materialUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> grassUniformBuffersMemory;
-	std::vector<VkDeviceMemory> instanceUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> shadowMapUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> stencilUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> lightUniformBuffersMemory;
@@ -110,10 +98,10 @@ class GrassScene : public IVulkanApp
 	std::vector<std::vector<VkDeviceMemory>> lightObjectUniformBuffersMemory;
 
 	std::vector<void*> cubemapUniformBuffersMapped;
+	std::vector<void*> instanceUniformBuffersMapped;
 	std::vector<std::vector<void*>> modelUniformBuffersMapped;
 	std::vector<std::vector<void*>> materialUniformBuffersMapped;
 	std::vector<std::vector<void*>> grassUniformBuffersMapped;
-	std::vector<void*> instanceUniformBuffersMapped;
 	std::vector<std::vector<void*>> shadowMapUniformBuffersMapped;
 	std::vector<std::vector<void*>> stencilUniformBuffersMapped;
 	std::vector<std::vector<void*>> modelLightUniformBuffersMapped;
@@ -157,7 +145,7 @@ class GrassScene : public IVulkanApp
 
 	Lights lights;
 
-	const uint32_t PARTICLE_COUNT = 8192;
+	const uint32_t PARTICLE_COUNT = 8196;
 	const float FAR_PLANE = 400.f;
 
 	void createImageViews();
@@ -170,6 +158,7 @@ class GrassScene : public IVulkanApp
 	void createOffscreenResources();
 	void createShadowMapResources();
 	void createColorResources();
+	void createSwapChain(GLFWwindow * window);
 	void createDepthResources();
 	void createFramebuffers();
 	void createModel();
