@@ -39,7 +39,7 @@ jobs:
       run: cmake --build build --config Release
     
     - name: Copy dlls
-      run: cp -a vendor/dlls. build/Release/
+      run: cp -a vendor/dlls/. build/Release/
       shell: bash
 
     - name: Upload Artifact
