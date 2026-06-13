@@ -1,4 +1,5 @@
 #include "./fileContext.h"
+#include <iostream>
 
 namespace FileContext
 {
@@ -9,6 +10,7 @@ namespace FileContext
 
 		if (!file.is_open())
 		{
+			std::cout << "Failed to open file at path " << filename << '!' <<  "\n";
 			throw std::runtime_error("failed to open file!");
 		}
 
