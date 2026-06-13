@@ -8,29 +8,35 @@ on:
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
-    
-    - name: install git
-      run: winget install --id Git.Git -e --source winget
 
-    - name: clone vcpkg
+    - name: Clone vcpkg
       run: git clone https://github.com/microsoft/vcpkg.git
 
-    - name: make build directory 
-      run: mkdir build
-      
-    - name: cmake build
-      run: cd build && cmake CMakeLists.txt .. 
-    
-    - name: make build
-      run: cd build && make ./build
+    - name: Bootstrap vcpkg
+      run: .\vcpkg\bootstrap-vcpkg.bat
+      shell: pwsh
 
-    - name: make check
-      run: cd build && make check ./build
-    
-    - name: make distcheck
-      run: cd build && make distcheck ./build
+    - name: Install dependencies
+      run: |
+        .\vcpkg\vcpkg.exe install `
+          glfw3:x64-windows `
+          glm:x64-windows `
+          assimp:x64-windows `
+          vulkan:x64-windows
+      shell: pwsh
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake"
+      shell: pwsh
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Test
+      run: ctest --test-dir build -C Release --output-on-failure
