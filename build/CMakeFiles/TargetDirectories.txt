@@ -1,3 +1,0 @@
-/home/collin/Projects/vulkan-examples/build/CMakeFiles/vulkan_examples.dir
-/home/collin/Projects/vulkan-examples/build/CMakeFiles/edit_cache.dir
-/home/collin/Projects/vulkan-examples/build/CMakeFiles/rebuild_cache.dir
