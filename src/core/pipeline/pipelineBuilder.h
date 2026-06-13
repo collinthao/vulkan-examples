@@ -257,6 +257,7 @@ class PipelineBuilder : private Builder
 
 	Pipeline build(VkDevice& device)
 	{	
+		std::cout << "Building Pipeline...\n";
 		VkPipeline pipeline;
 		VkPipelineLayout pipelineLayout{}; 
 		pipelineLayout = createPipelineLayout(device, pipelineLayout);
