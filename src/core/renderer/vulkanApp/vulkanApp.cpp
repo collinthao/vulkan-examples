@@ -14,7 +14,7 @@ void IVulkanApp::init(GLFWwindow* window)
 	pickPhysicalDevice();
 	std::cout << "Creating logical device...\n";
 	createLogicalDevice();
-	std::cout << "Creating Swap chain...\n"
+	std::cout << "Creating Swap chain...\n";
 	createSwapChain(window);
 	std::cout << "Creating Image Views...\n";
 	createImageViews();
