@@ -15,7 +15,7 @@ jobs:
     - name: view-dir
       run: dir
     - name: goto-directory
-      run: cd ./src/build/
+      run: cd ./build/
     - name: make
       run: make
     - name: make check
