@@ -261,11 +261,13 @@ class PipelineBuilder : private Builder
 		std::cout << "Building Pipeline...\n";
 		VkPipeline pipeline;
 		VkPipelineLayout pipelineLayout{}; 
+		std::cout << "Create pipeline step...\n";
 		pipelineLayout = createPipelineLayout(device, pipelineLayout);
 
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 		shaderStages.reserve(shaders.size());
 
+		std::cout << "Create shaders step...\n";
 		for (const auto& shader : shaders)
 		{
 			auto shaderCode = FileContext::readFile(shader.path);
@@ -282,6 +284,7 @@ class PipelineBuilder : private Builder
 			shaderStages.push_back(shaderStageInfo);
 		}
 
+		std::cout << "Shaders step end...\n";
 		std::vector<VkVertexInputBindingDescription> bindings{bindingDescriptions.begin(), bindingDescriptions.end()};
 		std::vector<VkVertexInputAttributeDescription> attributes{attributeDescriptions.begin(), attributeDescriptions.end()};
 
