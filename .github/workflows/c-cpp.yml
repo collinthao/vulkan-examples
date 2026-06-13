@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: install git
-    - run: winget install --id Git.Git -e --source winget
+      run: winget install --id Git.Git -e --source winget
 
     - name: make build directory 
       run: mkdir build
