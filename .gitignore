@@ -31,6 +31,8 @@ CMakeCache.txt
 *.slnx
 *.filters
 build/CMakeFiles/TargetDirectories.txt
+/build
+/build/
 *.depend
 =======
 >>>>>>> fix/compute-shader-render
