@@ -584,6 +584,7 @@ void IVulkanApp::createSurface(GLFWwindow * window)
 
 	if (result != VK_SUCCESS)
 	{
+		std::cout << "Failed to create window surface\n";
 		throw std::runtime_error("failed to create window surface!");
 	}
 }

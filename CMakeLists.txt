@@ -42,9 +42,9 @@ target_include_directories(vulkan_examples PRIVATE
 )
 
 find_package(Vulkan REQUIRED)
-find_package(assimp REQUIRED)
-find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 target_link_libraries(vulkan_examples PRIVATE
     Vulkan::Vulkan
