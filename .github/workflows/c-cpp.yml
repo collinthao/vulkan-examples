@@ -20,7 +20,7 @@ jobs:
     - name: view-dir
       run: dir
       
-    - name: make
+    - name: make ./build
       run: make
     
     - name: make check
