@@ -12,7 +12,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@
     - name: view-dir
       run: dir
     - name: goto-directory
