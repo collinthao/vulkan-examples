@@ -2,6 +2,7 @@
 #include "../../buffer/buffer.h"
 #include <cmath>
 #include <cstring>
+#define max(a,b)
 
 void Image::Texture::loadTexture(const std::string imagePath, int& width, int& height, int& channels, int layers,stbi_uc*& texture)
 {

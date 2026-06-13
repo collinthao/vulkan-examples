@@ -61,6 +61,8 @@ elseif(APPLE)
     target_compile_definitions(vulkan_examples PRIVATE VK_USE_PLATFORM_METAL_EXT)
 endif()
 
+add_compile_definitions(NOMINMAX)
+
 target_compile_definitions(vulkan_examples PRIVATE
     PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )
