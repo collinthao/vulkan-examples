@@ -103,6 +103,7 @@ class PipelineBuilder : private Builder
 
 		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 		{
+			std::cout << "Failed to create pipeline layout!\n";
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
 		return pipelineLayout;
@@ -403,6 +404,7 @@ class PipelineBuilder : private Builder
 
 		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline) != VK_SUCCESS)
 		{
+			std::cout << "failed to create pipeline!\n";
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
 		std::cout << "Pipeline built\n";
