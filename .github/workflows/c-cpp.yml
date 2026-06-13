@@ -12,7 +12,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@
+    - name: view-dir
+      run: dir
     - name: goto-directory
       run: cd ./src/build/
     - name: make
