@@ -64,5 +64,5 @@ endif()
 add_compile_definitions(NOMINMAX)
 
 target_compile_definitions(vulkan_examples PRIVATE
-    PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+ NOMINMAX PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )
