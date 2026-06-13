@@ -1,6 +1,17 @@
 #pragma once
 #include "./pipelineBuilder.h"
 #include "./pipeline.h"
+#include <filesystem>
+
+#if defined(_WIN32) || defined(_WIN64)
+	#include <windows.h>
+	inline std::filesystem::path GetExecutableDir()
+	{
+		char path[MAX_PATH];
+		GetModuleFileNameA(nullptr, path, MAX_PATH);
+		return std::filesystem::path(path).parent_path();
+	};
+#endif
 
 namespace Pipelines
 {
@@ -28,7 +39,11 @@ namespace Pipelines
 	inline	Pipeline cubemapPipeline;
 	inline	Pipeline postProcessingPipeline;
 	inline	Pipeline screenSpacePipeline;
-	inline  const std::string SHADER_DIRECTORY = std::string{PROJECT_ROOT_DIR}+ std::string{"/src/shaders"};
+	#if defined(_WIN32) || defined(_WIN64)
+		inline  const std::string SHADER_DIRECTORY = std::string{GetExecutableDir()}+ std::string{"/src/shaders"};
+	#else
+		inline  const std::string SHADER_DIRECTORY = std::string{PROJECT_ROOT_DIR}+ std::string{"/src/shaders"};
+	#endif
 
 	struct
 	{
