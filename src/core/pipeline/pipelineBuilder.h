@@ -85,6 +85,7 @@ class PipelineBuilder : private Builder
 		VkShaderModule shaderModule;
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
 		{
+			std::cout << "failed to create shader module!\n";
 			throw std::runtime_error("failed to create shader module");
 		}
 
@@ -403,6 +404,7 @@ class PipelineBuilder : private Builder
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
+		std::cout << "Pipeline built\n";
 
 		//END
 
