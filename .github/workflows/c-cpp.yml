@@ -39,7 +39,8 @@ jobs:
       run: cmake --build build --config Release
     
     - name: Copy dlls
-      run: cp -a /vendor/dlls. -Destination build/Release/
+      run: cp -a vendor/dlls. build/Release/
+      shell: bash
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
