@@ -9,7 +9,7 @@
 	{
 		char path[MAX_PATH];
 		GetModuleFileNameA(nullptr, path, MAX_PATH);
-		return std::filesystem::path(path).parent_path();
+		return std::filesystem::path(path).parent_path().string();
 	};
 #endif
 
