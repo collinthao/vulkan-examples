@@ -161,18 +161,6 @@ const std::vector<const char*> validationLayers =
 	"VK_LAYER_KHRONOS_validation"
 };
 
-
-// Move to own file
-#if defined(_WIN32) || defined(_WIN64)
-	#include <windows.h>
-	inline std::string GetExecutableDir()
-	{
-		char path[MAX_PATH];
-		GetModuleFileNameA(nullptr, path, MAX_PATH);
-		return std::filesystem::path(path).parent_path().string();
-	};
-#endif
-
 class IVulkanApp
 {
 	public:
