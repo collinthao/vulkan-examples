@@ -17,6 +17,7 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	createPostProcessingRenderPass();
 	createDescriptorSetLayouts();	
 	createModel();
+	std::cout << "Creating pipelines hello\n";
 	createPipelines();
 	std::cout << "Creating command pool \n";
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
