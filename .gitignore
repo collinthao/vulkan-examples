@@ -5,8 +5,6 @@
 *.gltf
 *.vsidx
 *.hdr
-*.jpg
-*.jpeg
 /vendor/spirv/lib/SPIRV-Tools.lib
 /vendor/spirv/lib/SPIRV-Tools-opt.lib
 /.vs/
