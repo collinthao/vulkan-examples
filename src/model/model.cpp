@@ -25,15 +25,11 @@ Model::Model(std::string path)
 
 	if (nullptr == scene)
 	{
-	std::cout << "Failed to get the fuckin path: " << path << '\n';
-	throw std::runtime_error("Failed to get path!");
+		std::cout << "Failed to get the fuckin path: " << path << '\n';
+		throw std::runtime_error("Failed to get path!");
 	}
 
 	processNode(scene->mRootNode, scene);
-	
-//	for (size_t i = 0; i < meshes.size() - 1; i++)
-//	{
-//	}
 }
 
 void Model::processNode(aiNode *node, const aiScene *scene)

@@ -10,33 +10,19 @@ void IVulkanApp::init(GLFWwindow* window)
 	createInstance();
 	setupDebugMessenger();
 	createSurface(window);
-	std::cout << "Picking physical device...\n";
 	pickPhysicalDevice();
-	std::cout << "Creating logical device...\n";
 	createLogicalDevice();
-	std::cout << "Creating Swap chain...\n";
 	createSwapChain(window);
-	std::cout << "Creating Image Views...\n";
 	createImageViews();
-	std::cout << "Creating Render Pass...\n";
 	createRenderPass();
-	std::cout << "Creating Pipelines...\n";
 	createPipelines();
-	std::cout << "Creating Command Pool...";
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
-	std::cout << "Creating Framebuffers...\n";
 	createFramebuffers();
-	std::cout << "Creating Vertex Buffers...\n";
 	createVertexBuffers();
-	std::cout << "Creating Index Buffer...\n";
 	createIndexBuffer();
-	std::cout << "Creating Uniform Buffers...";
 	createUniformBuffers();
-	std::cout << "Creating Descriptor Sets\n";
 	createDescriptorSets();
-	std::cout << "Creating Command Buffers\n";
 	CommandBuffer::createCommandBuffers(device);
-	std::cout << "Creating Sync Objects\n";
 	createSyncObjects();
 }
 

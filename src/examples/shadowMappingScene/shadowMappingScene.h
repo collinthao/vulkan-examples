@@ -135,7 +135,6 @@ class ShadowMappingScene : public IVulkanApp
 
 	Lights lights;
 
-	size_t MESH_COUNT = 9;
 	const uint32_t PARTICLE_COUNT = 8192;
 
 	void createImageViews();
