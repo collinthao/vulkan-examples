@@ -1,8 +1,5 @@
 *.ipch
-*.obj
 *.pdb
-*.fbx
-*.gltf
 *.vsidx
 *.hdr
 /vendor/spirv/lib/SPIRV-Tools.lib
