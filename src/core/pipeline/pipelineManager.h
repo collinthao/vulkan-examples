@@ -3,6 +3,7 @@
 #include "./pipeline.h"
 #include <filesystem>
 
+// Move to own file
 #if defined(_WIN32) || defined(_WIN64)
 	#include <windows.h>
 	inline std::string GetExecutableDir()

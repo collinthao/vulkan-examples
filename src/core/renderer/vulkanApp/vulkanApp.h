@@ -161,6 +161,18 @@ const std::vector<const char*> validationLayers =
 	"VK_LAYER_KHRONOS_validation"
 };
 
+
+// Move to own file
+#if defined(_WIN32) || defined(_WIN64)
+	#include <windows.h>
+	inline std::string GetExecutableDir()
+	{
+		char path[MAX_PATH];
+		GetModuleFileNameA(nullptr, path, MAX_PATH);
+		return std::filesystem::path(path).parent_path().string();
+	};
+#endif
+
 class IVulkanApp
 {
 	public:
@@ -210,7 +222,12 @@ class IVulkanApp
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
 
-	const std::string ROOT_DIR = PROJECT_ROOT_DIR;
+	#if defined(_WIN32) || defined(_WIN64)
+		const std::string ROOT_DIR = std::string{GetExecutableDir()};
+	#else
+		const std::string ROOT_DIR = PROJECT_ROOT_DIR;
+	#endif
+
 	const std::string MODEL_PATH = ROOT_DIR + "/resource/models/Sponza-master/sponza.obj";
 	const std::string MODEL_TEXTURE_DIRECTORY = ROOT_DIR + "/resource/models/Sponza-master/";
 	const std::string TEXTURE_PATH = ROOT_DIR + "/resource/textures/container.png";
