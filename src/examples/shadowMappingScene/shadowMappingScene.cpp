@@ -365,6 +365,7 @@ void ShadowMappingScene::createComputeDescriptorSetLayout()
 void ShadowMappingScene::createPipelines()
 {
 	Pipelines::createPipelines(device, renderPasses);
+	std::cout << "Finished with normal pipelines\n";
 	createComputePipeline();
 }
 
@@ -388,7 +389,7 @@ VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& c
 
 void ShadowMappingScene::createComputePipeline()
 {
-	auto compShaderCode = readFile(std::string{PROJECT_ROOT_DIR} + "/src/shaders/comp.spv");
+	auto compShaderCode = readFile(ROOT_DIR + "/src/shaders/comp.spv");
 
 	VkShaderModule compShaderModule = createShaderModule(compShaderCode);
 
