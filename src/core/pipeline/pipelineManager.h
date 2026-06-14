@@ -5,7 +5,7 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 	#include <windows.h>
-	inline std::filesystem::path GetExecutableDir()
+	inline std::string GetExecutableDir()
 	{
 		char path[MAX_PATH];
 		GetModuleFileNameA(nullptr, path, MAX_PATH);
