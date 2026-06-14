@@ -13,6 +13,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Pull LFS Objects
+      run: |
+        git lfs pull
+        git lfs checkout
+
     - name: Clone vcpkg
       run: git clone https://github.com/microsoft/vcpkg.git
 
