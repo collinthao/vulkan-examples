@@ -42,6 +42,14 @@ jobs:
       run: cp -a vendor/dlls/. build/Release/
       shell: bash
 
+    - name: Copy shaders
+      run: cp -a src/shaders build/Release/
+      shell: bash
+
+    - name: Copy resources
+      run: cp -a resource build/Release/
+      shell: bash
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
