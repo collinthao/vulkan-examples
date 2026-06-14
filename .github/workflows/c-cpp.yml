@@ -42,8 +42,11 @@ jobs:
       run: cp -a vendor/dlls/. build/Release/
       shell: bash
 
+    - name: Create src folder	
+      run: mkdir -p build/Release/src
+
     - name: Copy shaders
-      run: cp -a src/shaders build/Release/
+      run: cp -a src/shaders build/Release/src
       shell: bash
 
     - name: Copy resources
