@@ -220,6 +220,7 @@ class IVulkanApp
 	const std::string MODEL_TEXTURE_DIRECTORY = ROOT_DIR + "/resource/models/Sponza-master/";
 	const std::string TEXTURE_PATH = ROOT_DIR + "/resource/textures/container.png";
 	const std::string CUBEMAP_PATH = ROOT_DIR + "/resource/textures/skybox/";
+	const std::string GRASS_BLOCK_PATH = ROOT_DIR + "/resource/textures/grassBlock/";
 	const std::string SPECULAR_PATH = ROOT_DIR + "/resource/textures/container_specular.png";
 	uint32_t currentFrame = 0;
 
@@ -244,6 +245,8 @@ class IVulkanApp
 	virtual void recreateSwapChain(GLFWwindow * window);
 	virtual void createImageViews();
 	virtual void createRenderPass();
+	virtual void createPostProcessingRenderPass();
+	virtual void createShadowMapRenderPass();
 	virtual void createFramebuffers();
 	virtual void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	virtual void createIndexBuffer();

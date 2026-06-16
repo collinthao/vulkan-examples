@@ -252,6 +252,10 @@ class PipelineBuilder : private Builder
 	};
 	PipelineBuilder& setRenderPass(VkRenderPass pass)
 	{
+		if (pass == VK_NULL_HANDLE)
+		{ 
+			throw std::runtime_error("failed to set render pass! Render pass was NULL");
+		}
 		renderPass = pass;
 		return *this;
 	};

@@ -38,6 +38,7 @@ namespace Pipelines
 	inline	Pipeline lightPipeline;
 	inline	Pipeline meshPipeline;
 	inline	Pipeline cubemapPipeline;
+	inline	Pipeline cubemapDepthPipeline;
 	inline	Pipeline postProcessingPipeline;
 	inline	Pipeline screenSpacePipeline;
 	#if defined(_WIN32) || defined(_WIN64)
@@ -63,6 +64,9 @@ namespace Pipelines
 
 		ShaderPath cubemap{SHADER_DIRECTORY + "/cubemap/vert.spv", 
 		SHADER_DIRECTORY + "/cubemap/frag.spv"};	
+
+		ShaderPath cubemapDepth{SHADER_DIRECTORY + "/cubemapDepth/vert.spv", 
+		SHADER_DIRECTORY + "/cubemapDepth/frag.spv"};	
 
 		ShaderPath light{SHADER_DIRECTORY + "/light/vert.spv", 
 		SHADER_DIRECTORY + "/light/frag.spv"};	
@@ -239,7 +243,6 @@ namespace Pipelines
 			.setAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, offsetof(InstanceData, scale))
 			.setAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, offsetof(InstanceData, rot))
 			.setAttributeDescription(1, 7, VK_FORMAT_R32_UINT, offsetof(InstanceData, id))
-			.setMSAASamples(VulkanConfig::msaaSamples)
 			.setCullMode(VK_CULL_MODE_NONE)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
 			.setDescriptor(primitiveBindings, primitiveTypes, VulkanConfig::OBJECT_COUNT, device)
@@ -273,13 +276,13 @@ namespace Pipelines
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.base.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.base.frag}})
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-			.setMSAASamples(VulkanConfig::msaaSamples)
-			.setDescriptor({layoutBindings.vertexLayoutBinding, layoutBindings.samplerUniformLayoutBinding}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
+			.setDescriptor({layoutBindings.vertexLayoutBinding, layoutBindings.samplerUniformLayoutBinding,
+}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER}, 1, device)
 			.setStencilTest(VK_TRUE)
 			.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
 			.setStencilWriteMask(0xFF)	
-			.setDepthTest(VK_TRUE)
-			.setDepthWrite(VK_TRUE)
+			.setDepthTest(VK_FALSE)
+			.setDepthWrite(VK_FALSE)
 			.setDepthCompareOp(VK_COMPARE_OP_LESS)
 			.setCullMode(VK_CULL_MODE_NONE)
 			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
@@ -347,6 +350,25 @@ namespace Pipelines
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setMSAASamples(VulkanConfig::msaaSamples)
 			.setDescriptor(cubemapBindings, cubemapTypes, 1,device)
+			.setStencilTest(VK_FALSE)
+			.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
+			.setStencilWriteMask(0xFF)	
+			.setDepthTest(VK_TRUE)
+			.setDepthWrite(VK_TRUE)
+			.setDepthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL)
+			.setCullMode(VK_CULL_MODE_NONE)
+			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+			.setRenderPass(renderPasses.renderPass)
+			.build(device);
+
+		cubemapDepthPipeline = 
+			pipelineBuilder
+			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.cubemapDepth.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.cubemapDepth.frag}})
+			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+			.setMSAASamples(VulkanConfig::msaaSamples)
+			//.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
+			.setDescriptor(cubemapBindings, cubemapTypes, 1000,device)
 			.setStencilTest(VK_FALSE)
 			.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
 			.setStencilWriteMask(0xFF)	

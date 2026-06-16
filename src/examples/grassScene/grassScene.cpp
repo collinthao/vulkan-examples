@@ -1078,7 +1078,6 @@ void GrassScene::createComputeDescriptorPool()
 	}
 }
 
-
 void GrassScene::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
@@ -2258,7 +2257,6 @@ void GrassScene::cleanupSwapChain()
 	}
 
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
-
 }
 
 void GrassScene::processInput(GLFWwindow * window)

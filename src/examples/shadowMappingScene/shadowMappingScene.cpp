@@ -386,7 +386,6 @@ VkShaderModule ShadowMappingScene::createShaderModule(const std::vector<char>& c
 	return shaderModule;
 }
 
-
 void ShadowMappingScene::createComputePipeline()
 {
 	auto compShaderCode = readFile(ROOT_DIR + "/src/shaders/comp.spv");

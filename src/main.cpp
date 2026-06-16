@@ -27,13 +27,14 @@
 #include "./bindings/particle.h"
 
 #include "./examples/basicApp/basicApp.h"
+#include "./examples/minecraft/minecraft.h"
 #include "./examples/grassScene/grassScene.h"
 #include "./examples/shadowMappingScene/shadowMappingScene.h"
 #include "./examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.h"
 
 int main()
 {
-	Engine<ShadowMappingScene, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<Minecraft, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
