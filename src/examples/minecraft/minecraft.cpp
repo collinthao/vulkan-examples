@@ -576,46 +576,40 @@ void Minecraft::recreateSwapChain(GLFWwindow * window)
 	createFramebuffers();
 }
 
-void Minecraft::generateTerrain()
-{
-	randomTerrainPositions.resize(GRASS_BLOCK_COUNT);
-	
-	for (size_t i = 0; i < GRASS_BLOCK_COUNT; i++)
-	{
-		float randomX = cos(glfwGetTime());
-		float randomZ = sin(glfwGetTime());
-		
-		randomTerrainPositions[i] = glm::vec3(randomX, sin(i), randomZ);
-	}
-}
-
 void Minecraft::createInstanceBuffers()
 {
 	std::random_device dev;
 	std::mt19937 rng(dev());
-	std::uniform_int_distribution<> dis(-10, 10);	
+	std::uniform_int_distribution<> dis(0, 20);	
 	std::uniform_real_distribution<> rScale(0.1f, 1.f);	
 	std::uniform_int_distribution<> rRotation(0,180);	
 
-	instanceData.resize(GRASS_BLOCK_COUNT);
 	int currentID = 0;
-
-	for(int y = -10; y < 10; y += 2)
+	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
 	{
-		for (int x = -100; x < 100; x += 2)
+		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
 		{
-			for (int z = -100; z < 100; z += 2)
+			const int randomHeight = (int)abs(sin(x * 0.2) * 10) + (int)abs(sin(y * 0.2) * 10);
+			randomTerrainPositions[y][x] = randomHeight;
+			GRASS_BLOCK_COUNT += randomHeight;
+		}
+	}
+
+	instanceData.resize(GRASS_BLOCK_COUNT);
+
+	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
+	{
+		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
+		{
+			for (int j = 0 ; j < randomTerrainPositions[y][x]; j++)
 			{
-				int ranZ = z;
-				int ranX = x;
-				int ranY = abs(sin(ranX)) * 2;
-				instanceData[currentID].pos = glm::vec3(ranX, ranY, ranZ);
+				instanceData[currentID].pos = glm::vec3(x, j, y);
 				instanceData[currentID].scale = glm::vec3(1.);
 				instanceData[currentID].rot = 0.;
 				instanceData[currentID].id = currentID;
 				currentID++;
 			}	
-		}	
+		}
 	}
 
 	createVertexBuffer<InstanceData>(instanceData, instanceBuffer, instanceBufferMemory);

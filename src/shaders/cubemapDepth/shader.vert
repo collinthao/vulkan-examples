@@ -24,7 +24,7 @@ layout(location = 0) out vec3 position;
 
 void main()
 {
-	vec4 posActual = ubom.proj * ubom.view * ubom.model * vec4(inPosition+ pos, 1.);
+	vec4 posActual = ubom.proj * ubom.view * ubom.model * vec4((inPosition * 0.5) + pos, 1.);
 	gl_Position = posActual;
 	position = inPosition;
 }

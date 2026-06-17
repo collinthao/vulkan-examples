@@ -7,8 +7,8 @@ class Minecraft : public IVulkanApp
 	Minecraft() = default;
 	~Minecraft(){};
 
-	const int GRASS_BLOCK_COUNT = 100000;
-	std::vector<glm::vec3> randomTerrainPositions;
+	int GRASS_BLOCK_COUNT = 0;
+	std::array<std::array<int, 100>, 100> randomTerrainPositions;
 
 	std::vector<InstanceData> instanceData;
 	VkBuffer instanceBuffer;
@@ -52,6 +52,4 @@ class Minecraft : public IVulkanApp
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void recreateSwapChain(GLFWwindow * window);
 	void createInstanceBuffers();
-
-	void generateTerrain();
 };
