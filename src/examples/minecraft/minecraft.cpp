@@ -20,8 +20,8 @@ void Minecraft::init(GLFWwindow* window)
 	createCubeTextureImage(GRASS_BLOCK_PATH, cubemapImage, cubemapImageMemory);
 	createCubeMapResources();
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	createInstanceBuffers();
-	createInstanceBuffers();
+	createInstanceBuffers(glm::vec3{0.});
+	createInstanceBuffers(glm::vec3{16., 0., 16.});
 	createVertexBuffers();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -579,13 +579,14 @@ void Minecraft::recreateSwapChain(GLFWwindow * window)
 	createFramebuffers();
 }
 
-void Minecraft::createInstanceBuffers()
+void Minecraft::createInstanceBuffers(glm::vec3 offset)
 {
 	std::random_device dev;
 	std::mt19937 rng(dev());
 	std::uniform_int_distribution<> dis(0, 20);	
 	std::uniform_real_distribution<> rScale(0.1f, 1.f);	
 	std::uniform_int_distribution<> rRotation(0,180);	
+	std::array<std::array<int, 16>, 16> randomTerrainPositions;
 
 	int currentID = 0;
 	chunks.push_back(0);
@@ -608,7 +609,7 @@ void Minecraft::createInstanceBuffers()
 		{
 			for (int j = 0 ; j < randomTerrainPositions[y][x]; j++)
 			{
-				iData[currentID].pos = glm::vec3(x, j, y);
+				iData[currentID].pos = glm::vec3(x + offset.z, j, y + offset.z);
 				iData[currentID].scale = glm::vec3(1.);
 				iData[currentID].rot = 0.;
 				iData[currentID].id = currentID;

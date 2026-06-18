@@ -8,7 +8,6 @@ class Minecraft : public IVulkanApp
 	~Minecraft(){};
 
 	std::vector<int> chunks;
-	std::array<std::array<int, 16>, 16> randomTerrainPositions;
 
 	std::vector<std::vector<InstanceData>> instanceData;
 	std::vector<VkBuffer> instanceBuffer;
@@ -53,5 +52,5 @@ class Minecraft : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void recreateSwapChain(GLFWwindow * window);
-	void createInstanceBuffers();
+	void createInstanceBuffers(glm::vec3 offset);
 };
