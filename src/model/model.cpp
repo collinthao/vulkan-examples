@@ -25,7 +25,6 @@ Model::Model(std::string path)
 
 	if (nullptr == scene)
 	{
-		std::cout << "Failed to get the fuckin path: " << path << '\n';
 		throw std::runtime_error("Failed to get path!");
 	}
 

@@ -21,6 +21,7 @@ void Minecraft::init(GLFWwindow* window)
 	createCubeMapResources();
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	createInstanceBuffers();
+	createInstanceBuffers();
 	createVertexBuffers();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -381,7 +382,6 @@ void Minecraft::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
 	VkBuffer vertexCubemapBuffers[] = { vertexCubemapBuffer };
-	VkBuffer instanceBuffers[] = { instanceBuffer };
 	
 	VkViewport viewport{};
 	viewport.x = 0.f;
@@ -418,10 +418,13 @@ void Minecraft::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::cubemapDepthPipeline.getLayout(), 0, 1, &cubemapDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
-	vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
 
-	vkCmdDraw(commandBuffer, static_cast<uint32_t>(Minecraft::cubemapVertices.size()), GRASS_BLOCK_COUNT, 0, 0);
-
+	for (size_t i = 0; i < instanceCount; i++)
+	{
+		VkBuffer instanceBuffers[] = { instanceBuffer[i] };
+		vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(Minecraft::cubemapVertices.size()), chunks[i], 0, 0);
+	}
 	vkCmdEndRenderPass(commandBuffer);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -585,17 +588,19 @@ void Minecraft::createInstanceBuffers()
 	std::uniform_int_distribution<> rRotation(0,180);	
 
 	int currentID = 0;
+	chunks.push_back(0);
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
 	{
 		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
 		{
 			const int randomHeight = (int)abs(sin(x * 0.2) * 10) + (int)abs(sin(y * 0.2) * 10);
 			randomTerrainPositions[y][x] = randomHeight;
-			GRASS_BLOCK_COUNT += randomHeight;
+			chunks[instanceCount] += randomHeight;
 		}
 	}
 
-	instanceData.resize(GRASS_BLOCK_COUNT);
+	std::vector<InstanceData> iData;
+	iData.resize(chunks[instanceCount]);
 
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
 	{
@@ -603,16 +608,20 @@ void Minecraft::createInstanceBuffers()
 		{
 			for (int j = 0 ; j < randomTerrainPositions[y][x]; j++)
 			{
-				instanceData[currentID].pos = glm::vec3(x, j, y);
-				instanceData[currentID].scale = glm::vec3(1.);
-				instanceData[currentID].rot = 0.;
-				instanceData[currentID].id = currentID;
+				iData[currentID].pos = glm::vec3(x, j, y);
+				iData[currentID].scale = glm::vec3(1.);
+				iData[currentID].rot = 0.;
+				iData[currentID].id = currentID;
 				currentID++;
 			}	
 		}
 	}
 
-	createVertexBuffer<InstanceData>(instanceData, instanceBuffer, instanceBufferMemory);
+	VkDeviceMemory&& deviceMemory{};
+	VkBuffer&& buffer{};
+	instanceBufferMemory.push_back(deviceMemory);
+	instanceBuffer.push_back(buffer);
+
+	createVertexBuffer<InstanceData>(iData, instanceBuffer[instanceCount], instanceBufferMemory[instanceCount]);
+	instanceCount++;
 }
-
-

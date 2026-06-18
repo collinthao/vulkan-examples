@@ -7,12 +7,14 @@ class Minecraft : public IVulkanApp
 	Minecraft() = default;
 	~Minecraft(){};
 
-	int GRASS_BLOCK_COUNT = 0;
-	std::array<std::array<int, 100>, 100> randomTerrainPositions;
+	std::vector<int> chunks;
+	std::array<std::array<int, 16>, 16> randomTerrainPositions;
 
-	std::vector<InstanceData> instanceData;
-	VkBuffer instanceBuffer;
-	VkDeviceMemory instanceBufferMemory;
+	std::vector<std::vector<InstanceData>> instanceData;
+	std::vector<VkBuffer> instanceBuffer;
+	std::vector<VkDeviceMemory> instanceBufferMemory;
+
+	int instanceCount = 0;
 
 	VkDeviceMemory cubemapImageMemory;
 	VkDescriptorSetLayout cubemapDescriptorSetLayout;
