@@ -1741,10 +1741,10 @@ void GrassScene::createSyncObjects()
 		}
 	}
 }
-
+// Something we can always fix later
+/*
 void GrassScene::drawFrame(GLFWwindow * window)
 {
-	std::cout << "Drawing...\n";
 	camera.update();
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1841,7 +1841,7 @@ void GrassScene::drawFrame(GLFWwindow * window)
 	lastTime = currentTime;
 
 }
-
+*/
 void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
 	VkCommandBufferBeginInfo beginInfo{};

@@ -1,4 +1,5 @@
 #include "./minecraft.h"
+#include <thread>
 
 void Minecraft::init(GLFWwindow* window)
 {
@@ -20,8 +21,7 @@ void Minecraft::init(GLFWwindow* window)
 	createCubeTextureImage(GRASS_BLOCK_PATH, cubemapImage, cubemapImageMemory);
 	createCubeMapResources();
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	createInstanceBuffers(glm::vec3{0.});
-	createInstanceBuffers(glm::vec3{16., 0., 16.});
+	createInstanceBuffers(glm::vec3{camera.cameraPos.x, 0., camera.cameraPos.z});
 	createVertexBuffers();
 	createIndexBuffer();
 	createUniformBuffers();
@@ -583,8 +583,8 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 {
 	std::random_device dev;
 	std::mt19937 rng(dev());
-	std::uniform_int_distribution<> dis(0, 20);	
-	std::uniform_real_distribution<> rScale(0.1f, 1.f);	
+	std::uniform_int_distribution<> dis(5, 10);	
+	std::uniform_real_distribution<> rScale(0.1f, 0.3f);	
 	std::uniform_int_distribution<> rRotation(0,180);	
 	std::array<std::array<int, 16>, 16> randomTerrainPositions;
 
@@ -594,7 +594,7 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 	{
 		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
 		{
-			const int randomHeight = (int)abs(sin(x * 0.2) * 10) + (int)abs(sin(y * 0.2) * 10);
+			const int randomHeight = (int)abs(sin(x * rScale(rng)) * dis(rng)) + (int)abs(sin(y * rScale(rng)) * dis(rng));
 			randomTerrainPositions[y][x] = randomHeight;
 			chunks[instanceCount] += randomHeight;
 		}
@@ -625,4 +625,103 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 
 	createVertexBuffer<InstanceData>(iData, instanceBuffer[instanceCount], instanceBufferMemory[instanceCount]);
 	instanceCount++;
+}
+
+void Minecraft::generateTerrain()
+{
+	for (int z = 0; z < 3; z++)
+	{
+		for (int x = 0; x < 3; x++)
+		{
+			glm::vec3 chunkPosition = glm::vec3{16 * x, 0., 16 * z};
+			if (!renderedChunks.contains(chunkPosition))
+			{
+
+				createInstanceBuffers(glm::vec3{16 * x, 0., 16 * z});
+			
+				renderedChunks.insert(std::move(chunkPosition));	
+			}
+		};
+	};
+}
+
+void Minecraft::drawFrame(GLFWwindow * window)
+{
+	std::thread terrainThread(&Minecraft::generateTerrain, this);	
+	terrainThread.join();
+	
+	camera.update();
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+
+	uint32_t imageIndex;
+	VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		recreateSwapChain(window);
+		return;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	{
+		throw std::runtime_error("failed to acquire swap chain image!");
+	}
+
+	vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+	vkResetCommandBuffer(CommandBuffer::commandBuffers[currentFrame], 0);
+
+	recordCommandBuffer(CommandBuffer::commandBuffers[currentFrame], imageIndex);
+	
+	updateUniformBuffer(currentFrame);
+
+	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &CommandBuffer::commandBuffers[currentFrame];
+
+	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame]};
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	if (vkQueueSubmit(graphicsAndComputeQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+
+	VkSwapchainKHR swapChains[] = { swapChain };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pResults = nullptr;
+
+	result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || GLFWWindowContext::framebufferResized)
+	{
+		GLFWWindowContext::framebufferResized = false;
+		recreateSwapChain(window);
+	}
+	else if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to present swap chain image!");
+	}
+
+	currentFrame = (currentFrame + 1) % VulkanConfig::MAX_FRAMES_IN_FLIGHT;
+
+	double currentTime = glfwGetTime();
+	lastFrameTime = (currentTime - lastTime);
+	lastTime = currentTime;
 }

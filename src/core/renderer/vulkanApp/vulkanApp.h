@@ -188,7 +188,7 @@ class IVulkanApp
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
-	void drawFrame(GLFWwindow * window);
+	virtual void drawFrame(GLFWwindow * window);
 
 	VkSampler textureSampler;
 	VkImageView textureImageView;

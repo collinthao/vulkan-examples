@@ -1,5 +1,6 @@
 #pragma once
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
+#include <unordered_set>
 
 class Minecraft : public IVulkanApp
 {
@@ -8,10 +9,12 @@ class Minecraft : public IVulkanApp
 	~Minecraft(){};
 
 	std::vector<int> chunks;
+	
 
 	std::vector<std::vector<InstanceData>> instanceData;
 	std::vector<VkBuffer> instanceBuffer;
 	std::vector<VkDeviceMemory> instanceBufferMemory;
+	std::unordered_set<glm::vec3> renderedChunks;
 
 	int instanceCount = 0;
 
@@ -53,4 +56,6 @@ class Minecraft : public IVulkanApp
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void recreateSwapChain(GLFWwindow * window);
 	void createInstanceBuffers(glm::vec3 offset);
+	void generateTerrain();
+	void drawFrame(GLFWwindow * window);
 };

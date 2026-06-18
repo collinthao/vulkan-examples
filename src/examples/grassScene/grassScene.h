@@ -214,7 +214,8 @@ class GrassScene : public IVulkanApp
 	GrassScene() = default;
 
 	void init(GLFWwindow * window);
-	void drawFrame(GLFWwindow * window);
+//      Can always fix later...
+//	void drawFrame(GLFWwindow * window);
 	void processInput(GLFWwindow * window);
 	void cleanup(GLFWwindow * window);
 

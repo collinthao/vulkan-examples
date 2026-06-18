@@ -8,6 +8,19 @@
 
 namespace std 
 {
+	template<> struct hash<glm::vec3>
+	{
+		size_t operator()(glm::vec3 const& chunkPosition) const
+		{
+			return ((hash<float>()(chunkPosition.x) ^
+				(hash<float>()(chunkPosition.y) << 1)) >> 1) ^
+					(hash<float>()(chunkPosition.z) << 1);
+		}
+	};
+};
+
+namespace std 
+{
 	template<> struct hash<VkVertexInputAttributeDescription>
 	{
 		size_t operator()(VkVertexInputAttributeDescription const& attribute) const
