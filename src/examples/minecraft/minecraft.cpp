@@ -609,7 +609,7 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 		{
 			for (int j = 0 ; j < randomTerrainPositions[y][x]; j++)
 			{
-				iData[currentID].pos = glm::vec3(x + offset.z, j, y + offset.z);
+				iData[currentID].pos = glm::vec3(x + offset.x, j, y + offset.z);
 				iData[currentID].scale = glm::vec3(1.);
 				iData[currentID].rot = 0.;
 				iData[currentID].id = currentID;
@@ -629,27 +629,29 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 
 void Minecraft::generateTerrain()
 {
-	for (int z = 0; z < 3; z++)
+	const int CHUNK_DISTANCE_MIN = -2;
+	const int CHUNK_DISTANCE_MAX = 2;
+	for (int x = CHUNK_DISTANCE_MIN; x < CHUNK_DISTANCE_MAX; x++)
 	{
-		for (int x = 0; x < 3; x++)
+		for (int z = CHUNK_DISTANCE_MIN; z < CHUNK_DISTANCE_MAX; z++)
 		{
-			glm::vec3 chunkPosition = glm::vec3{16 * x, 0., 16 * z};
+			glm::vec3 chunkPosition = glm::vec3{16 * ((int)(camera.cameraPos.x/16) + x), 0., 16 * ((int)(camera.cameraPos.z/16) + z)};
 			if (!renderedChunks.contains(chunkPosition))
 			{
-
-				createInstanceBuffers(glm::vec3{16 * x, 0., 16 * z});
+				createInstanceBuffers(chunkPosition);
 			
 				renderedChunks.insert(std::move(chunkPosition));	
 			}
-		};
-	};
+
+		}
+	}
 }
 
 void Minecraft::drawFrame(GLFWwindow * window)
 {
 	std::thread terrainThread(&Minecraft::generateTerrain, this);	
 	terrainThread.join();
-	
+
 	camera.update();
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
