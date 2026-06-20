@@ -58,4 +58,8 @@ class Minecraft : public IVulkanApp
 	void createInstanceBuffers(glm::vec3 offset);
 	void generateTerrain();
 	void drawFrame(GLFWwindow * window);
+	int getRandomTile(int x, int xOffset, int z, int zOffset);
+	int interpolate(float x, float y, float a);
+	float smoothstep(float edge0, float edge1, float x);
+	int createNoise(glm::vec3 offset);
 };
