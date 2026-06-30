@@ -62,4 +62,5 @@ class Minecraft : public IVulkanApp
 	int interpolate(float x, float y, float a);
 	float smoothstep(float edge0, float edge1, float x);
 	int createNoise(glm::vec3 offset);
+	int createGradient(glm::vec2 randomGradient, glm::vec2 node);
 };
