@@ -2,6 +2,7 @@
 #include <thread>
 #include <cmath>
 #include <algorithm>
+#include "./debugUtils/debugUtils.h"
 
 void Minecraft::init(GLFWwindow* window)
 {
@@ -590,14 +591,19 @@ int Minecraft::getRandomTile(int x, int xOffset, int z, int zOffset)
 
 int Minecraft::interpolate(float x, float y, float a)
 {
-	return x * (1 - a) + y * a;
+	//std::cout << "x: " << x << '|' << "y: " << y << '|' << "a: " << a << '\n';
+	//std::cout << (x * (1 - a) + y * a) << '\n';
+//	return (x * (1 - a) + y * a);
+	return x + smoothstep(x, y, a) * (y - x);
 }
 
-int Minecraft::createGradient(glm::vec2 randomGradient, glm::vec2 node)
+float Minecraft::createGradient(glm::vec2 randomGradient, glm::vec2 node)
 {
 	glm::vec2 offset = randomGradient - node;
 
 	float gradient = glm::dot(randomGradient, offset);	
+	
+	std::cout << "Dot product: " << gradient << '\n';
 	
 	return gradient;
 }
@@ -606,26 +612,26 @@ int Minecraft::createNoise(glm::vec3 offset)
 {
 	double integral;
 	glm::vec2 id = 
-	glm::vec2(std::modf(offset.x * 10. , &integral)
-	, std::modf(offset.z * 10. , &integral));
+	glm::vec2(std::modf(offset.x * 234.3 , &integral)
+	, std::modf(offset.z * 1083.287 , &integral));
 
 	glm::vec2 offsetFractionStage = 
-	glm::vec2(std::floor(offset.x * 10.)
-	, std::floor(offset.z * 10.)); 
+	glm::vec2(std::floor(offset.x * 234.2232)
+	, std::floor(offset.z * 2389.98)); 
 	
 	glm::vec2 offsetFraction = glm::vec2(
-				smoothstep(0., 1., offsetFractionStage.x),
-				smoothstep(0., 1., offsetFractionStage.y));	
+				smoothstep(0., CHUNK_SIZE, offsetFractionStage.x),
+				smoothstep(0., CHUNK_SIZE, offsetFractionStage.y));	
 
 	const float bottomLeft = getRandomTile(id.x, offset.x, id.y, offset.z);
 	
-	const float bottomRight = getRandomTile(id.x + 1.0, offset.x, id.y, offset.z);
+	const float bottomRight = getRandomTile(id.x + CHUNK_SIZE, offset.x, id.y, offset.z);
 			
 	float bottom = interpolate(bottomLeft, bottomRight, offsetFraction.x);
 
-	const float topLeft = getRandomTile(id.x, offset.x, id.y + 1., offset.z);
+	const float topLeft = getRandomTile(id.x, offset.x, id.y + CHUNK_SIZE, offset.z);
 
-	const float topRight = getRandomTile(id.x + 1.0, offset.x, id.y + 1., offset.z);
+	const float topRight = getRandomTile(id.x + CHUNK_SIZE, offset.x, id.y + CHUNK_SIZE, offset.z);
 	
 	float top = interpolate(topLeft, topRight, offsetFraction.x);
 	
@@ -647,7 +653,7 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 	std::uniform_int_distribution<> dis(5, 10);	
 	std::uniform_real_distribution<> rScale(0.1f, 0.3f);	
 	std::uniform_int_distribution<> rRotation(0,180);	
-	std::array<std::array<int, 16>, 16> randomTerrainPositions;
+	std::array<std::array<int, CHUNK_SIZE>, CHUNK_SIZE> randomTerrainPositions;
 
 	int currentID = 0;
 	chunks.push_back(0);
@@ -657,35 +663,40 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 		{
 			glm::vec3 pos = glm::vec3(x + cos(glfwGetTime()) * 100., 0., y + sin(glfwGetTime()) * 1216.);
 
-			randomTerrainPositions[y][x] = std::max(static_cast<int>(abs(createNoise(pos))), 1); 
+			randomTerrainPositions[y][x] = static_cast<int>(abs(createNoise(pos))); 
+			std::cout << "Random pos first call: " << randomTerrainPositions[y][x];
 
 		}
+		std::cout << '\n';
 	}
 
 	
 	// make function
 	std::array<glm::vec2, 4> gradients{
-		glm::normalize(glm::vec2(randomTerrainPositions[0][0])),
-		glm::normalize(glm::vec2(randomTerrainPositions[15][0])),
-		glm::normalize(glm::vec2(randomTerrainPositions[0][15])),
-		glm::normalize(glm::vec2(randomTerrainPositions[15][15]))
+		glm::normalize(glm::vec2{cos(glfwGetTime()) * 1867., sin(glfwGetTime()) * 1216.}),
+		glm::normalize(glm::vec2{cos(glfwGetTime()) * 9723., sin(glfwGetTime()) * 9629.}),
+		glm::normalize(glm::vec2{cos(glfwGetTime()) * 792., sin(glfwGetTime()) * 9787.}),
+		glm::normalize(glm::vec2{cos(glfwGetTime()) * 100., sin(glfwGetTime()) * 1216.})
 	};
 
+	std::cout << "Gradient vecs: " << '\n' << gradients[0] << '\n' << gradients[1] << '\n' << gradients[2] << '\n' << gradients[3] << '\n';
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
 	{
 		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
 		{
 			int randomHeight = 0;
+			glm::vec2 currentCoord = glm::vec2{x + offset.x,y + offset.z};
 
-			float gradientNode1 = createGradient(gradients[0], glm::vec2{x + offset.x, y + offset.z});
-			float gradientNode2 = createGradient(gradients[1], glm::vec2{x + offset.x, y + offset.z});
-			float gradientNode3 = createGradient(gradients[2], glm::vec2{x + offset.x, y + offset.z});
-			float gradientNode4 = createGradient(gradients[3], glm::vec2{x + offset.x, y + offset.z});
-
-			randomHeight = interpolate(gradientNode2, gradientNode1, randomHeight);
-			randomHeight = interpolate(gradientNode3, gradientNode2, randomHeight);
-			randomHeight = interpolate(gradientNode4, gradientNode3, randomHeight);
-			randomHeight = interpolate(gradientNode1, gradientNode4, randomHeight);
+			float gradientNode1 = createGradient(currentCoord + gradients[0], glm::vec2{x + offset.x, y + offset.z});
+			float gradientNode2 = createGradient(currentCoord + gradients[1], glm::vec2{x + offset.x, y + offset.z});
+			float gradientNode3 = createGradient(currentCoord + gradients[2], glm::vec2{x + offset.x, y + offset.z});
+			float gradientNode4 = createGradient(currentCoord + gradients[3], glm::vec2{x + offset.x, y + offset.z});
+			
+			std::cout << "Interpolation start with gradients: " << gradientNode1 << ',' << gradientNode2 << ',' << gradientNode3 << ',' << gradientNode4 << '\n';
+			randomHeight = interpolate(gradientNode1, gradientNode2, randomHeight);
+			randomHeight = interpolate(gradientNode2, gradientNode3, randomHeight);
+			randomHeight = interpolate(gradientNode3, gradientNode4, randomHeight);
+			randomHeight = interpolate(gradientNode4, gradientNode1, randomHeight);
 			
 			randomTerrainPositions[y][x] = abs(randomHeight);
 			chunks[instanceCount] += abs(randomHeight);
@@ -693,9 +704,9 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 	}
 
 	std::vector<InstanceData> iData;
-	std::cout << chunks[instanceCount] << '\n';
 	iData.resize(chunks[instanceCount]);
 
+	std::cout << "Grid\n";
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
 	{
 		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
@@ -732,7 +743,7 @@ void Minecraft::generateTerrain()
 	{
 		for (int z = RENDER_DISTANCE_MIN; z < RENDER_DISTANCE_MAX; z++)
 		{
-			glm::vec3 chunkPosition = glm::vec3{16 * ((int)(camera.cameraPos.x/16) + x), 0., 16 * ((int)(camera.cameraPos.z/16) + z)};
+			glm::vec3 chunkPosition = glm::vec3{CHUNK_SIZE * ((int)(camera.cameraPos.x/CHUNK_SIZE) + x), 0., CHUNK_SIZE * ((int)(camera.cameraPos.z/CHUNK_SIZE) + z)};
 			if (!renderedChunks.contains(chunkPosition))
 			{
 				createInstanceBuffers(chunkPosition);

@@ -17,6 +17,7 @@ class Minecraft : public IVulkanApp
 	std::unordered_set<glm::vec3> renderedChunks;
 
 	int instanceCount = 0;
+	static constexpr int CHUNK_SIZE = 4;
 
 	VkDeviceMemory cubemapImageMemory;
 	VkDescriptorSetLayout cubemapDescriptorSetLayout;
@@ -62,5 +63,5 @@ class Minecraft : public IVulkanApp
 	int interpolate(float x, float y, float a);
 	float smoothstep(float edge0, float edge1, float x);
 	int createNoise(glm::vec3 offset);
-	int createGradient(glm::vec2 randomGradient, glm::vec2 node);
+	float createGradient(glm::vec2 randomGradient, glm::vec2 node);
 };

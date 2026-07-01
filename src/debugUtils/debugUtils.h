@@ -1,6 +1,5 @@
 #include <iostream>
-#include "../vector.h"
-
+/*
 inline std::ostream& operator << (std::ostream& os, InstanceData& i)
 {
 	os << i.pos;
@@ -9,8 +8,15 @@ inline std::ostream& operator << (std::ostream& os, InstanceData& i)
 	os << "Id: " << i.id << '\n';
 	return os;
 }
+*/
 
-inline std::ostream& operator << (std::ostream& os, glm::vec3 v)
+inline std::ostream& operator << (std::ostream& os, const glm::vec2& v)
+{
+	os << "x: " << v.x << " | y: " << v.y << '\n';
+	return os;
+}
+
+inline std::ostream& operator << (std::ostream& os, const glm::vec3& v)
 {
 	os << "x: " << v.x << " | y: " << v.y << " | z: " << v.z << '\n';
 	return os;
