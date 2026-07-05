@@ -20,13 +20,25 @@ class Minecraft : public IVulkanApp
 	static constexpr int CHUNK_SIZE = 32;
 
 	VkDeviceMemory cubemapImageMemory;
-	VkDescriptorSetLayout cubemapDescriptorSetLayout;
+	VkDeviceMemory cubemapSkyBoxImageMemory;
+
 	VkImage cubemapImage;
+	VkImage cubemapSkyBoxImage;
+
 	VkImageView cubemapImageView;
+	VkImageView cubemapSkyBoxImageView;
+
 	std::vector<VkBuffer> cubemapUniformBuffers;
+	std::vector<VkBuffer> cubemapSkyBoxUniformBuffers;
+
 	std::vector<VkDeviceMemory> cubemapUniformBuffersMemory;
+	std::vector<VkDeviceMemory> cubemapSkyBoxUniformBuffersMemory;
 	std::vector<void*> cubemapUniformBuffersMapped;
+	std::vector<void*> cubemapSkyBoxUniformBuffersMapped;
+
 	std::vector<VkDescriptorSet> cubemapDescriptorSets;
+	std::vector<VkDescriptorSet> cubemapSkyBoxDescriptorSets;
+
 	VkBuffer vertexCubemapBuffer;
 	VkDeviceMemory vertexCubemapBufferMemory;
 
@@ -45,7 +57,7 @@ class Minecraft : public IVulkanApp
 	void createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory);
 	void createCubeMapResources();
 	void createCubemapUniformBuffers();
-	void createCubemapDescriptorSets();
+	void createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, VkImageView& imageView, std::vector<VkDescriptorSet>& descriptorSets, Pipeline& pipeline);
 	void createGraphicsDescriptorSets();
 	void createDescriptorSets();
 	void createUniformBuffers();

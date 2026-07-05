@@ -367,7 +367,6 @@ namespace Pipelines
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setMSAASamples(VulkanConfig::msaaSamples)
-			//.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
 			.setDescriptor(cubemapBindings, cubemapTypes, 1000,device)
 			.setStencilTest(VK_FALSE)
 			.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	

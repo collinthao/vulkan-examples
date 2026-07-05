@@ -22,6 +22,7 @@ void Minecraft::init(GLFWwindow* window)
 	createColorResources();
 	createDepthResources();
 	createFramebuffers();
+	createCubeTextureImage(CUBEMAP_PATH, cubemapSkyBoxImage, cubemapSkyBoxImageMemory);
 	createCubeTextureImage(GRASS_BLOCK_PATH, cubemapImage, cubemapImageMemory);
 	createCubeMapResources();
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
@@ -43,7 +44,8 @@ void Minecraft::createVertexBuffers()
 void Minecraft::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
-	createCubemapDescriptorSets();
+	createCubemapDescriptorSets(cubemapSkyBoxUniformBuffers, cubemapSkyBoxImageView, cubemapSkyBoxDescriptorSets, Pipelines::cubemapPipeline);
+	createCubemapDescriptorSets(cubemapUniformBuffers, cubemapImageView, cubemapDescriptorSets, Pipelines::cubemapDepthPipeline);
 };
 
 void Minecraft::cleanup(GLFWwindow * window)
@@ -115,6 +117,7 @@ void Minecraft::processInput(GLFWwindow * window)
 
 void Minecraft::createCubeMapResources()
 {
+	cubemapSkyBoxImageView = Image::createView(cubemapSkyBoxImage, cubemapSkyBoxImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 	cubemapImageView = Image::createView(cubemapImage, cubemapImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 }
 
@@ -189,31 +192,36 @@ void Minecraft::createCubemapUniformBuffers()
 	VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
 	cubemapUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapSkyBoxUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	cubemapUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapSkyBoxUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	cubemapUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	cubemapSkyBoxUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			cubemapUniformBuffers[i], cubemapUniformBuffersMemory[i], device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, cubemapUniformBuffers[i], cubemapUniformBuffersMemory[i], device, physicalDevice);
+
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, cubemapSkyBoxUniformBuffers[i], cubemapSkyBoxUniformBuffersMemory[i], device, physicalDevice);
 
 		vkMapMemory(device, cubemapUniformBuffersMemory[i], 0, bufferSize, 0, &cubemapUniformBuffersMapped[i]);
+		vkMapMemory(device, cubemapSkyBoxUniformBuffersMemory[i], 0, bufferSize, 0, &cubemapSkyBoxUniformBuffersMapped[i]);
 
 	}
 }
 
-void Minecraft::createCubemapDescriptorSets()
+void Minecraft::createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, VkImageView& imageView, std::vector<VkDescriptorSet>& descriptorSets, Pipeline& pipeline)
 {
-	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, Pipelines::cubemapDepthPipeline.descriptor.layout);
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, pipeline.descriptor.layout);
 
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = Pipelines::cubemapDepthPipeline.descriptor.pool;
+	allocInfo.descriptorPool = pipeline.descriptor.pool;
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	cubemapDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(device, &allocInfo, cubemapDescriptorSets.data()) != VK_SUCCESS)
+	descriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
@@ -222,18 +230,17 @@ void Minecraft::createCubemapDescriptorSets()
 	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = cubemapImageView;
+		imageInfo.imageView = imageView;
 		imageInfo.sampler = textureSampler;
 		
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = cubemapUniformBuffers[i];
+		bufferInfo.buffer = buffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObjectModel);
 
-
 		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = cubemapDescriptorSets[i];
+		descriptorWrites[0].dstSet = descriptorSets[i];
 		descriptorWrites[0].dstBinding = 0;
 		descriptorWrites[0].dstArrayElement = 0;
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -241,7 +248,7 @@ void Minecraft::createCubemapDescriptorSets()
 		descriptorWrites[0].pImageInfo = &imageInfo;
 
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = cubemapDescriptorSets[i];
+		descriptorWrites[1].dstSet = descriptorSets[i];
 		descriptorWrites[1].dstBinding = 1;
 		descriptorWrites[1].dstArrayElement = 0;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -261,8 +268,8 @@ void Minecraft::createGraphicsDescriptorSets()
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	descriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+	baseDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	if (vkAllocateDescriptorSets(device, &allocInfo, baseDescriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
@@ -280,7 +287,7 @@ void Minecraft::createGraphicsDescriptorSets()
 
 		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = descriptorSets[i];
+		descriptorWrites[0].dstSet = baseDescriptorSets[i];
 		descriptorWrites[0].dstBinding = 0;
 		descriptorWrites[0].dstArrayElement = 0;
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -288,7 +295,7 @@ void Minecraft::createGraphicsDescriptorSets()
 		descriptorWrites[0].pBufferInfo = &bufferInfo;
 
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = descriptorSets[i];
+		descriptorWrites[1].dstSet = baseDescriptorSets[i];
 		descriptorWrites[1].dstBinding = 1;
 		descriptorWrites[1].dstArrayElement = 0;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -301,47 +308,6 @@ void Minecraft::createGraphicsDescriptorSets()
 
 void Minecraft::updateUniformBuffer(uint32_t currentImage)
 {
-	for (size_t j = 0; j < 1; j++)
-	{
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		UniformBufferObject ubo{};
-		UniformBufferObjectModel ubom{};
-
-		glm::mat4 lightSpaceProjection = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 15.f);
-		glm::mat4 lightView = glm::lookAt(
-			glm::vec3(2.0f, 15.0f,1.0f), 
-			glm::vec3(0.f, 0.f, 0.f),
-			glm::vec3(0.f, 1.0f, 0.f)
-		);
-
-		glm::vec3 cubePosition = glm::vec3(1.);
-		glm::vec3 transformedPosition = glm::vec3(cubePosition.x, cubePosition.y, cubePosition.z);
-		ubom.model = glm::mat4(1.);
-
-		ubom.model = glm::translate(ubom.model, transformedPosition);
-		float angle = 20.f * j;
-
-		ubom.model = glm::rotate(ubom.model, glm::radians(angle), glm::vec3(1.f, 0.3f, 0.5f));
-
-		ubom.model = glm::scale(ubom.model, glm::vec3(1.));
-
-		ubom.view = camera.getViewMatrix();
-		ubom.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
-
-		lightSpaceProjection[1][1] *= -1;
-		ubom.lightSpaceMatrix = lightSpaceProjection * lightView;
-		ubom.fragColor = glm::vec3(0., 1., 1.);
-	
-		ubom.proj[1][1] *= -1;
-		ubom.deltaTime = glfwGetTime();
-
-		memcpy(uniformBuffersMapped[currentImage], &ubom, sizeof(ubom));
-	}
-
 	UniformBufferObjectModel cubemapUbo;
 
 	cubemapUbo.model = glm::mat4(1.);
@@ -352,6 +318,10 @@ void Minecraft::updateUniformBuffer(uint32_t currentImage)
 	cubemapUbo.proj[1][1] *= -1;
 
 	memcpy(cubemapUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));
+
+	cubemapUbo.view = glm::mat4(glm::mat3(camera.getViewMatrix()));
+
+	memcpy(cubemapSkyBoxUniformBuffersMapped[currentImage], &cubemapUbo, sizeof(cubemapUbo));
 }
 
 void Minecraft::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -408,7 +378,7 @@ void Minecraft::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	Pipelines::basePipeline.bind(commandBuffer);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &baseDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 
@@ -429,6 +399,15 @@ void Minecraft::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 		vkCmdBindVertexBuffers(commandBuffer, 1, 1, instanceBuffers, offsets);
 		vkCmdDraw(commandBuffer, static_cast<uint32_t>(Minecraft::cubemapVertices.size()), chunks[i], 0, 0);
 	}
+
+	Pipelines::cubemapPipeline.bind(commandBuffer);
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::cubemapPipeline.getLayout(), 0, 1, &cubemapSkyBoxDescriptorSets[currentFrame], 0, nullptr);
+
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubemapBuffers, offsets);
+
+	vkCmdDraw(commandBuffer, static_cast<uint32_t>(Minecraft::cubemapVertices.size()), 1, 0, 0);
+
 	vkCmdEndRenderPass(commandBuffer);
 
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -636,7 +615,7 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 
 			randomTerrainPositions[y][x] = result;
 		}
-		std::cout << '\n';
+		//std::cout << '\n';
 	}
 
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)

@@ -196,7 +196,7 @@ class IVulkanApp
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
 
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> baseDescriptorSets;
 
 	struct
 	{

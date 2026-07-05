@@ -1912,8 +1912,8 @@ void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
 	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 	allocInfo.pSetLayouts = layouts.data();
 
-	descriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+	baseDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	if (vkAllocateDescriptorSets(device, &allocInfo, baseDescriptorSets.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
@@ -1932,7 +1932,7 @@ void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
 
 		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = descriptorSets[i];
+		descriptorWrites[0].dstSet = baseDescriptorSets[i];
 		descriptorWrites[0].dstBinding = 0;
 		descriptorWrites[0].dstArrayElement = 0;
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1940,7 +1940,7 @@ void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
 		descriptorWrites[0].pBufferInfo = &bufferInfo;
 		
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = descriptorSets[i];
+		descriptorWrites[1].dstSet = baseDescriptorSets[i];
 		descriptorWrites[1].dstBinding = 1;
 		descriptorWrites[1].dstArrayElement = 0;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -2261,7 +2261,7 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &shaderStorageBuffers[currentFrame], offsets);
 
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::basePipeline.getLayout(), 0, 1, &baseDescriptorSets[currentFrame], 0, nullptr);
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 

@@ -7,5 +7,4 @@ layout (binding = 0) uniform samplerCube cubemapTexture;
 void main()
 { 
 	fragColor = texture(cubemapTexture, position);
-	//fragColor = vec4(1., 0., 0., 1.);
 }
