@@ -2,14 +2,23 @@
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 #include <unordered_set>
 
+enum BlockType
+{
+	DIRT = 0,
+	GRASS,
+	WATER
+};
+
 class Minecraft : public IVulkanApp
 {
 	public:
 	Minecraft() = default;
 	~Minecraft(){};
 
+	const std::string DIRT_BLOCK_PATH = ROOT_DIR + "/resource/textures/dirtBlock/";
+	const std::string WATER_BLOCK_PATH = ROOT_DIR + "/resource/textures/waterBlock/";
+
 	std::vector<int> chunks;
-	
 
 	std::vector<std::vector<InstanceData>> instanceData;
 	std::vector<VkBuffer> instanceBuffer;
@@ -20,12 +29,18 @@ class Minecraft : public IVulkanApp
 	static constexpr int CHUNK_SIZE = 32;
 
 	VkDeviceMemory cubemapImageMemory;
+	VkDeviceMemory cubemapDirtImageMemory;
+	VkDeviceMemory cubemapWaterImageMemory;
 	VkDeviceMemory cubemapSkyBoxImageMemory;
 
 	VkImage cubemapImage;
+	VkImage cubemapDirtImage;
+	VkImage cubemapWaterImage;
 	VkImage cubemapSkyBoxImage;
 
 	VkImageView cubemapImageView;
+	VkImageView cubemapDirtImageView;
+	VkImageView cubemapWaterImageView;
 	VkImageView cubemapSkyBoxImageView;
 
 	std::vector<VkBuffer> cubemapUniformBuffers;
@@ -58,6 +73,7 @@ class Minecraft : public IVulkanApp
 	void createCubeMapResources();
 	void createCubemapUniformBuffers();
 	void createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, VkImageView& imageView, std::vector<VkDescriptorSet>& descriptorSets, Pipeline& pipeline);
+	void createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, std::vector<VkImageView> imageView, std::vector<VkDescriptorSet>& descriptorSets, Pipeline& pipeline);
 	void createGraphicsDescriptorSets();
 	void createDescriptorSets();
 	void createUniformBuffers();

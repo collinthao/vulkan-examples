@@ -21,10 +21,12 @@ layout(location = 6) in float inRot;
 layout(location = 7) in int id;
 
 layout(location = 0) out vec3 position;
+layout(location = 1) flat out int type;
 
 void main()
 {
 	vec4 posActual = ubom.proj * ubom.view * ubom.model * vec4((inPosition * 0.5) + pos, 1.);
 	gl_Position = posActual;
 	position = inPosition;
+	type = id;
 }

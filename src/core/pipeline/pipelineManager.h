@@ -179,15 +179,30 @@ namespace Pipelines
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
 		};
 
+		std::vector<VkDescriptorSetLayoutBinding> cubemapUberBindings = {
+			layoutBindings.samplerUniformLayoutBinding,
+			layoutBindings.vertexLayoutBinding,
+			layoutBindings.samplerUniformLayoutBinding,
+			layoutBindings.samplerUniformLayoutBinding,
+		};
+
 		std::vector<VkDescriptorSetLayoutBinding> cubemapBindings = {
 			layoutBindings.samplerUniformLayoutBinding,
 			layoutBindings.vertexLayoutBinding
+		};
+
+		std::vector<VkDescriptorType> cubemapUberTypes = {
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 		};
 
 		std::vector<VkDescriptorType> cubemapTypes = {
 			VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 		};
+
 
 		shadowMapPipeline = 
 			pipelineBuilder
@@ -367,7 +382,7 @@ namespace Pipelines
 			.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 			.setMSAASamples(VulkanConfig::msaaSamples)
-			.setDescriptor(cubemapBindings, cubemapTypes, 1000,device)
+			.setDescriptor(cubemapUberBindings, cubemapUberTypes, 1,device)
 			.setStencilTest(VK_FALSE)
 			.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
 			.setStencilWriteMask(0xFF)	

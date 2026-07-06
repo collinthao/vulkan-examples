@@ -24,6 +24,8 @@ void Minecraft::init(GLFWwindow* window)
 	createFramebuffers();
 	createCubeTextureImage(CUBEMAP_PATH, cubemapSkyBoxImage, cubemapSkyBoxImageMemory);
 	createCubeTextureImage(GRASS_BLOCK_PATH, cubemapImage, cubemapImageMemory);
+	createCubeTextureImage(DIRT_BLOCK_PATH, cubemapDirtImage, cubemapDirtImageMemory);
+	createCubeTextureImage(WATER_BLOCK_PATH, cubemapWaterImage, cubemapWaterImageMemory);
 	createCubeMapResources();
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	createInstanceBuffers(glm::vec3{camera.cameraPos.x, 0., camera.cameraPos.z});
@@ -45,7 +47,7 @@ void Minecraft::createDescriptorSets()
 {
 	createGraphicsDescriptorSets();
 	createCubemapDescriptorSets(cubemapSkyBoxUniformBuffers, cubemapSkyBoxImageView, cubemapSkyBoxDescriptorSets, Pipelines::cubemapPipeline);
-	createCubemapDescriptorSets(cubemapUniformBuffers, cubemapImageView, cubemapDescriptorSets, Pipelines::cubemapDepthPipeline);
+	createCubemapDescriptorSets(cubemapUniformBuffers, std::vector<VkImageView>{cubemapImageView, cubemapDirtImageView, cubemapWaterImageView}, cubemapDescriptorSets, Pipelines::cubemapDepthPipeline);
 };
 
 void Minecraft::cleanup(GLFWwindow * window)
@@ -118,6 +120,8 @@ void Minecraft::processInput(GLFWwindow * window)
 void Minecraft::createCubeMapResources()
 {
 	cubemapSkyBoxImageView = Image::createView(cubemapSkyBoxImage, cubemapSkyBoxImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
+	cubemapDirtImageView = Image::createView(cubemapDirtImage, cubemapDirtImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
+	cubemapWaterImageView = Image::createView(cubemapWaterImage, cubemapWaterImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 	cubemapImageView = Image::createView(cubemapImage, cubemapImageView, VK_IMAGE_VIEW_TYPE_CUBE, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, 1, 6, device, graphicsAndComputeQueue);
 }
 
@@ -210,6 +214,81 @@ void Minecraft::createCubemapUniformBuffers()
 	}
 }
 
+void Minecraft::createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, std::vector<VkImageView> imageView, std::vector<VkDescriptorSet>& descriptorSets, Pipeline& pipeline)
+{
+	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, pipeline.descriptor.layout);
+
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = pipeline.descriptor.pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	allocInfo.pSetLayouts = layouts.data();
+
+	descriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create descriptor sets!");
+	}
+
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = imageView[0];
+	imageInfo.sampler = textureSampler;
+	
+	VkDescriptorImageInfo imageDirtInfo{};
+	imageDirtInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageDirtInfo.imageView = imageView[1];
+	imageDirtInfo.sampler = textureSampler;
+		
+	VkDescriptorImageInfo imageWaterInfo{};
+	imageWaterInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageWaterInfo.imageView = imageView[2];
+	imageWaterInfo.sampler = textureSampler;
+
+	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = buffers[i];
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObjectModel);
+
+		std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = descriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pImageInfo = &imageInfo;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = descriptorSets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pBufferInfo = &bufferInfo;
+
+		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2].dstSet = descriptorSets[i];
+		descriptorWrites[2].dstBinding = 2;
+		descriptorWrites[2].dstArrayElement = 0;
+		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[2].descriptorCount = 1;
+		descriptorWrites[2].pImageInfo = &imageDirtInfo;
+
+		descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[3].dstSet = descriptorSets[i];
+		descriptorWrites[3].dstBinding = 3;
+		descriptorWrites[3].dstArrayElement = 0;
+		descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[3].descriptorCount = 1;
+		descriptorWrites[3].pImageInfo = &imageWaterInfo;
+
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	}
+}
+
 void Minecraft::createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, VkImageView& imageView, std::vector<VkDescriptorSet>& descriptorSets, Pipeline& pipeline)
 {
 	std::vector<VkDescriptorSetLayout> layouts(VulkanConfig::MAX_FRAMES_IN_FLIGHT, pipeline.descriptor.layout);
@@ -226,13 +305,14 @@ void Minecraft::createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, VkIm
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = imageView;
+	imageInfo.sampler = textureSampler;
+	
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = imageView;
-		imageInfo.sampler = textureSampler;
-		
+	
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = buffers[i];
 		bufferInfo.offset = 0;
@@ -254,7 +334,9 @@ void Minecraft::createCubemapDescriptorSets(std::vector<VkBuffer>& buffers, VkIm
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pBufferInfo = &bufferInfo;
-	
+
+	descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
 }
@@ -574,7 +656,6 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 	int currentID = 0;
 	chunks.push_back(0);
 
-	std::cout << "First Grid\n";
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
 	{
 		for (size_t x = 0; x < randomTerrainPositions[y].size(); x++)
@@ -610,12 +691,9 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 			}
 
 			float result = randomTerrainPositions[y][x] + (max - randomTerrainPositions[y][x]) * 0.5f;
-//			std::cout << result << ',';
-
 
 			randomTerrainPositions[y][x] = result;
 		}
-		//std::cout << '\n';
 	}
 
 	for (size_t y = 0; y < randomTerrainPositions.size(); y++)
@@ -641,13 +719,10 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 			}
 
 			float result = randomTerrainPositions[y][x] + (max - randomTerrainPositions[y][x]) * 0.5f;
-//			std::cout << result << ',';
 
-
-			randomTerrainPositions[y][x] = result;
+			randomTerrainPositions[y][x] = std::min((int)result, 15);
 			chunks[instanceCount] += randomTerrainPositions[y][x];
 		}
-		std::cout << '\n';
 	}
 
 
@@ -664,7 +739,22 @@ void Minecraft::createInstanceBuffers(glm::vec3 offset)
 				iData[currentID].pos = glm::vec3(x + offset.x, j, y + offset.z);
 				iData[currentID].scale = glm::vec3(1.);
 				iData[currentID].rot = 0.;
-				iData[currentID].id = currentID;
+
+				if(randomTerrainPositions[y][x] <= 1)
+				{
+					iData[currentID].id = BlockType{WATER};
+				}
+				else
+				{
+					if (j < randomTerrainPositions[y][x] - 1)
+					{
+						iData[currentID].id = BlockType{DIRT};
+					}
+					else
+					{
+						iData[currentID].id = BlockType{GRASS};
+					}
+				}
 				currentID++;
 			}	
 		}
