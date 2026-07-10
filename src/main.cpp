@@ -34,7 +34,7 @@
 
 int main()
 {
-	Engine<Minecraft, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<BasicApp, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

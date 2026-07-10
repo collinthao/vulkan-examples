@@ -19,6 +19,9 @@ set GLSL_PATH=glslc
 %GLSL_PATH% cubemapDepth/shader.frag -o cubemapDepth/frag.spv
 %GLSL_PATH% shadowMap/shadowmap.vert -o shadowMap/vert.spv
 %GLSL_PATH% shadowMap/shadowmap.frag -o shadowMap/frag.spv
+%GLSL_PATH% shadowMap/omnidirectional/shader.vert -o shadowMap/omnidirectional/vert.spv
+%GLSL_PATH% shadowMap/omnidirectional/shader.frag -o shadowMap/omnidirectional/frag.spv
+%GLSL_PATH% shadowMap/omnidirectional/shader.geom -o shadowMap/omnidirectional/geom.spv
 %GLSL_PATH% shadowMap/primitive/shadowmapPrimitive.frag -o shadowMap/primitive/frag.spv
 %GLSL_PATH% shadowMap/primitive/shadowmapPrimitive.vert -o shadowMap/primitive/vert.spv
 %GLSL_PATH% shadowMap/mesh/shadowmapMesh.vert -o shadowMap/mesh/vert.spv

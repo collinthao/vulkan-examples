@@ -19,16 +19,7 @@ class DescriptorBuilder : protected Descriptors::Builder
 
 	DescriptorBuilder& setBindings(std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings)
 	{
-
-		for (size_t i = 0; i < setLayoutBindings.size(); i++)
-		{
-		}
-
 		bindings = setLayoutBindings; 
-
-		for (size_t i = 0; i < bindings.size(); i++)
-		{
-		}
 		return *this;
 	};
 
@@ -55,7 +46,6 @@ class DescriptorBuilder : protected Descriptors::Builder
 
 		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 		{
-			std::cout << "Layout info: \n";
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		}
 		
