@@ -1602,7 +1602,7 @@ void GrassScene::createGraphicsDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.buffer = baseUniformBuffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -1650,7 +1650,7 @@ void GrassScene::createComputeDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = uniformBuffers[i];
+		uniformBufferInfo.buffer = baseUniformBuffers[i];
 		uniformBufferInfo.offset = 0;
 		uniformBufferInfo.range = sizeof(UniformBufferObject);
 
@@ -2122,7 +2122,7 @@ void GrassScene::updateUniformBuffer(uint32_t currentImage)
 
 		ubo.deltaTime = lastFrameTime * 2.f;
 
-		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+		memcpy(baseUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 
 		material.specular = glm::vec3(.5); 	
 		material.shininess = 64.f; 
@@ -2299,11 +2299,11 @@ void GrassScene::cleanup(GLFWwindow * window)
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+		vkDestroyBuffer(device, baseUniformBuffers[i], nullptr);
 		vkDestroyBuffer(device, cubemapUniformBuffers[i], nullptr);
 		vkDestroyBuffer(device, instanceUniformBuffers[i], nullptr);
 
-		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+		vkFreeMemory(device, baseUniformBuffersMemory[i], nullptr);
 		vkFreeMemory(device, vertexBufferMemories[i], nullptr);
 		vkFreeMemory(device, shaderStorageBuffersMemory[i], nullptr);
 		vkFreeMemory(device, offScreenImageMemories[i], nullptr);

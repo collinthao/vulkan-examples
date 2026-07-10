@@ -206,9 +206,9 @@ class IVulkanApp
 	} renderPasses{};
 
 	Pipeline basePipeline; 
-	std::vector<VkBuffer> uniformBuffers;
-	std::vector<VkDeviceMemory> uniformBuffersMemory;
-	std::vector<void*> uniformBuffersMapped;
+	std::vector<VkBuffer> baseUniformBuffers;
+	std::vector<VkDeviceMemory> baseUniformBuffersMemory;
+	std::vector<void*> baseUniformBuffersMapped;
 
 	#if defined(_WIN32) || defined(_WIN64)
 		const std::string ROOT_DIR = std::string{GetExecutableDir()};
@@ -270,6 +270,7 @@ class IVulkanApp
 
 	virtual void processInput(GLFWwindow * window) = 0;
 	virtual void cleanup(GLFWwindow * window) = 0;
+	VkShaderModule createShaderModule(const std::vector<char>& code, VkDevice& device);
 
 	VkDevice device;
 
@@ -295,7 +296,6 @@ class IVulkanApp
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 
 	};	
-
 
 	static VkResult CreateDebugUtilsMessengerEXT(
 		VkInstance instance, 

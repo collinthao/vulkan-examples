@@ -5,35 +5,17 @@
 class OmniDirectionalShadowMappingScene : public IVulkanApp
 {
 	private:
-	VkInstance instance;
-	PipelineBuilder pipelineBuilder{};
-	VkDebugUtilsMessengerEXT debugMessenger;
-	VkSurfaceKHR surface;
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkQueue graphicsAndComputeQueue;
-	VkQueue presentQueue;
-	VkSwapchainKHR swapChain;
 	std::vector<VkImage> shadowMapImages;
-	std::vector<VkImage> swapChainImages;
 	std::vector<VkImage> offScreenImages;
 	VkFormat swapChainImageFormat;
 	std::vector<VkImageView> shadowMapImageViews;
-	std::vector<VkImageView> swapChainImageViews;
 	std::vector<VkImageView> offScreenImageViews;
 	std::vector<VkDeviceMemory> offScreenImageMemories;
 	std::vector<VkDeviceMemory> shadowMapImageMemories;
-	struct
-	{
-		VkRenderPass shadowMapRenderPass;
-		VkRenderPass renderPass;
-		VkRenderPass postProcessingRenderPass;
-	} renderPasses{};
 	VkImage textureImage;
 	VkImage shadowMapImage;
 	VkDeviceMemory textureImageMemory;
 	VkDeviceMemory cubemapImageMemory;
-	VkImageView textureImageView;
-	VkSampler textureSampler;
 	VkSampler shadowSampler;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSetLayout primitiveDescriptorSetLayout;
@@ -75,9 +57,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	VkImageView specularImageView;
 	VkSampler specularSampler;
 	
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
-		
 	std::vector<VkBuffer> indexModelBuffers;
 	std::vector<VkDeviceMemory> indexModelBufferMemories;
 	
@@ -86,15 +65,11 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	std::vector<VkImageView> modelImageViews;
 	std::vector<VkSampler> modelSamplers;
 	std::vector<VkFramebuffer> shadowMapFramebuffers;
-	std::vector<VkFramebuffer> swapChainFramebuffers;
 	std::vector<VkFramebuffer> offScreenFramebuffers;
 
-	VkBuffer vertexCubeBuffer;
 	VkBuffer vertexCubemapBuffer;
-	VkDeviceMemory vertexCubeBufferMemory;
 	VkDeviceMemory vertexCubemapBufferMemory;
 
-	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkBuffer> cubemapUniformBuffers;
 	std::vector<std::vector<VkBuffer>> modelUniformBuffers;
 	std::vector<std::vector<VkBuffer>> primitiveUniformBuffers;
@@ -105,7 +80,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	std::vector<std::vector<VkBuffer>> modelLightUniformBuffers;
 	std::vector<std::vector<VkBuffer>> lightObjectUniformBuffers;
 
-	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<VkDeviceMemory> cubemapUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> modelUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> materialUniformBuffersMemory;
@@ -116,7 +90,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	std::vector<std::vector<VkDeviceMemory>> modelLightUniformBuffersMemory;
 	std::vector<std::vector<VkDeviceMemory>> lightObjectUniformBuffersMemory;
 
-	std::vector<void*> uniformBuffersMapped;
 	std::vector<void*> cubemapUniformBuffersMapped;
 	std::vector<std::vector<void*>> modelUniformBuffersMapped;
 	std::vector<std::vector<void*>> materialUniformBuffersMapped;
@@ -129,7 +102,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 
 	VkDescriptorPool computeDescriptorPool;
 
-	std::vector<VkDescriptorSet> descriptorSets;
 	std::vector<VkDescriptorSet> postProcessingDescriptorSets;
 	std::vector<VkDescriptorSet> screenSpaceDescriptorSets;
 	std::vector<VkDescriptorSet> cubemapDescriptorSets;
@@ -156,10 +128,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 
 	std::vector<VkCommandBuffer> computeCommandBuffers;
 	
-	std::vector<VkSemaphore> imageAvailableSemaphores;
-	std::vector<VkSemaphore> renderFinishedSemaphores;
-	std::vector<VkFence> inFlightFences;
-	
 	std::vector<VkFence> computeInFlightFences;
 	std::vector<VkSemaphore> computeFinishedSemaphores;
 
@@ -167,28 +135,8 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 
 	Lights lights;
 
-	uint32_t currentFrame = 0;
-
-	const std::string MODEL_PATH = "models/Sponza-master/sponza.obj";
-	const std::string MODEL_TEXTURE_DIRECTORY = "models/Sponza-master/";
-	const std::string TEXTURE_PATH = "textures/container.png";
-	const std::string CUBEMAP_PATH = "textures/skybox/";
-	const std::string SPECULAR_PATH = "textures/container_specular.png";
 	const uint32_t PARTICLE_COUNT = 8192;
-	const float FAR_PLANE = 400.f;
-	float lastFrameTime = 0.f;
-	double lastTime = 0.f;
 
-	void createInstance();
-	void createSurface(GLFWwindow * window);
-	void setupDebugMessenger();
-	void pickPhysicalDevice();
-	void createLogicalDevice();
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	bool isDeviceSuitable(VkPhysicalDevice device);
-	int rateDeviceSuitability(VkPhysicalDevice device);
-	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-	void createSwapChain(GLFWwindow * window);
 	void createImageViews();
 	void createRenderPass();
 	void createShadowMapRenderPass();
@@ -205,11 +153,6 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void createModel();
 	void createTextureImageView(VkImage& image, VkImageView& imageView, VkFormat format, VkImageAspectFlagBits flags);
 	VkShaderModule createShaderModule(const std::vector<char>& code);
-	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-	VkSampleCountFlagBits getMaxUsableSampleCount();
-	std::vector<const char*>getRequiredExtensions();
 	void createCubeTextureImage(const std::string imagePath, VkImage& image, VkDeviceMemory& imageMemory);
 	void createCubeMapResources();
 	void createTextureSampler(VkSampler& sampler);
@@ -217,6 +160,7 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void createTextureImageViews(std::vector<VkImage>& images, std::vector<VkImageView>& imageViews);
 	void createTextureSamplers(std::vector<VkSampler>& samplers);
 	void createShaderStorageBuffers();
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 	void createVertexBuffers();
 	void createQuadIndexBuffer();
 	void createModelIndexBuffers();
@@ -247,12 +191,12 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void createComputeDescriptorSets();
 	void createComputeCommandBuffers();
 	void createSyncObjects();
+	void createSwapChain(GLFWwindow * window);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void updateUniformBuffer(uint32_t currentImage);
 	void recordComputeCommandBuffer(VkCommandBuffer commandBuffer);
 	void recreateSwapChain(GLFWwindow * window);
 	void cleanupSwapChain();
-	void setDescriptorSetLayoutBindings();
 
 	template <typename T = Vertex>
 	void createVertexBuffer(std::vector<T> vertices, VkBuffer& buffer, VkDeviceMemory& memory)
@@ -275,7 +219,8 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 
-		};	
+	};	
+
 	public:
 	OmniDirectionalShadowMappingScene() = default;
 
@@ -284,14 +229,7 @@ class OmniDirectionalShadowMappingScene : public IVulkanApp
 	void processInput(GLFWwindow * window);
 	void cleanup(GLFWwindow * window);
 	void deviceWaitIdle();
-
-	static Camera camera;
-	static glm::vec3 cameraPos;
-	static glm::vec3 cameraFront;
-	static glm::vec3 cameraUp; 
-	static VkExtent2D swapChainExtent;
 	void moveCamera(double xpos, double ypos);
 
 	VkDevice* getDevice();
-	VkDevice device;
 };

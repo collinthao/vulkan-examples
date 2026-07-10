@@ -15,17 +15,29 @@ void IVulkanApp::init(GLFWwindow* window)
 	createSwapChain(window);
 	createImageViews();
 	createRenderPass();
-	createShadowMapRenderPass();
-	createPostProcessingRenderPass();
-	createPipelines();
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
 	createFramebuffers();
 	createVertexBuffers();
 	createIndexBuffer();
-	createUniformBuffers();
-	createDescriptorSets();
 	CommandBuffer::createCommandBuffers(device);
 	createSyncObjects();
+}
+
+VkShaderModule IVulkanApp::createShaderModule(const std::vector<char>& code, VkDevice& device)
+{
+	VkShaderModuleCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	{
+		std::cout << "failed to create shader module!\n";
+		throw std::runtime_error("failed to create shader module");
+	}
+
+	return shaderModule;
 }
 
 void IVulkanApp::createVertexBuffers()
@@ -75,16 +87,16 @@ void IVulkanApp::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObjectModel);
 
-	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i], uniformBuffersMemory[i], device, physicalDevice);
+			baseUniformBuffers[i], baseUniformBuffersMemory[i], device, physicalDevice);
 
-		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+		vkMapMemory(device, baseUniformBuffersMemory[i], 0, bufferSize, 0, &baseUniformBuffersMapped[i]);
 	}
 }
 
@@ -130,7 +142,7 @@ void IVulkanApp::createGraphicsDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.buffer = baseUniformBuffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObjectModel);
 		VkDescriptorImageInfo imageInfo{};
@@ -707,7 +719,7 @@ void IVulkanApp::updateUniformBuffer(uint32_t currentImage)
 		ubom.proj[1][1] *= -1;
 		ubom.deltaTime = glfwGetTime();
 
-		memcpy(uniformBuffersMapped[currentImage], &ubom, sizeof(ubom));
+		memcpy(baseUniformBuffersMapped[currentImage], &ubom, sizeof(ubom));
 	}
 }
 

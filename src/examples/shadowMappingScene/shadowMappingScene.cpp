@@ -17,21 +17,13 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	createPostProcessingRenderPass();
 	createDescriptorSetLayouts();	
 	createModel();
-	std::cout << "Creating pipelines hello\n";
 	createPipelines();
-	std::cout << "Creating command pool \n";
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
-	std::cout << "Creating off screen resources \n";
 	createOffscreenResources();
-	std::cout << "Creating color resources \n";
 	createColorResources();
-	std::cout << "Creating depth resources \n";
 	createDepthResources();
-	std::cout << "Creating Shadow Map resources \n";
 	createShadowMapResources();
-	std::cout << "Creating Framebuffers resources \n";
 	createFramebuffers();
-	std::cout << "Creating Textures\n";
 	Image::Texture::create(TEXTURE_PATH, textureImage, textureImageMemory, device, physicalDevice, graphicsAndComputeQueue);
 	createCubeTextureImage(CUBEMAP_PATH, cubemapImage, cubemapImageMemory);
 	createCubeMapResources();
@@ -41,29 +33,19 @@ void ShadowMappingScene::init(GLFWwindow* window)
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(specularSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(shadowSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	std::cout << "Creating Texture Images\n";
 	createTextureImages(modelImages, modelImageMemories);	
-	std::cout << "Creating Texture Image Views\n";
 	createTextureImageViews(modelImages, modelImageViews);
-	std::cout << "Creating Texture Image Samplers\n";
 	createTextureSamplers(modelSamplers);
-	std::cout << "Creating SSBs\n";
 	createShaderStorageBuffers();
-	std::cout << "Creating vertex buffers\n";
 	createVertexBuffers();
-	std::cout << "Creating buffers\n";
 	createIndexBuffer();
 	createQuadIndexBuffer();
 	createModelIndexBuffers();
 	createUniformBuffers();
-	std::cout << "Creating descriptor pools\n";
 	createDescriptorPools();
-	std::cout << "Creating descriptor sets\n";
 	createDescriptorSets();
-	std::cout << "Creating command buffers\n";
 	CommandBuffer::createCommandBuffers(device);
 	createComputeCommandBuffers();
-	std::cout << "Creating sync objects \n";
 	createSyncObjects();
 }
 
@@ -365,7 +347,6 @@ void ShadowMappingScene::createComputeDescriptorSetLayout()
 void ShadowMappingScene::createPipelines()
 {
 	Pipelines::createPipelines(device, renderPasses);
-	std::cout << "Finished with normal pipelines\n";
 	createComputePipeline();
 }
 
@@ -417,7 +398,6 @@ void ShadowMappingScene::createComputePipeline()
 	{
 			throw std::runtime_error("failed to create compute pipeline!");
 	}
-	std::cout << "Path: " << std::string{PROJECT_ROOT_DIR} + "/src/shaders/comp.spv\n";
 }
 
 void ShadowMappingScene::createShadowMapResources()
@@ -1056,16 +1036,16 @@ void ShadowMappingScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i], uniformBuffersMemory[i], device, physicalDevice);
+			baseUniformBuffers[i], baseUniformBuffersMemory[i], device, physicalDevice);
 
-		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+		vkMapMemory(device, baseUniformBuffersMemory[i], 0, bufferSize, 0, &baseUniformBuffersMapped[i]);
 
 	}
 }
@@ -1611,7 +1591,7 @@ void ShadowMappingScene::createGraphicsDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.buffer = baseUniformBuffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -1659,7 +1639,7 @@ void ShadowMappingScene::createComputeDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = uniformBuffers[i];
+		uniformBufferInfo.buffer = baseUniformBuffers[i];
 		uniformBufferInfo.offset = 0;
 		uniformBufferInfo.range = sizeof(UniformBufferObject);
 
@@ -2192,7 +2172,7 @@ void ShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 
 		ubo.deltaTime = lastFrameTime * 2.f;
 
-		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+		memcpy(baseUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 
 		material.specular = glm::vec3(.5); 	
 		material.shininess = 64.f; 
@@ -2373,8 +2353,8 @@ void ShadowMappingScene::cleanup(GLFWwindow * window)
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(device, baseUniformBuffers[i], nullptr);
+		vkFreeMemory(device, baseUniformBuffersMemory[i], nullptr);
 	}
 
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);

@@ -3,12 +3,6 @@
 #include "../../bindings/particle.h"
 #include "../../core/queueFamily/queueFamily.h"
 
-glm::vec3 OmniDirectionalShadowMappingScene::cameraPos = glm::vec3(0., 0., 3.);
-glm::vec3 OmniDirectionalShadowMappingScene::cameraFront = glm::vec3(0.f, 0.f, -1.f);
-glm::vec3 OmniDirectionalShadowMappingScene::cameraUp = glm::vec3(0.f,1.f, 0.f);
-
-Camera OmniDirectionalShadowMappingScene::camera = Camera(OmniDirectionalShadowMappingScene::cameraPos, OmniDirectionalShadowMappingScene::cameraFront, OmniDirectionalShadowMappingScene::cameraUp);
-
 void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
 {
 	createInstance();
@@ -21,9 +15,8 @@ void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
 	createShadowMapRenderPass();
 	createRenderPass();
 	createPostProcessingRenderPass();
-	setDescriptorSetLayoutBindings();
 	createDescriptorSetLayouts();	
-	//createModel();
+	createModel();
 	createPipelines();
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
 	createOffscreenResources();
@@ -40,297 +33,20 @@ void OmniDirectionalShadowMappingScene::init(GLFWwindow* window)
 	Image::Texture::Sampler::createTextureSampler(textureSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(specularSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 	Image::Texture::Sampler::createTextureSampler(shadowSampler, device, physicalDevice, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	//createTextureImages(modelImages, modelImageMemories);	
-	//createTextureImageViews(modelImages, modelImageViews);
-	//createTextureSamplers(modelSamplers);
+	createTextureImages(modelImages, modelImageMemories);	
+	createTextureImageViews(modelImages, modelImageViews);
+	createTextureSamplers(modelSamplers);
 	createShaderStorageBuffers();
 	createVertexBuffers();
 	createIndexBuffer();
 	createQuadIndexBuffer();
-	//createModelIndexBuffers();
+	createModelIndexBuffers();
 	createUniformBuffers();
 	createDescriptorPools();
 	createDescriptorSets();
 	CommandBuffer::createCommandBuffers(device);
 	createComputeCommandBuffers();
 	createSyncObjects();
-}
-
-std::vector<const char*> OmniDirectionalShadowMappingScene::getRequiredExtensions()
-{
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	if (enableValidationLayers)
-	{
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
-
-	extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-	return extensions;
-}
-
-void OmniDirectionalShadowMappingScene::createInstance()
-{
-	std::cout << "Creating instance...\n";
-	VkApplicationInfo appInfo{};
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "Hello Triangle";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "No Engine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	VkInstanceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = &appInfo;
-
-	auto extensions = getRequiredExtensions();
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-	createInfo.ppEnabledExtensionNames = extensions.data();
-
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-	if (enableValidationLayers)
-	{
-	createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-	createInfo.ppEnabledLayerNames = validationLayers.data();
-
-	populateDebugMessengerCreateInfo(debugCreateInfo);
-	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-	}
-	else
-	{
-	createInfo.enabledLayerCount = 0;
-	
-	createInfo.pNext = nullptr;
-	}
-
-	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
-};
-
-void OmniDirectionalShadowMappingScene::setupDebugMessenger()
-{
-	if (!enableValidationLayers) return;
-		
-	VkDebugUtilsMessengerCreateInfoEXT createInfo;
-	populateDebugMessengerCreateInfo(createInfo);
-
-	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to set up debug messenger!");
-	}
-}
-
-void OmniDirectionalShadowMappingScene::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-	createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-}
-
-void OmniDirectionalShadowMappingScene::createSurface(GLFWwindow * window)
-{
-	if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create window surface!");
-	}
-}
-
-void OmniDirectionalShadowMappingScene::pickPhysicalDevice()
-{
-	uint32_t deviceCount = 0;
-	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-
-	if (deviceCount == 0)
-	{
-		throw std::runtime_error("failed to find GPUs with Vulkan support!");
-	}
-
-	std::vector<VkPhysicalDevice> devices(deviceCount);
-	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-
-	std::multimap<int, VkPhysicalDevice> candidates;
-
-	for (const auto& device : devices)
-	{
-		if (isDeviceSuitable(device))
-		{
-			int score = rateDeviceSuitability(device);
-			candidates.insert(std::make_pair(score, device));
-		}
-	}
-
-	if (candidates.rbegin()->first > 0)
-	{
-		physicalDevice = candidates.rbegin()->second;
-		VulkanConfig::msaaSamples = getMaxUsableSampleCount();
-		//VulkanConfig::msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-	}
-	else
-	{
-		throw std::runtime_error("failed to find a suitable GPU");
-	}
-}
-
-void OmniDirectionalShadowMappingScene::createLogicalDevice()
-{
-	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(physicalDevice, surface);
-
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsAndComputeFamily.value() , indices.presentFamily.value() };
-	
-	float queuePriority = 1.f;
-	for (uint32_t queueFamily : uniqueQueueFamilies)
-	{
-	VkDeviceQueueCreateInfo queueCreateInfo{};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = queueFamily;
-	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
-	queueCreateInfos.push_back(queueCreateInfo);
-	}
-
-	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{};
-	extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
-	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
-	extendedDynamicStateFeatures.pNext = nullptr;
-
-	VkDeviceCreateInfo createInfo{};
-	VkPhysicalDeviceFeatures deviceFeatures{};
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
-	deviceFeatures.sampleRateShading = VK_TRUE;
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-	createInfo.pNext = &extendedDynamicStateFeatures;
-
-	if (enableValidationLayers)
-	{
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	}
-	else
-	{
-		createInfo.enabledLayerCount = 0;
-	}
-
-	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
-	{
-	throw std::runtime_error("failed to create logical device!");
-	}
-
-	vkGetDeviceQueue(device, indices.graphicsAndComputeFamily.value(), 0, &graphicsAndComputeQueue);
-	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-}
-
-bool OmniDirectionalShadowMappingScene::isDeviceSuitable(VkPhysicalDevice device)
-{
-	QueueFamilyIndices indices = QueueFamily::findQueueFamilies(device, surface);
-
-	bool extensionsSupported = checkDeviceExtensionSupport(device);
-
-	bool swapChainAdequate = false;
-	if (extensionsSupported)
-	{
-		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-	}
-	
-	VkPhysicalDeviceFeatures supportedFeatures;
-	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
-
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-
-SwapChainSupportDetails OmniDirectionalShadowMappingScene::querySwapChainSupport(VkPhysicalDevice device)
-{
-	SwapChainSupportDetails details;
-
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
-
-	uint32_t formatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,nullptr);
-
-	if (formatCount != 0)
-	{
-	details.formats.resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
-	}
-
-	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-
-	if (presentModeCount != 0)
-	{
-		details.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
-	}
-
-	return details;
-}
-
-VkSampleCountFlagBits OmniDirectionalShadowMappingScene::getMaxUsableSampleCount()
-{
-	VkPhysicalDeviceProperties physicalDeviceProperties;
-	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-
-	VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-
-	if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT;}
-	if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT;}
-	if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT;}
-	if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT;}
-	if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT;}
-	if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT;}
-
-	return VK_SAMPLE_COUNT_1_BIT;
-}
-
-bool OmniDirectionalShadowMappingScene::checkDeviceExtensionSupport(VkPhysicalDevice device)
-{
-
-	uint32_t extensionCount;
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-
-	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-	std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-
-	for (const auto& extension : availableExtensions)
-	{
-	requiredExtensions.erase(extension.extensionName);
-	}
-
-	return requiredExtensions.empty();
-}
-
-
-int OmniDirectionalShadowMappingScene::rateDeviceSuitability(VkPhysicalDevice device)
-{
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-	VkPhysicalDeviceFeatures deviceFeatures;
-	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-	int score = 0;
-
-	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) score += 1000;
-
-	score += deviceProperties.limits.maxImageDimension2D;
-
-	if (!deviceFeatures.geometryShader) return 0;
-
-	return score;
 }
 
 void OmniDirectionalShadowMappingScene::createSwapChain(GLFWwindow * window)
@@ -393,32 +109,6 @@ void OmniDirectionalShadowMappingScene::createSwapChain(GLFWwindow * window)
 
 	swapChainImageFormat = surfaceFormat.format;
 	VulkanConfig::swapChainExtent = extent;
-}
-
-VkPresentModeKHR OmniDirectionalShadowMappingScene::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-{
-	for (const auto& availablePresentMode : availablePresentModes)
-	{
-		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-		{
-			return availablePresentMode;
-		}
-	}
-
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkSurfaceFormatKHR OmniDirectionalShadowMappingScene::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-{
-	for (const auto& availableFormat : availableFormats)
-	{
-		if (availableFormat.format == VK_FORMAT_R8G8B8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-		{
-			return availableFormat;
-		}
-	}
-
-	return availableFormats[0];
 }
 
 void OmniDirectionalShadowMappingScene::createImageViews()
@@ -509,7 +199,7 @@ void OmniDirectionalShadowMappingScene::createRenderPass()
 	colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	VkAttachmentDescription depthAttachment{};
-	//depthAttachment.format = findDepthFormat();
+	//depthattachment.format = finddepthformat();
 	depthAttachment.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 	depthAttachment.samples = VulkanConfig::msaaSamples; 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -622,34 +312,6 @@ void OmniDirectionalShadowMappingScene::createDescriptorSetLayouts()
 	createComputeDescriptorSetLayout();
 }
 
-void OmniDirectionalShadowMappingScene::setDescriptorSetLayoutBindings()
-{
-	samplerUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerUniformLayoutBinding.descriptorCount = 1;
-	samplerUniformLayoutBinding.pImmutableSamplers = nullptr;
-	samplerUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	specularUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	specularUniformLayoutBinding.descriptorCount = 1;
-	specularUniformLayoutBinding.pImmutableSamplers = nullptr;
-	specularUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	vertexLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	vertexLayoutBinding.descriptorCount = 1;
-	vertexLayoutBinding.pImmutableSamplers = nullptr;
-	vertexLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-
-	fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	fragmentLayoutBinding.descriptorCount = 1;
-	fragmentLayoutBinding.pImmutableSamplers = nullptr;
-	fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	allStagesUniformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	allStagesUniformLayoutBinding.descriptorCount = 1;
-	allStagesUniformLayoutBinding.pImmutableSamplers = nullptr;
-	allStagesUniformLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
-}
-
 void OmniDirectionalShadowMappingScene::createComputeDescriptorSetLayout()
 {
 	std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
@@ -687,9 +349,27 @@ void OmniDirectionalShadowMappingScene::createPipelines()
 	Pipelines::createPipelines(device, renderPasses);
 	createComputePipeline();
 }
+
+VkShaderModule OmniDirectionalShadowMappingScene::createShaderModule(const std::vector<char>& code)
+{
+
+	VkShaderModuleCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = code.size();
+	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+	
+	VkShaderModule shaderModule;
+	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create shader module");
+	}
+
+	return shaderModule;
+}
+
 void OmniDirectionalShadowMappingScene::createComputePipeline()
 {
-	auto compShaderCode = readFile("shaders/comp.spv");
+	auto compShaderCode = readFile(ROOT_DIR + "/src/shaders/comp.spv");
 
 	VkShaderModule compShaderModule = createShaderModule(compShaderCode);
 
@@ -720,23 +400,6 @@ void OmniDirectionalShadowMappingScene::createComputePipeline()
 	}
 }
 
-VkShaderModule OmniDirectionalShadowMappingScene::createShaderModule(const std::vector<char>& code)
-{
-
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-	
-	VkShaderModule shaderModule;
-	if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create shader module");
-	}
-
-	return shaderModule;
-}
-
 void OmniDirectionalShadowMappingScene::createShadowMapResources()
 {
 	VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
@@ -747,10 +410,9 @@ void OmniDirectionalShadowMappingScene::createShadowMapResources()
 
 	for (size_t i = 0; i < swapChainImages.size(); i++)
 	{
-		Image::create(VulkanConfig::swapChainExtent.width,VulkanConfig::swapChainExtent.height, 1, 1,0, VK_IMAGE_TYPE_2D,VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowMapImages[i], shadowMapImageMemories[i], VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
+		Image::create(VulkanConfig::swapChainExtent.width,VulkanConfig::swapChainExtent.width, 1, 6,VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VK_IMAGE_TYPE_2D,VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowMapImages[i], shadowMapImageMemories[i], VK_IMAGE_LAYOUT_UNDEFINED, device, physicalDevice);
 		
-		shadowMapImageViews[i] = Image::createView(shadowMapImages[i], shadowMapImageViews[i], VK_IMAGE_VIEW_TYPE_2D, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1, device, graphicsAndComputeQueue);
-
+		shadowMapImageViews[i] = Image::createView(shadowMapImages[i], shadowMapImageViews[i], VK_IMAGE_VIEW_TYPE_CUBE, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 6, device, graphicsAndComputeQueue);
 	}
 }
 
@@ -836,7 +498,6 @@ void OmniDirectionalShadowMappingScene::createFramebuffers()
 		{
 			throw std::runtime_error("failed to create framebuffer!");
 		};
-
 	}
 
 	for (size_t i = 0; i < swapChainImageViews.size(); i++)
@@ -1059,16 +720,27 @@ void OmniDirectionalShadowMappingScene::createShaderStorageBuffers()
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
+void OmniDirectionalShadowMappingScene::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+}
+
 void OmniDirectionalShadowMappingScene::createVertexBuffers()
 {
-	// TODO: move to own method
-/*
 	for (size_t i = 0; i < model->meshes.size(); i++)
 	{
 		const Mesh mesh = model->meshes[i];
 		createVertexBuffer<Vertex>(mesh.vertices, vertexBuffers[i], vertexBufferMemories[i]);
 	}
-*/
+
 	createVertexBuffer<Vertex>(cubeVertices, vertexCubeBuffer, vertexCubeBufferMemory);
 	createVertexBuffer<Vertex>(cubemapVertices, vertexCubemapBuffer, vertexCubemapBufferMemory);
 }
@@ -1092,7 +764,6 @@ void OmniDirectionalShadowMappingScene::createQuadIndexBuffer()
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
-
 
 void OmniDirectionalShadowMappingScene::createModelIndexBuffers()
 {
@@ -1364,16 +1035,16 @@ void OmniDirectionalShadowMappingScene::createGraphicsUniformBuffers()
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	uniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	uniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffers.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffersMemory.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
+	baseUniformBuffersMapped.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i], uniformBuffersMemory[i], device, physicalDevice);
+			baseUniformBuffers[i], baseUniformBuffersMemory[i], device, physicalDevice);
 
-		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+		vkMapMemory(device, baseUniformBuffersMemory[i], 0, bufferSize, 0, &baseUniformBuffersMapped[i]);
 
 	}
 }
@@ -1410,7 +1081,7 @@ void OmniDirectionalShadowMappingScene::createDescriptorSets()
 	createPrimitiveDescriptorSets();
 	createShadowMapDescriptorSets();
 	createStencilDescriptorSets();
-	//createModelDescriptorSets();
+	createModelDescriptorSets();
 	createPostProcessingDescriptorSets();
 	createShadowMapScreenSpaceQuadDescriptorSets();
 	createCubemapDescriptorSets();
@@ -1457,7 +1128,6 @@ void OmniDirectionalShadowMappingScene::createLightDescriptorSets()
 		}
 	}
 }
-
 
 void OmniDirectionalShadowMappingScene::createStencilDescriptorSets()
 {
@@ -1876,10 +1546,8 @@ void OmniDirectionalShadowMappingScene::createPostProcessingDescriptorSets()
 	allocInfo.pSetLayouts = layouts.data();
 
 	postProcessingDescriptorSets.resize(VulkanConfig::MAX_FRAMES_IN_FLIGHT);
-	std::cout << "Creating pipelines\n";
 	if (vkAllocateDescriptorSets(device, &allocInfo, postProcessingDescriptorSets.data()) != VK_SUCCESS)
 	{
-		std::cout << "Failed to create descriptor sets!\n";
 		throw std::runtime_error("Failed to create descriptor sets!");
 	}
 
@@ -1921,7 +1589,7 @@ void OmniDirectionalShadowMappingScene::createGraphicsDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.buffer = baseUniformBuffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -1969,7 +1637,7 @@ void OmniDirectionalShadowMappingScene::createComputeDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = uniformBuffers[i];
+		uniformBufferInfo.buffer = baseUniformBuffers[i];
 		uniformBufferInfo.offset = 0;
 		uniformBufferInfo.range = sizeof(UniformBufferObject);
 
@@ -2060,7 +1728,6 @@ void OmniDirectionalShadowMappingScene::createSyncObjects()
 		}
 	}
 }
-
 
 void OmniDirectionalShadowMappingScene::drawFrame(GLFWwindow * window)
 {
@@ -2158,7 +1825,6 @@ void OmniDirectionalShadowMappingScene::drawFrame(GLFWwindow * window)
 	double currentTime = glfwGetTime();
 	lastFrameTime = (currentTime - lastTime);
 	lastTime = currentTime;
-
 }
 
 void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -2210,10 +1876,25 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 	scissor.extent = {2048, 2048};
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+	Pipelines::shadowMapODMeshPipeline.bind(commandBuffer);
+
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
+	{
+		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapODMeshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
+	}
+
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		Pipelines::shadowMapPrimitivePipeline.bind(commandBuffer);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
+		Pipelines::shadowMapODPrimitivePipeline.bind(commandBuffer);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::shadowMapODPrimitivePipeline.getLayout(), 0, 1, &shadowMapDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2265,11 +1946,26 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
 
+	Pipelines::meshPipeline.bind(commandBuffer);
+
+	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
+	{
+		VkBuffer modelVertexBuffers[] = {vertexBuffers[i]};
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, modelVertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexModelBuffers[i], 0, VK_INDEX_TYPE_UINT32);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::meshPipeline.getLayout(), 0, 1, &modelDescriptorSets[i][currentFrame], 0, nullptr);
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->meshes[i].indices.size()), 1, 0, 0, 0);
+	}
+
 	for (size_t j = 0; j < VulkanConfig::OBJECT_COUNT; j++)
 	{
-		Pipelines::grassPipeline.bind(commandBuffer);
+		Pipelines::primitivePipeline.bind(commandBuffer);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::grassPipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::primitivePipeline.getLayout(), 0, 1, &primitiveDescriptorSets[j][currentFrame], 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
@@ -2319,18 +2015,6 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 
 	//vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-
-// DEBUG FOR SHADOWMAP
-	Pipelines::screenSpacePipeline.bind(commandBuffer);
-		
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipelines::screenSpacePipeline.getLayout(), 0, 1, &screenSpaceDescriptorSets[currentFrame], 0, nullptr);
-
-	vkCmdBindIndexBuffer(commandBuffer, quadIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(OmniDirectionalShadowMappingScene::quadIndices.size()), 1, 0, 0, 0);
-
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
@@ -2356,7 +2040,6 @@ void OmniDirectionalShadowMappingScene::recordCommandBuffer(VkCommandBuffer comm
 		throw std::runtime_error("failed to record command buffer!");
 	}
 }
-
 void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImage)
 {
 	for (size_t i = 0; i < VulkanConfig::MAX_POINT_LIGHTS; i++)
@@ -2458,12 +2141,11 @@ void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImag
 		//glm::vec3 transformedPosition = cubePosition;
 		ubom.model = glm::mat4(1.);
 		if (j == 0){
-		ubom.model = glm::translate(ubom.model, camera.cameraPos);
+			ubom.model = glm::translate(ubom.model, camera.cameraPos);
 		}
 		else
 		{
-
-		ubom.model = glm::translate(ubom.model, transformedPosition);
+			ubom.model = glm::translate(ubom.model, transformedPosition);
 		};
 		float angle = 20.f * j;
 
@@ -2487,7 +2169,7 @@ void OmniDirectionalShadowMappingScene::updateUniformBuffer(uint32_t currentImag
 
 		ubo.deltaTime = lastFrameTime * 2.f;
 
-		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+		memcpy(baseUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 
 		material.specular = glm::vec3(.5); 	
 		material.shininess = 64.f; 
@@ -2668,8 +2350,8 @@ void OmniDirectionalShadowMappingScene::cleanup(GLFWwindow * window)
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(device, baseUniformBuffers[i], nullptr);
+		vkFreeMemory(device, baseUniformBuffersMemory[i], nullptr);
 	}
 
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);

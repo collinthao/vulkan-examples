@@ -59,8 +59,8 @@ void Minecraft::cleanup(GLFWwindow * window)
 
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-		vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+		vkDestroyBuffer(device, baseUniformBuffers[i], nullptr);
+		vkFreeMemory(device, baseUniformBuffersMemory[i], nullptr);
 	}
 
 	vkDestroyBuffer(device, indexBuffer, nullptr);
@@ -359,7 +359,7 @@ void Minecraft::createGraphicsDescriptorSets()
 	for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uniformBuffers[i];
+		bufferInfo.buffer = baseUniformBuffers[i];
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObjectModel);
 		VkDescriptorImageInfo imageInfo{};

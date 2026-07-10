@@ -31,8 +31,10 @@ namespace Pipelines
 	inline	Pipeline primitivePipeline; 
 	inline	Pipeline grassPipeline; 
 	inline	Pipeline shadowMapPipeline; 
+	inline  Pipeline shadowMapODPrimitivePipeline;
 	inline	Pipeline shadowMapPrimitivePipeline; 
 	inline	Pipeline shadowMapMeshPipeline; 
+	inline	Pipeline shadowMapODMeshPipeline; 
 	inline	Pipeline basePipeline; 
 	inline	Pipeline stencilPipeline;
 	inline	Pipeline lightPipeline;
@@ -54,6 +56,14 @@ namespace Pipelines
 
 		ShaderPath shadowMapPrimitive{SHADER_DIRECTORY + "/shadowMap/primitive/vert.spv", 
 		SHADER_DIRECTORY + "/shadowMap/primitive/frag.spv"};	
+
+		ShaderPath shadowMapPrimitiveOD{SHADER_DIRECTORY + "/shadowMap/omnidirectional/primitive/vert.spv", 
+		SHADER_DIRECTORY + "/shadowMap/omnidirectional/primitive/frag.spv", 
+		SHADER_DIRECTORY + "/shadowMap/omnidirectional/primitive/geom.spv"};	
+
+		ShaderPath shadowMapMeshOD{SHADER_DIRECTORY + "/shadowMap/omnidirectional/mesh/vert.spv", 
+		SHADER_DIRECTORY + "/shadowMap/omnidirectional/mesh/frag.spv", 
+		SHADER_DIRECTORY + "/shadowMap/omnidirectional/mesh/geom.spv"};	
 
 		ShaderPath shadowMapMesh{SHADER_DIRECTORY + "/shadowMap/mesh/vert.spv", 
 		SHADER_DIRECTORY + "/mesh/frag.spv"};	
@@ -203,7 +213,6 @@ namespace Pipelines
 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 		};
 
-
 		shadowMapPipeline = 
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMap.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT,  shaderPaths.shadowMap.frag}})
@@ -226,13 +235,22 @@ namespace Pipelines
 			.setRenderPass(renderPasses.shadowMapRenderPass)
 			.build(device);
 
-
 		shadowMapPrimitivePipeline = 
 			pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMapPrimitive.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.shadowMapPrimitive.frag}})
 			.setRenderPass(renderPasses.shadowMapRenderPass)
 			.build(device);
 
+		shadowMapODPrimitivePipeline = 
+			pipelineBuilder
+			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMapPrimitiveOD.vert}, {VK_SHADER_STAGE_GEOMETRY_BIT, shaderPaths.shadowMapPrimitiveOD.geom}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.shadowMapPrimitiveOD.frag}})
+			.setDescriptor(
+				{layoutBindings.samplerUniformLayoutBinding, 
+				layoutBindings.samplerUniformLayoutBinding}, 
+				{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, VulkanConfig::OBJECT_COUNT, device)
+			.setRenderPass(renderPasses.shadowMapRenderPass)
+			.build(device);
 
 		primitivePipeline = 
 			pipelineBuilder
@@ -267,6 +285,28 @@ namespace Pipelines
 
 		shadowMapMeshPipeline = pipelineBuilder
 			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMapMesh.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.shadowMapMesh.frag}})
+			//.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+			//.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
+			//.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)
+			//.clearAttributeDescription(1, 5, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 4)
+			//.clearAttributeDescription(1, 6, VK_FORMAT_R32_SFLOAT, sizeof(float) * 8)
+			//.clearAttributeDescription(1, 7, VK_FORMAT_R32G32_UINT, sizeof(float) * 9)
+			.setTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+			.setMSAASamples(VK_SAMPLE_COUNT_1_BIT)
+			.setDescriptor(meshBindings, meshTypes, VulkanConfig::MESH_COUNT, device)
+			.setStencilTest(VK_FALSE)
+			.setStencilState(VK_STENCIL_OP_KEEP, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_KEEP, VK_COMPARE_OP_ALWAYS)	
+			.setStencilWriteMask(0xFF)	
+			.setDepthTest(VK_TRUE)
+			.setDepthWrite(VK_TRUE)
+			.setDepthCompareOp(VK_COMPARE_OP_LESS)
+			.setCullMode(VK_CULL_MODE_BACK_BIT)
+			.setCullFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+			.setRenderPass(renderPasses.shadowMapRenderPass)
+			.build(device);
+
+		shadowMapODMeshPipeline = pipelineBuilder
+			.setShaderPaths({{VK_SHADER_STAGE_VERTEX_BIT, shaderPaths.shadowMapMeshOD.vert}, {VK_SHADER_STAGE_FRAGMENT_BIT, shaderPaths.shadowMapMeshOD.frag}, {VK_SHADER_STAGE_GEOMETRY_BIT, shaderPaths.shadowMapMeshOD.geom}})
 			//.setBindingDescription(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
 			//.clearBindingDescription(1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE)
 			//.clearAttributeDescription(1, 4, VK_FORMAT_R32G32B32_SFLOAT, 0)

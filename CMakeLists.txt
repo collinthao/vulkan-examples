@@ -27,7 +27,6 @@ set(SOURCES
     ${SOURCE_DIR}/core/vulkanImage/vulkanImage.cpp
     ${SOURCE_DIR}/core/windowContext/glfwWindowContext.cpp
     ${SOURCE_DIR}/core/windowContext/glfwWindowContext.cpp
-    ${SOURCE_DIR}/examples/basicApp/basicApp.cpp
     ${SOURCE_DIR}/examples/minecraft/minecraft.cpp
     ${SOURCE_DIR}/examples/grassScene/grassScene.cpp
     ${SOURCE_DIR}/examples/shadowMappingScene/shadowMappingScene.cpp
