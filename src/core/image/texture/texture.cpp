@@ -55,5 +55,4 @@ void Image::Texture::create(const std::string imagePath, VkImage& image, VkDevic
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
 	Image::generateMipmaps(image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels, 1, device, physicalDevice, graphicsAndComputeQueue);
-	
 }

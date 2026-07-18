@@ -78,7 +78,7 @@ void Minecraft::cleanup(GLFWwindow * window)
 
 	vkDestroyCommandPool(device, CommandBuffer::commandPool, nullptr);
 
-	vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
+	vkDestroyRenderPass(device, basicRenderPasses.renderPass, nullptr);
 
 	vkDestroyDevice(device, nullptr);
 
@@ -420,7 +420,7 @@ void Minecraft::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imag
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderPasses.renderPass;
+	renderPassInfo.renderPass = basicRenderPasses.renderPass;
 	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = { 0,0 };
 	renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
@@ -569,7 +569,7 @@ void Minecraft::createRenderPass()
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = dependency.data();
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.renderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -607,7 +607,7 @@ void Minecraft::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPasses.renderPass;
+		framebufferInfo.renderPass = basicRenderPasses.renderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;

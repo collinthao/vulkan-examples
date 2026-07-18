@@ -198,7 +198,7 @@ void IVulkanApp::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPasses.renderPass;
+		framebufferInfo.renderPass = basicRenderPasses.renderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -257,7 +257,7 @@ VkSurfaceFormatKHR IVulkanApp::chooseSwapSurfaceFormat(const std::vector<VkSurfa
 
 void IVulkanApp::createPipelines()
 {
-	Pipelines::createPipelines(device, renderPasses); 
+	Pipelines::createPipelines(device, basicRenderPasses); 
 }
 
 void IVulkanApp::createDescriptorSets()
@@ -294,7 +294,7 @@ void IVulkanApp::createRenderPass()
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.renderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -815,7 +815,7 @@ void IVulkanApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderPasses.renderPass;
+	renderPassInfo.renderPass = basicRenderPasses.renderPass;
 	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = { 0,0 };
 	renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
@@ -922,7 +922,7 @@ void IVulkanApp::createPostProcessingRenderPass()
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.postProcessingRenderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.postProcessingRenderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -975,7 +975,7 @@ void IVulkanApp::createShadowMapRenderPass()
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependency.data();
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.shadowMapRenderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.shadowMapRenderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}

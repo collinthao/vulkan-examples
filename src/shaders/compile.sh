@@ -40,3 +40,5 @@ $GLSL_PATH grass/grass.geom -o grass/geom.spv
 $GLSL_PATH grass/grass.frag -o grass/frag.spv
 $GLSL_PATH basicCube/shader.vert -o basicCube/vert.spv
 $GLSL_PATH basicCube/shader.frag -o basicCube/frag.spv
+$GLSL_PATH textureMapping/shader.vert -o textureMapping/vert.spv
+$GLSL_PATH textureMapping/shader.frag -o textureMapping/frag.spv

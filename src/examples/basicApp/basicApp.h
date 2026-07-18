@@ -1,13 +1,6 @@
 #pragma once
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
-
-#if defined(_WIN32) || defined(_WIN64)
-		inline  const std::string SHADER_DIRECTORY = std::string{GetExecutableDir()}+ std::string{"/src/shaders"};
-	#else
-		inline  const std::string SHADER_DIRECTORY = std::string{PROJECT_ROOT_DIR}+ std::string{"/src/shaders"};
-	#endif
-
 class BasicApp : public IVulkanApp
 {
 	public:
@@ -27,7 +20,7 @@ class BasicApp : public IVulkanApp
 	struct 
 	{
 		VkRenderPass renderPass;	
-	} basicRenderPasses{};
+	} renderPasses{};
 
 	VkPipelineLayout pipelineLayout{}; 
 	struct 
@@ -53,8 +46,14 @@ class BasicApp : public IVulkanApp
 		void * scene;
 	};
 
+	struct UniformBuffersMemory
+	{
+		VkDeviceMemory scene;
+	};
+
 	std::array<UniformBuffers, frames> uniformBuffers;
 	std::array<UniformBuffersMapped, frames> uniformBuffersMapped;
+	std::array<UniformBuffersMemory, frames> uniformBuffersMemory;
 	
 	void setupRenderPass()
 	{
@@ -85,7 +84,7 @@ class BasicApp : public IVulkanApp
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.renderPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		}
@@ -94,14 +93,14 @@ class BasicApp : public IVulkanApp
 	void setupUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(UniformData);
-		std::array<VkDeviceMemory, frames> uniformBuffersMemory;
 		
 		for (size_t i = 0; i < frames; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i].scene, uniformBuffersMemory[i], device, physicalDevice);
+			uniformBuffers[i].scene, uniformBuffersMemory[i].scene, device, physicalDevice);
 
-		vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i].scene);
+			vkMapMemory(device, uniformBuffersMemory[i].scene, 0, bufferSize, 0, &uniformBuffersMapped[i].scene);
+		
 		}	
 	}
 	
@@ -364,7 +363,7 @@ class BasicApp : public IVulkanApp
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
 			.layout = pipelineLayout,
-			.renderPass = basicRenderPasses.renderPass,
+			.renderPass = renderPasses.renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
@@ -375,6 +374,32 @@ class BasicApp : public IVulkanApp
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
 	};
+
+	void createFramebuffers()
+	{
+		swapChainFramebuffers.resize(swapChainImageViews.size());
+
+		for (size_t i = 0; i < swapChainImageViews.size(); i++)
+		{
+			std::array<VkImageView, 1> attachments = { 
+				swapChainImageViews[i], 
+			};
+			
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = basicRenderPasses.renderPass;
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+			framebufferInfo.pAttachments = attachments.data();
+			framebufferInfo.width = VulkanConfig::swapChainExtent.width;
+			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
+			framebufferInfo.layers = 1;
+
+			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create framebuffer!");
+			};
+		}
+	}
 
 	void init(GLFWwindow* window)
 	{
@@ -392,6 +417,7 @@ class BasicApp : public IVulkanApp
 		uniformData.model = glm::mat4(1.);		
 		uniformData.view = camera.getViewMatrix();
 		uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		uniformData.proj[1][1] *= -1.;
 		
 		memcpy(uniformBuffersMapped[currentImage].scene, &uniformData, sizeof(uniformData));
 	};
@@ -489,6 +515,27 @@ class BasicApp : public IVulkanApp
 		{
 			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 		}
+
+		for (size_t i = 0; i < frames; i++)
+		{
+			vkDestroyBuffer(device, uniformBuffers[i].scene, nullptr);
+			vkFreeMemory(device, uniformBuffersMemory[i].scene, nullptr);
+		}		
+
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+		vkDestroyBuffer(device, indexBuffer, nullptr);
+		vkFreeMemory(device, indexBufferMemory, nullptr);
+		
+		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
+		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
+		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
+
+		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
+
+		vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
+
+		vkDestroyDevice(device, nullptr);
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		

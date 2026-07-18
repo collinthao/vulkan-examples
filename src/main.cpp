@@ -27,6 +27,8 @@
 #include "./bindings/particle.h"
 
 #include "./examples/basicApp/basicApp.h"
+#include "./examples/textureMapping/textureMapping.h"
+#include "./examples/depthTesting/depthTesting.h"
 #include "./examples/minecraft/minecraft.h"
 #include "./examples/grassScene/grassScene.h"
 #include "./examples/shadowMappingScene/shadowMappingScene.h"
@@ -34,7 +36,7 @@
 
 int main()
 {
-	Engine<BasicApp, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<DepthTesting, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

@@ -47,7 +47,7 @@ void GrassScene::init(GLFWwindow* window)
 
 void GrassScene::createPipelines()
 {
-	Pipelines::createPipelines(device, renderPasses);
+	Pipelines::createPipelines(device, basicRenderPasses);
 }
 
 void GrassScene::createImageViews()
@@ -109,7 +109,7 @@ void GrassScene::createShadowMapRenderPass()
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependency.data();
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.shadowMapRenderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.shadowMapRenderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -193,7 +193,7 @@ void GrassScene::createRenderPass()
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependency.data();
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.renderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -240,7 +240,7 @@ void GrassScene::createPostProcessingRenderPass()
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.postProcessingRenderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &basicRenderPasses.postProcessingRenderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create render pass!");
 	}
@@ -458,7 +458,7 @@ void GrassScene::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPasses.shadowMapRenderPass;
+		framebufferInfo.renderPass = basicRenderPasses.shadowMapRenderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -482,7 +482,7 @@ void GrassScene::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPasses.renderPass;
+		framebufferInfo.renderPass = basicRenderPasses.renderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -504,7 +504,7 @@ void GrassScene::createFramebuffers()
 		
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPasses.postProcessingRenderPass;
+		framebufferInfo.renderPass = basicRenderPasses.postProcessingRenderPass;
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -1856,7 +1856,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderPasses.shadowMapRenderPass;
+	renderPassInfo.renderPass = basicRenderPasses.shadowMapRenderPass;
 	renderPassInfo.framebuffer = shadowMapFramebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = { 0,0 };
 	renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
@@ -1918,7 +1918,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassInfo.pClearValues = clearValues.data();
 
-	renderPassInfo.renderPass = renderPasses.renderPass;
+	renderPassInfo.renderPass = basicRenderPasses.renderPass;
 	renderPassInfo.framebuffer = offScreenFramebuffers[imageIndex];
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -1972,7 +1972,7 @@ void GrassScene::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 	vkCmdEndRenderPass(commandBuffer);
 
 	// POST PROCESSING PASS
-	renderPassInfo.renderPass = renderPasses.postProcessingRenderPass;
+	renderPassInfo.renderPass = basicRenderPasses.postProcessingRenderPass;
 	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -2337,7 +2337,7 @@ void GrassScene::cleanup(GLFWwindow * window)
 
 	vkDestroyCommandPool(device, CommandBuffer::commandPool, nullptr);
 
-	vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
+	vkDestroyRenderPass(device, basicRenderPasses.renderPass, nullptr);
 
 	vkDestroyDevice(device, nullptr);
 

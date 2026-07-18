@@ -43,6 +43,12 @@
 
 namespace fs = std::filesystem;
 
+#if defined(_WIN32) || defined(_WIN64)
+		inline  const std::string SHADER_DIRECTORY = std::string{GetExecutableDir()}+ std::string{"/src/shaders"};
+	#else
+		inline  const std::string SHADER_DIRECTORY = std::string{PROJECT_ROOT_DIR}+ std::string{"/src/shaders"};
+	#endif
+
 struct SwapChainSupportDetails
 {
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -203,7 +209,7 @@ class IVulkanApp
 		VkRenderPass shadowMapRenderPass;
 		VkRenderPass renderPass;
 		VkRenderPass postProcessingRenderPass;
-	} renderPasses{};
+	} basicRenderPasses{};
 
 	Pipeline basePipeline; 
 	std::vector<VkBuffer> baseUniformBuffers;
@@ -273,6 +279,9 @@ class IVulkanApp
 	VkShaderModule createShaderModule(const std::vector<char>& code, VkDevice& device);
 
 	VkDevice device;
+
+	void addShader(const std::string&& path, VkShaderStageFlagBits stage);
+	void setupPipelineLayout();
 
 	template <typename T = Vertex>
 	void createVertexBuffer(std::vector<T> vertices, VkBuffer& buffer, VkDeviceMemory& memory)
