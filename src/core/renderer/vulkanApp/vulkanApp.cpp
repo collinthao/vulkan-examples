@@ -16,7 +16,6 @@ void IVulkanApp::init(GLFWwindow* window)
 	createImageViews();
 	createRenderPass();
 	CommandBuffer::createCommandPool(physicalDevice, device, surface);
-	createFramebuffers();
 	createVertexBuffers();
 	createIndexBuffer();
 	CommandBuffer::createCommandBuffers(device);
