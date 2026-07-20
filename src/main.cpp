@@ -29,6 +29,7 @@
 #include "./examples/basicApp/basicApp.h"
 #include "./examples/textureMapping/textureMapping.h"
 #include "./examples/depthTesting/depthTesting.h"
+#include "./examples/antialiasing/antialiasing.h"
 #include "./examples/minecraft/minecraft.h"
 #include "./examples/grassScene/grassScene.h"
 #include "./examples/shadowMappingScene/shadowMappingScene.h"
@@ -36,7 +37,7 @@
 
 int main()
 {
-	Engine<DepthTesting, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<AntiAliasing, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
