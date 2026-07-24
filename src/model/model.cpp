@@ -1,4 +1,5 @@
 #include "model.h"
+#include <thread>
 
 
 unsigned int TextureFromFile(const char * path, const std::string & directory, bool gamma)
@@ -42,7 +43,9 @@ void Model::processNode(aiNode *node, const aiScene *scene)
 
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		processNode(node->mChildren[i], scene);
+		std::jthread t1([&](){
+			processNode(node->mChildren[i], scene);
+		});
 	}
 };
 

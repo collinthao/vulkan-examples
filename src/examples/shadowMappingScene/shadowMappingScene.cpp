@@ -770,6 +770,11 @@ void ShadowMappingScene::createModelIndexBuffers()
 {
 	indexModelBuffers.resize(VulkanConfig::MESH_COUNT);
 	indexModelBufferMemories.resize(VulkanConfig::MESH_COUNT);
+	for (size_t i = 0; i < model->meshes[1].indices.size(); i++)
+	{
+			std::cout << "Index " << i << model->meshes[1].indices[i] << '\n';
+	};
+
 
 	for (size_t i = 0; i < VulkanConfig::MESH_COUNT; i++)
 	{
@@ -796,7 +801,6 @@ void ShadowMappingScene::createModelIndexBuffer(std::vector<uint32_t> m_Indices,
 	
 	vkDestroyBuffer(device, stagingBuffer, nullptr);
 	vkFreeMemory(device, stagingBufferMemory, nullptr);
-
 }
 
 void ShadowMappingScene::createUniformBuffers()

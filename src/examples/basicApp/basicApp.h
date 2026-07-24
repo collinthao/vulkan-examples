@@ -408,6 +408,7 @@ class BasicApp : public IVulkanApp
 		setupUniformBuffers();
 		setupDescriptorSets();
 		setupPipelines();
+		createFramebuffers();
 	};
 
 	void updateUniformBuffer(uint32_t currentImage)

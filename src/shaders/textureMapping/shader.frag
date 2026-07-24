@@ -6,5 +6,5 @@ layout(binding = 1) uniform sampler2D texSampler;
 
 void main()
 {
-	FragColor = vec4(vec3(texture(texSampler, texCoords)), 1.);
+	FragColor = vec4(vec3(texture(texSampler, vec2(texCoords.x, -texCoords.y))), 1.);
 }

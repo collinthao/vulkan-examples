@@ -181,7 +181,7 @@ class IVulkanApp
 	VkBuffer vertexCubeBuffer;
 	VkDeviceMemory vertexCubeBufferMemory;
 	static Camera camera;
-	const float FAR_PLANE = 400.f;
+	const float FAR_PLANE = 1000.f;
 	static glm::vec3 cameraPos;
 	static glm::vec3 cameraFront;
 	static glm::vec3 cameraUp; 
@@ -263,9 +263,9 @@ class IVulkanApp
 	virtual VkDevice* getDevice();
 	virtual void createSyncObjects();
 	virtual void cleanupSwapChain();
-	virtual void updateUniformBuffer(uint32_t currentImage);
 	virtual void createDescriptorSets();
 	virtual void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	virtual void updateUniformBuffer(uint32_t currentImage);
 	virtual void init(GLFWwindow * window);
 	virtual void moveCamera(double xpos, double ypos);
 	virtual void deviceWaitIdle();

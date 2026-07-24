@@ -218,7 +218,6 @@ class ShadowMappingScene : public IVulkanApp
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
-
 	};	
 
 	public:
