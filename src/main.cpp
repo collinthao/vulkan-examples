@@ -31,11 +31,11 @@
 #include "./examples/depthTesting/depthTesting.h"
 #include "./examples/antialiasing/antialiasing.h"
 #include "./examples/modelLoading/modelLoading.h"
-#include "./examples/shadowMappingScene/shadowMappingScene.h"
+#include "./examples/phong/phong.h"
 
 int main()
 {
-	Engine<ModelLoading, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<Phong, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
