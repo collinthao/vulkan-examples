@@ -33,10 +33,11 @@
 #include "./examples/modelLoading/modelLoading.h"
 #include "./examples/phong/phong.h"
 #include "./examples/postProcessing/postProcessing.h"
+#include "./examples/directionalLight/directionalLight.h"
 
 int main()
 {
-	Engine<PostProcessing, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<DirectionalLight, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
