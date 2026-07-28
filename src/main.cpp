@@ -32,10 +32,11 @@
 #include "./examples/antialiasing/antialiasing.h"
 #include "./examples/modelLoading/modelLoading.h"
 #include "./examples/phong/phong.h"
+#include "./examples/postProcessing/postProcessing.h"
 
 int main()
 {
-	Engine<Phong, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<PostProcessing, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

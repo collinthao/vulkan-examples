@@ -199,7 +199,6 @@ void ShadowMappingScene::createRenderPass()
 	colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	VkAttachmentDescription depthAttachment{};
-	//depthattachment.format = finddepthformat();
 	depthAttachment.format = VK_FORMAT_D32_SFLOAT_S8_UINT;
 	depthAttachment.samples = VulkanConfig::msaaSamples; 
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;

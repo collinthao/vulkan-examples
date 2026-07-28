@@ -50,4 +50,5 @@ void main()
     fragColor = texture(texture_sampler, texCoords);
 
     fragColor = vec4(pow(fragColor.rgb, vec3(1.)/gamma), 1.);
+//    fragColor = vec4(1.);
 }
