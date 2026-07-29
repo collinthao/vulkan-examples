@@ -375,7 +375,7 @@ class BasicApp : public IVulkanApp
 		}
 	};
 
-	void createFramebuffers()
+	void setupFramebuffers()
 	{
 		swapChainFramebuffers.resize(swapChainImageViews.size());
 
@@ -408,7 +408,7 @@ class BasicApp : public IVulkanApp
 		setupUniformBuffers();
 		setupDescriptorSets();
 		setupPipelines();
-		createFramebuffers();
+		setupFramebuffers();
 	};
 
 	void updateUniformBuffer(uint32_t currentImage)

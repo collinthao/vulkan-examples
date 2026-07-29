@@ -26,11 +26,6 @@ set(SOURCES
     ${SOURCE_DIR}/core/renderer/vulkanApp/vulkanApp.cpp
     ${SOURCE_DIR}/core/vulkanImage/vulkanImage.cpp
     ${SOURCE_DIR}/core/windowContext/glfwWindowContext.cpp
-    ${SOURCE_DIR}/core/windowContext/glfwWindowContext.cpp
-    ${SOURCE_DIR}/examples/minecraft/minecraft.cpp
-    ${SOURCE_DIR}/examples/grassScene/grassScene.cpp
-    ${SOURCE_DIR}/examples/shadowMappingScene/shadowMappingScene.cpp
-    ${SOURCE_DIR}/examples/omniDirectionalShadowMappingScene/omniDirectionalShadowMappingScene.cpp
 )
 
 add_executable(vulkan_examples ${SOURCES})

@@ -61,7 +61,7 @@ struct Material
 	alignas(16)glm::vec3 specular;
 	alignas(4)float shininess;
 };
-
+/*
 struct DirectionalLight
 {
 	alignas(16)glm::vec3 ambient;
@@ -69,7 +69,7 @@ struct DirectionalLight
 	alignas(16)glm::vec3 specular;
 	alignas(16)glm::vec3 direction;
 };
-
+*/
 struct SpotLight
 {
 	alignas(16)glm::vec3 ambient;
@@ -95,14 +95,14 @@ struct PointLight
 	alignas(4)float linear;
 	alignas(4)float quadratic;
 };
-
+/*
 struct Lights
 {
 	alignas(16)PointLight pointLights[1];	
 	alignas(16)DirectionalLight directionalLight;
 	alignas(16)SpotLight spotLight;
 };
-
+*/
 struct Light 
 {
 	alignas(16)glm::vec3 ambient;
