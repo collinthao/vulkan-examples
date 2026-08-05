@@ -34,10 +34,11 @@
 #include "./examples/phong/phong.h"
 #include "./examples/directionalLight/directionalLight.h"
 #include "./examples/postProcessing/postProcessing.h"
+#include "./examples/shadowMapping/shadowMapping.h"
 
 int main()
 {
-	Engine<DirectionalLight, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<ShadowMapping, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

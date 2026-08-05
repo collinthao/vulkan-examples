@@ -9,13 +9,6 @@ class DirectionalLight : public IVulkanApp
 	constexpr static int frames = 2;
 	
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
-	struct LightUniform
-	{
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
-	};
-
 	struct ObjectUniform
 	{
 		alignas(16) glm::mat4 model;
@@ -205,8 +198,7 @@ class DirectionalLight : public IVulkanApp
 	void setupUniformBuffers()
 	{
 		VkDeviceSize objectBufferSize = sizeof(ObjectUniform);	
-		VkDeviceSize lightBufferSize = sizeof(LightUniform);	
-		
+
 		for (size_t i = 0; i < frames; i++)
 		{
 			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, device, physicalDevice);

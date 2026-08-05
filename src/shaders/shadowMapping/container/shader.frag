@@ -8,12 +8,23 @@ layout(location = 3) in vec3 CameraPos;
 layout(location = 4) in vec3 LightDir;
 
 layout(binding = 1) uniform sampler2D texSampler;
+layout(binding = 2) uniform sampler2D depthTexture;
+
+const float constant = 1.0f;
+const float linear = 0.09f;
+const float quadratic = 0.032f;
+
+// arbitrary light position since we're using directional light; could be uniform
+const vec3 lightPos = vec3(1., 1., 2.);
 
 void main()
 {
+	float distance = length(lightPos - FragPos);
+	float attenuation = 1.0/(constant - linear * distance + quadratic * (distance * distance));
+
 	vec3 lightDir = normalize(-LightDir);
 
-	vec3 normal = normalize(Normal);
+	vec3 normal = normalize(-Normal);
 
 	float ambientStrength = 0.1;	
 
@@ -31,11 +42,11 @@ void main()
 	float specularStrength = .5;	
 
 	vec3 specular = specularStrength * spec * vec3(1., 1., 1.);
+	ambient *= attenuation;
+	diffuse *= attenuation;
+	specular *= attenuation;
 
 	vec3 result = (ambient + diffuse + specular) * vec3(texture(texSampler, vec2(texCoords.x, texCoords.y)));
 
-//	vec3 result = (ambient + diffuse + specular) * vec3(1., 0., 0.);
-
 	FragColor = vec4(result, 1.);
-//	FragColor = vec4(vec3(gl_FragCoord.z), 1.);
 }

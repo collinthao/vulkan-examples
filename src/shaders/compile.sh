@@ -12,3 +12,9 @@ $GLSL_PATH phong/object/shader.vert -o phong/object/vert.spv
 $GLSL_PATH phong/object/shader.frag -o phong/object/frag.spv
 $GLSL_PATH directionalLight/shader.vert -o directionalLight/vert.spv
 $GLSL_PATH directionalLight/shader.frag -o directionalLight/frag.spv
+$GLSL_PATH shadowMapping/shader.vert -o shadowMapping/vert.spv
+$GLSL_PATH shadowMapping/shader.frag -o shadowMapping/frag.spv
+$GLSL_PATH shadowMapping/debug/shader.vert -o shadowMapping/debug/vert.spv
+$GLSL_PATH shadowMapping/debug/shader.frag -o shadowMapping/debug/frag.spv
+$GLSL_PATH shadowMapping/depthReadFrag/shader.frag -o shadowMapping/depthReadFrag/frag.spv
+$GLSL_PATH shadowMapping/container/shader.frag -o shadowMapping/container/frag.spv
