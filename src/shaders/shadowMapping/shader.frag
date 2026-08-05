@@ -22,17 +22,15 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 lightDir)
 {
 	vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;	
 	projCoords = projCoords * 0.5 + 0.5;
-	projCoords.y = 1.0 - projCoords.y;
-	projCoords.x = 1.0 - projCoords.x;
+
 	float closestDepth = texture(depthTexture, projCoords.xy).r;
 	float currentDepth = projCoords.z;
 
 	vec3 normal = normalize(Normal);
 
-//	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
 
-//	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
-	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
 	return shadow;
 }
@@ -67,7 +65,7 @@ void main()
 	diffuse *= attenuation;
 	specular *= attenuation;
 	
-	float shadow = ShadowCalculation(LightSpace, LightDir);	
+	float shadow = ShadowCalculation(LightSpace, lightDir);	
 	vec3 textureSample = vec3(texture(texSampler, vec2(texCoords.x * 10., texCoords.y * 10.)));
 
 	vec3 result = (ambient + (1.0 - shadow) + (diffuse + specular)) * textureSample;

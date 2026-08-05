@@ -2113,8 +2113,9 @@ class ShadowMapping : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		// Light	
-		glm::vec3 lightDir = glm::vec3(-.2f, -1.f, -0.3f);
+		glm::vec3 lightDir = glm::vec3(0.f, 0.f, 0.f);
 		glm::vec3 containerPos = glm::vec3(sin(glfwGetTime()) * 4.f, 4.f, 2.f);
+		glm::vec3 planePos = glm::vec3(0., 1., 0.);
 
 		ShadowMapUniform offscreenUniform;		
 		glm::mat4 model = glm::mat4(1.);		
@@ -2125,6 +2126,7 @@ class ShadowMapping : public IVulkanApp
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
  		glm::mat4 lightProj = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 15.f);
+		lightProj[1][1] *= -1.f;
 
 		offscreenUniform.model = model;		
 		offscreenUniform.view = lightPerspective;
@@ -2134,6 +2136,8 @@ class ShadowMapping : public IVulkanApp
 
 		model = glm::mat4(1.);
 		model = glm::scale(model, glm::vec3(40., 1., 40.));
+		model = glm::translate(model, planePos);
+
 		offscreenUniform.view = lightPerspective;
 		offscreenUniform.proj = lightProj;
 
@@ -2142,6 +2146,7 @@ class ShadowMapping : public IVulkanApp
 		ObjectUniform objectUniform;
 		model = glm::mat4(1.);
 		model = glm::scale(model, glm::vec3(40., 1., 40.));
+		model = glm::translate(model, planePos);
 
 		objectUniform.model = model;		
 		objectUniform.view = camera.getViewMatrix();
@@ -2402,6 +2407,7 @@ class ShadowMapping : public IVulkanApp
 		setupDepth();
 		setupOffscreen();
 		setupCubeDescriptorSets();
+		setupPlaneDescriptorSets();
 		
 		createOffscreenFramebuffers();
 		createFramebuffers();
