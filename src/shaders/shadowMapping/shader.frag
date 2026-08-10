@@ -66,8 +66,9 @@ void main()
 	vec3 cameraDir = normalize(CameraPos - FragPos);
 	
 	float shadow = filterPCF(LightSpace/LightSpace.w);	
+
 	vec3 textureSample = vec3(texture(texSampler, vec2(texCoords.x * 10., texCoords.y * 10.)));
 
-	vec3 result = (shadow) * textureSample;
+	vec3 result = shadow * diffuse * textureSample;
 	FragColor = vec4(result, 1.);
 }
