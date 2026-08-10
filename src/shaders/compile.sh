@@ -18,3 +18,4 @@ $GLSL_PATH shadowMapping/debug/shader.vert -o shadowMapping/debug/vert.spv
 $GLSL_PATH shadowMapping/debug/shader.frag -o shadowMapping/debug/frag.spv
 $GLSL_PATH shadowMapping/depthReadFrag/shader.frag -o shadowMapping/depthReadFrag/frag.spv
 $GLSL_PATH shadowMapping/container/shader.frag -o shadowMapping/container/frag.spv
+$GLSL_PATH shadowMapping/offscreen/shader.vert -o shadowMapping/offscreen/vert.spv

@@ -7,6 +7,9 @@ class ShadowMapping : public IVulkanApp
 	public:
 	ShadowMapping() = default;
 	constexpr static int frames = 2;
+	float step = 0.0f;
+	uint32_t offscreenWidth = 2048;
+	uint32_t offscreenHeight = 2048;
 	
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	std::vector<VkFramebuffer> offscreenFramebuffers;
@@ -15,6 +18,13 @@ class ShadowMapping : public IVulkanApp
 	   17,18,16,
 	   19,16,18,
 	};
+
+	struct
+	{
+		float x;
+		float y;
+		float z;
+	} steps;
 
 	struct ShadowMapUniform
 	{
@@ -43,6 +53,7 @@ class ShadowMapping : public IVulkanApp
 	{
 		VkPipelineLayout plane;		
 		VkPipelineLayout cube;		
+		VkPipelineLayout offscreen;		
 	} pipelineLayouts;
 	
 	struct
@@ -57,8 +68,7 @@ class ShadowMapping : public IVulkanApp
 	{
 		VkDescriptorSetLayout plane;
 		VkDescriptorSetLayout cube;
-		VkDescriptorSetLayout offscreenPlane;
-		VkDescriptorSetLayout offscreenCube;
+		VkDescriptorSetLayout offscreen;
 	} descriptorSetLayouts;
 
 	struct DescriptorSets
@@ -100,6 +110,7 @@ class ShadowMapping : public IVulkanApp
 	std::array<UniformBuffersMemory, frames> uniformBuffersMemory;	
 	
 	VkSampler sampler;
+	VkSampler shadowMapSampler;
 	struct Texture
 	{
 		VkImageView imageView;
@@ -138,7 +149,7 @@ class ShadowMapping : public IVulkanApp
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
 
 		VkAttachmentReference depthAttachmentRef{
 			.attachment = 0,
@@ -472,8 +483,10 @@ class ShadowMapping : public IVulkanApp
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 		};
 		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
+		//imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
+		//imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
+		imageInfo.extent.width = offscreenWidth; 
+		imageInfo.extent.height = offscreenHeight;
 		imageInfo.extent.depth = 1;
 
 		if(vkCreateImage(device, &imageInfo, nullptr, &texture.offscreen.image))
@@ -1010,6 +1023,18 @@ class ShadowMapping : public IVulkanApp
 		{
 			throw std::runtime_error("failed to create sampler!");	
 		};
+	
+		// Shadow Map Sampler
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+		if (vkCreateSampler(device, &samplerInfo, nullptr, &shadowMapSampler))
+		{
+			throw std::runtime_error("failed to create sampler!");	
+		};
+
+
 	};
 
 	void setupOffscreenDescriptorSets()
@@ -1033,12 +1058,7 @@ class ShadowMapping : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.offscreenCube))
-		{
-			throw std::runtime_error("Failed to create descriptor set layout!");
-		};	
-
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.offscreenPlane))
+		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.offscreen))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -1065,9 +1085,9 @@ class ShadowMapping : public IVulkanApp
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 		
-		std::vector<VkDescriptorSetLayout> cubeLayouts(frames, descriptorSetLayouts.offscreenCube);
+		std::vector<VkDescriptorSetLayout> cubeLayouts(frames, descriptorSetLayouts.offscreen);
 
-		std::vector<VkDescriptorSetLayout> planeLayouts(frames, descriptorSetLayouts.offscreenPlane);
+		std::vector<VkDescriptorSetLayout> planeLayouts(frames, descriptorSetLayouts.offscreen);
 			
 		VkDescriptorSetAllocateInfo cubeAllocInfo
 		{
@@ -1234,9 +1254,9 @@ class ShadowMapping : public IVulkanApp
 
 			VkDescriptorImageInfo depthInfo
 			{
-				.sampler = sampler,
+				.sampler = shadowMapSampler,
 				.imageView = texture.offscreen.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
 			};
 
 			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
@@ -1367,9 +1387,9 @@ class ShadowMapping : public IVulkanApp
 				
 			VkDescriptorImageInfo depthInfo
 			{
-				.sampler = sampler,
+				.sampler = shadowMapSampler,
 				.imageView = texture.offscreen.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
 			};
 
 			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
@@ -1435,6 +1455,22 @@ class ShadowMapping : public IVulkanApp
 		};
 	};
 
+	void setupOffscreenPipelineLayout()
+	{
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.setLayoutCount = 1,
+			.pSetLayouts = &descriptorSetLayouts.offscreen,
+			.pushConstantRangeCount = 0,
+			.pPushConstantRanges = nullptr
+		};
+	
+		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.offscreen) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create pipeline layout!");
+		};
+	};
+
 	void setupPlanePipelineLayout()
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
@@ -1453,10 +1489,10 @@ class ShadowMapping : public IVulkanApp
 
 	void setupOffscreenPipeline()
 	{
-		setupCubePipelineLayout();
+		setupOffscreenPipelineLayout();
 
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/directionalLight/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/shadowMapping/offscreen/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
 		addShader(SHADER_DIRECTORY + "/shadowMapping/depthReadFrag/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription
@@ -1604,7 +1640,7 @@ class ShadowMapping : public IVulkanApp
 			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.cube,
+			.layout = pipelineLayouts.offscreen,
 			.renderPass = renderPasses.offscreenPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE
@@ -2113,19 +2149,29 @@ class ShadowMapping : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		// Light	
-		glm::vec3 lightDir = glm::vec3(0.f, 0.f, 0.f);
-		glm::vec3 containerPos = glm::vec3(sin(glfwGetTime()) * 4.f, 4.f, 2.f);
-		glm::vec3 planePos = glm::vec3(0., 1., 0.);
+		glm::vec3 lightDir = glm::vec3(0.f, -6.f, 0.f);
+		glm::vec3 containerPos = glm::vec3(5.f, 4.f, 2.f);
+		glm::vec3 planePos = glm::vec3(0., 1.f, 0.);
 
 		ShadowMapUniform offscreenUniform;		
 		glm::mat4 model = glm::mat4(1.);		
 		model = glm::translate(model, containerPos);
+
 		glm::mat4 lightPerspective = glm::lookAt(
-			glm::vec3(-2.0f, 15.0f, -1.0f), 
-			glm::vec3(0.f, 0.f, 0.f),
+			glm::vec3(10.f, 20.0f, 4.0f), 
+			lightDir,
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
- 		glm::mat4 lightProj = glm::ortho(-20.f, 20.f, -20.f, 20.f, 0.1f, 15.f);
+/*
+		glm::mat4 lightPerspective = glm::lookAt(
+			glm::vec3(3.0f, 10.0f, 4.0f), 
+			lightDir,
+			glm::vec3(0.f, 1.0f, 0.f)
+		);
+*/
+//		glm::mat4 lightPerspective = camera.getViewMatrix();
+		glm::mat4 lightProj = glm::ortho(-10.f, 10.f, -10.f, 10.f, .1f, 30.f);
+//		glm::mat4 lightProj = glm::perspective(glm::radians(45.f), 1.0f, 1.f, 96.f);
 		lightProj[1][1] *= -1.f;
 
 		offscreenUniform.model = model;		
@@ -2138,8 +2184,7 @@ class ShadowMapping : public IVulkanApp
 		model = glm::scale(model, glm::vec3(40., 1., 40.));
 		model = glm::translate(model, planePos);
 
-		offscreenUniform.view = lightPerspective;
-		offscreenUniform.proj = lightProj;
+		offscreenUniform.model = model;		
 
 		memcpy(uniformBuffersMapped[currentImage].offscreenPlane, &offscreenUniform, sizeof(offscreenUniform));
 
@@ -2155,7 +2200,7 @@ class ShadowMapping : public IVulkanApp
 		objectUniform.lightDir = lightDir; 
 
 		objectUniform.proj[1][1] *= -1.;
-		objectUniform.lightSpace = lightProj * lightPerspective;
+		objectUniform.lightSpace = lightProj * -lightPerspective;
 		
 		memcpy(uniformBuffersMapped[currentImage].plane, &objectUniform, sizeof(objectUniform));
 
@@ -2172,6 +2217,7 @@ class ShadowMapping : public IVulkanApp
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
 			camera.move(FORWARD);
+			step += 0.05;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 			camera.move(BACKWARD);
@@ -2179,6 +2225,14 @@ class ShadowMapping : public IVulkanApp
 			camera.move(LEFT);
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			camera.move(RIGHT);
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+			steps.x += 0.05;
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+			steps.x -= 0.05;
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+			steps.y -= 0.05;
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+			steps.y += 0.05;
 	};
 	
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -2198,7 +2252,7 @@ class ShadowMapping : public IVulkanApp
 		renderPassInfo.renderPass = renderPasses.offscreenPass;
 		renderPassInfo.framebuffer = offscreenFramebuffers[imageIndex];
 		renderPassInfo.renderArea.offset = { 0,0 };
-		renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
+		renderPassInfo.renderArea.extent = {offscreenWidth, offscreenHeight};
 
 		std::array<VkClearValue, 2> clearValues{};
 		clearValues[0].color = {{1.0f, 1.0f, 1.0f, 1.f}};
@@ -2214,17 +2268,14 @@ class ShadowMapping : public IVulkanApp
 		VkViewport viewport{};
 		viewport.x = 0.f;
 		viewport.y = 0.f;
-		//viewport.width = 2048;
-		//viewport.height = 2048;
-		viewport.width = static_cast<float>(VulkanConfig::swapChainExtent.width);
-		viewport.height = static_cast<float>(VulkanConfig::swapChainExtent.height);
+		viewport.width = offscreenWidth;
+		viewport.height = offscreenHeight;
 		viewport.minDepth = 0.f;
 		viewport.maxDepth = 1.f;
 
 		VkRect2D scissor{};
 		scissor.offset = {0, 0};
-		//scissor.extent = {2048, 2048};
-		scissor.extent = VulkanConfig::swapChainExtent;
+		scissor.extent = {offscreenWidth, offscreenHeight};
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -2233,15 +2284,15 @@ class ShadowMapping : public IVulkanApp
 		
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);	
 		
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.plane, 0, 1, &descriptorSets[currentFrame].offscreenPlane, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentFrame].offscreenPlane, 0, nullptr);
 		
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexPlaneBuffers, offsets);
 		
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.cube.buffer, 0, VK_INDEX_TYPE_UINT32);		
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.plane.buffer, 0, VK_INDEX_TYPE_UINT32);		
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(planeIndices.size()), 1, 0, 0, 0);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.cube, 0, 1, &descriptorSets[currentFrame].offscreenCube, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentFrame].offscreenCube, 0, nullptr);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.cube.buffer, 0, VK_INDEX_TYPE_UINT32);		
 
@@ -2254,6 +2305,7 @@ class ShadowMapping : public IVulkanApp
 		
 		renderPassInfo.pClearValues = clearValues.data();
 
+		renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
 		renderPassInfo.renderPass = renderPasses.renderPass;
 		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 

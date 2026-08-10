@@ -22,6 +22,12 @@ layout(location = 3) out vec3 CameraPos;
 layout(location = 4) out vec3 LightDir;
 layout(location = 5) out vec4 LightSpace;
 
+const mat4 biasMat = mat4( 
+	0.5, 0.0, 0.0, 0.0,
+	0.0, 0.5, 0.0, 0.0,
+	0.0, 0.0, 1.0, 0.0,
+	0.5, 0.5, 0.0, 1.0 );
+
 void main()
 {
 	gl_Position = u.proj * u.view * u.model * vec4(inPosition, 1.);
@@ -30,5 +36,5 @@ void main()
 	Normal = mat3(transpose(inverse(u.model))) * inNormal;
 	CameraPos = u.cameraPos;
 	LightDir = u.lightDir;
-	LightSpace = u.lightSpace * vec4(FragPos, 1.0);
+	LightSpace = (biasMat * u.lightSpace * u.model) * vec4(inPosition, 1.0);
 }

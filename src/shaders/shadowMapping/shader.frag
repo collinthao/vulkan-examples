@@ -11,42 +11,53 @@ layout(location = 5) in vec4 LightSpace;
 layout(binding = 1) uniform sampler2D texSampler;
 layout(binding = 2) uniform sampler2D depthTexture;
 
-const float constant = 1.0f;
-const float linear = 0.09f;
-const float quadratic = 0.032f;
-
 // arbitrary light position since we're using directional light; could be uniform
-const vec3 lightPos = vec3(1., 1., 2.);
+const vec3 lightPos = vec3(3.f, -6.f, 0.f);
 
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 lightDir)
+float ShadowCalculation(vec4 projCoords, vec3 lightDir, vec2 offset)
 {
-	vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;	
-	projCoords = projCoords * 0.5 + 0.5;
+	float shadow = 1.0;
 
-	float closestDepth = texture(depthTexture, projCoords.xy).r;
-	float currentDepth = projCoords.z;
-
-	vec3 normal = normalize(Normal);
-
-	float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-
-	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+	if (projCoords.z > -1.0 && projCoords.z < 1.0) 
+	{
+		float dist = texture(depthTexture, projCoords.st + offset).r;
+		if ( projCoords.w > 0.0 && dist < projCoords.z ) 
+		{
+			shadow = 0.1;
+		}
+	}
 
 	return shadow;
 }
 
+float filterPCF(vec4 sc)
+{
+	ivec2 texDim = textureSize(depthTexture, 0);
+	float scale = 1.5;
+	float dx = scale * 1.0 / float(texDim.x);
+	float dy = scale * 1.0 / float(texDim.y);
+
+	float shadowFactor = 0.0;
+	int count = 0;
+	int range = 1;
+	
+	for (int x = -range; x <= range; x++)
+	{
+		for (int y = -range; y <= range; y++)
+		{
+			shadowFactor += ShadowCalculation(sc, LightDir, vec2(dx*x, dy*y));
+			count++;
+		}
+	
+	}
+	return shadowFactor / count;
+}
+
 void main()
 {
-	float distance = length(lightPos - FragPos);
-	float attenuation = 1.0/(constant - linear * distance + quadratic * (distance * distance));
-
 	vec3 lightDir = normalize(-LightDir);
 
 	vec3 normal = normalize(-Normal);
-
-	float ambientStrength = 0.1;	
-
-	vec3 ambient = ambientStrength * vec3(1., 1., 1.);
 
 	float diff = max(dot(normal, lightDir), 0.);
 	
@@ -54,20 +65,9 @@ void main()
 
 	vec3 cameraDir = normalize(CameraPos - FragPos);
 	
-	vec3 reflectDir = reflect(-lightDir, normal);
-
-	float spec = pow(max(dot(cameraDir, reflectDir), 0.), 32.);	
-	float specularStrength = .5;	
-
-	vec3 specular = specularStrength * spec * vec3(1., 1., 1.);
-	
-	ambient *= attenuation;
-	diffuse *= attenuation;
-	specular *= attenuation;
-	
-	float shadow = ShadowCalculation(LightSpace, lightDir);	
+	float shadow = filterPCF(LightSpace/LightSpace.w);	
 	vec3 textureSample = vec3(texture(texSampler, vec2(texCoords.x * 10., texCoords.y * 10.)));
 
-	vec3 result = (ambient + (1.0 - shadow) + (diffuse + specular)) * textureSample;
+	vec3 result = (shadow) * textureSample;
 	FragColor = vec4(result, 1.);
 }
