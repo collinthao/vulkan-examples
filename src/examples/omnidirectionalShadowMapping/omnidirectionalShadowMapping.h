@@ -2,22 +2,18 @@
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
-class ShadowMapping : public IVulkanApp
+class OmniDirectionalShadowMapping : public IVulkanApp
 {
 	public:
-	ShadowMapping() = default;
+	OmniDirectionalShadowMapping() = default;
 	constexpr static int frames = 2;
 	float step = 0.0f;
-	uint32_t offscreenWidth = 2048;
-	uint32_t offscreenHeight = 2048;
+	float lightY = 0.0;
+	uint32_t offscreenWidth = 1024;
+	uint32_t offscreenHeight = 1024;
 	
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	std::vector<VkFramebuffer> offscreenFramebuffers;
-
-	static inline const std::vector<uint32_t> planeIndices = {
-	   17,18,16,
-	   19,16,18,
-	};
 
 	struct
 	{
@@ -26,11 +22,19 @@ class ShadowMapping : public IVulkanApp
 		float z;
 	} steps;
 
-	struct ShadowMapUniform
+	struct MVPUniform
 	{
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
+	};
+
+	struct OffscreenUniform
+	{
+		alignas(16) glm::mat4 model;
+		alignas(16) glm::mat4 projection;
+		alignas(16) glm::mat4 transforms[6]; 
+		alignas(16) glm::vec3 lightPos;
 	};
 
 	struct ObjectUniform
@@ -41,6 +45,7 @@ class ShadowMapping : public IVulkanApp
 		alignas(16) glm::mat4 lightSpace;
 		alignas(16) glm::vec3 cameraPos;
 		alignas(16) glm::vec3 lightDir;
+		alignas(16) glm::vec3 lightPos;
 	};
 
 	struct 
@@ -51,58 +56,65 @@ class ShadowMapping : public IVulkanApp
 	
 	struct
 	{
-		VkPipelineLayout plane;		
+		VkPipelineLayout cubeShadowMap;		
 		VkPipelineLayout cube;		
 		VkPipelineLayout offscreen;		
+		VkPipelineLayout light;		
 	} pipelineLayouts;
 	
 	struct
 	{
-		VkPipeline plane;
+		VkPipeline cubeShadowMap;
 		VkPipeline cube;
 		VkPipeline debug;
 		VkPipeline offscreen;
+		VkPipeline light;
 	} pipelines;	
 
 	struct
 	{
-		VkDescriptorSetLayout plane;
+		VkDescriptorSetLayout cubeShadowMap;
 		VkDescriptorSetLayout cube;
 		VkDescriptorSetLayout offscreen;
+		VkDescriptorSetLayout light;
 	} descriptorSetLayouts;
 
 	struct DescriptorSets
 	{
-		VkDescriptorSet plane;
+		VkDescriptorSet cubeShadowMap;
 		VkDescriptorSet cube;
-		VkDescriptorSet offscreenPlane;
+		VkDescriptorSet offscreenCubeShadowMap;
 		VkDescriptorSet offscreenCube;
+		VkDescriptorSet light;
 	};
 
 	std::array<DescriptorSets, frames> descriptorSets;
 
 	struct UniformBuffers 
 	{
-		VkBuffer plane;
+		VkBuffer cubeShadowMap;
 		VkBuffer cube;
-		VkBuffer offscreenPlane;
+		VkBuffer offscreenCubeShadowMap;
 		VkBuffer offscreenCube;
+		VkBuffer light;
 	};
 	
 	struct UniformBuffersMapped
 	{
-		void * plane;
+		void * cubeShadowMap;
 		void * cube;
-		void * offscreenPlane;
+		void * offscreenCubeShadowMap;
 		void * offscreenCube;
+		void * light;
 	};
 	
 	struct UniformBuffersMemory
 	{
-		VkDeviceMemory plane;
+		VkDeviceMemory cubeShadowMap;
 		VkDeviceMemory cube;
-		VkDeviceMemory offscreenPlane;
+		VkDeviceMemory offscreenCubeShadowMap;
 		VkDeviceMemory offscreenCube;
+		VkDeviceMemory light;
 	};
 
 	std::array<UniformBuffers, frames> uniformBuffers;	
@@ -111,6 +123,7 @@ class ShadowMapping : public IVulkanApp
 	
 	VkSampler sampler;
 	VkSampler shadowMapSampler;
+
 	struct Texture
 	{
 		VkImageView imageView;
@@ -136,7 +149,6 @@ class ShadowMapping : public IVulkanApp
 	struct
 	{
 		IndexBuffer cube;
-		IndexBuffer plane;
 	} indexBuffers;
 
 	void setupOffscreenPass()
@@ -292,7 +304,7 @@ class ShadowMapping : public IVulkanApp
 			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = VulkanConfig::swapChainExtent.width;
 			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
-			framebufferInfo.layers = 1;
+			framebufferInfo.layers = 6;
 
 			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &offscreenFramebuffers[i]) != VK_SUCCESS)
 			{
@@ -349,45 +361,34 @@ class ShadowMapping : public IVulkanApp
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 	}	 
 
-	void setupPlaneIndexBuffer()
-	{
-		VkDeviceSize bufferSize = sizeof(planeIndices[0]) * planeIndices.size();
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
-
-		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, planeIndices.data(), (size_t)bufferSize);
-		vkUnmapMemory(device, stagingBufferMemory);
-
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers.plane.buffer, indexBuffers.plane.memory, device, physicalDevice);
-		copyBuffer(stagingBuffer, indexBuffers.plane.buffer, bufferSize);
-		
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
-	}	 
-
 	void setupUniformBuffers()
 	{
 		VkDeviceSize objectBufferSize = sizeof(ObjectUniform);	
+		VkDeviceSize mvpBufferSize = sizeof(MVPUniform);	
+		VkDeviceSize offscreenBufferSize = sizeof(OffscreenUniform);	
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].plane, uniformBuffersMemory[i].plane, device, physicalDevice);
+			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cubeShadowMap, uniformBuffersMemory[i].cubeShadowMap, device, physicalDevice);
 
 			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, device, physicalDevice);
 
-			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].offscreenPlane, uniformBuffersMemory[i].offscreenPlane, device, physicalDevice);
+			//Offscreen
+			Buffer::create(offscreenBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].offscreenCubeShadowMap, uniformBuffersMemory[i].offscreenCubeShadowMap, device, physicalDevice);
 
-			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].offscreenCube, uniformBuffersMemory[i].offscreenCube, device, physicalDevice);
+			Buffer::create(offscreenBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].offscreenCube, uniformBuffersMemory[i].offscreenCube, device, physicalDevice);
 
-			vkMapMemory(device, uniformBuffersMemory[i].plane, 0, objectBufferSize, 0, &uniformBuffersMapped[i].plane);
+			//Light 
+			Buffer::create(mvpBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light, uniformBuffersMemory[i].light, device, physicalDevice);
+
+			vkMapMemory(device, uniformBuffersMemory[i].cubeShadowMap, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cubeShadowMap);
 
 			vkMapMemory(device, uniformBuffersMemory[i].cube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cube);
 
-			vkMapMemory(device, uniformBuffersMemory[i].offscreenPlane, 0, objectBufferSize, 0, &uniformBuffersMapped[i].offscreenPlane);
-			vkMapMemory(device, uniformBuffersMemory[i].offscreenCube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].offscreenCube);
+			//Offscreen
+			vkMapMemory(device, uniformBuffersMemory[i].offscreenCubeShadowMap, 0, offscreenBufferSize, 0, &uniformBuffersMapped[i].offscreenCubeShadowMap);
+			vkMapMemory(device, uniformBuffersMemory[i].offscreenCube, 0, offscreenBufferSize, 0, &uniformBuffersMapped[i].offscreenCube);
+			//Light 
+			vkMapMemory(device, uniformBuffersMemory[i].light, 0, mvpBufferSize, 0, &uniformBuffersMapped[i].light);
 		};
 	}
 
@@ -471,11 +472,11 @@ class ShadowMapping : public IVulkanApp
 	{
 		VkImageCreateInfo imageInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
+			.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
 			.imageType = VK_IMAGE_TYPE_2D,
 			.format = VK_FORMAT_D32_SFLOAT,
 			.mipLevels = 1,
-			.arrayLayers = 1,
+			.arrayLayers = 6,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.tiling = VK_IMAGE_TILING_OPTIMAL,
 			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
@@ -526,7 +527,7 @@ class ShadowMapping : public IVulkanApp
 		barrier.subresourceRange.baseMipLevel = 0;	
 		barrier.subresourceRange.levelCount = 1;	
 		barrier.subresourceRange.baseArrayLayer  = 0;	
-		barrier.subresourceRange.layerCount = 1;	
+		barrier.subresourceRange.layerCount = 6;	
 
 		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;	
 		VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;		
@@ -544,7 +545,7 @@ class ShadowMapping : public IVulkanApp
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = texture.offscreen.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.viewType = VK_IMAGE_VIEW_TYPE_CUBE,
 			.format = VK_FORMAT_D32_SFLOAT,
 		};			
 		
@@ -552,7 +553,7 @@ class ShadowMapping : public IVulkanApp
 		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
+		viewInfo.subresourceRange.layerCount = 6;
 		
 		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.offscreen.imageView) != VK_SUCCESS)
 		{
@@ -1035,16 +1036,94 @@ class ShadowMapping : public IVulkanApp
 
 	};
 
-	void setupOffscreenDescriptorSets()
+	void setupLightDescriptorSets()
 	{
-		VkDescriptorPool cubeDescriptorPool;
-		VkDescriptorPool planeDescriptorPool;
+		VkDescriptorPool descriptorPool;
 
 		VkDescriptorSetLayoutBinding vertexLayoutBinding{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings{vertexLayoutBinding};
+		
+		VkDescriptorSetLayoutCreateInfo layoutInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
+			.pBindings = setLayoutBindings.data()
+		};
+
+		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.light))
+		{
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		};	
+		
+		std::array<VkDescriptorPoolSize, 1> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames);
+
+		VkDescriptorPoolCreateInfo poolInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = static_cast<uint32_t>(frames),
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data()
+		};	
+			
+		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create descriptor pool!");		
+		}
+
+		std::vector<VkDescriptorSetLayout> layouts(frames, descriptorSetLayouts.light);
+			
+		VkDescriptorSetAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = layouts.data()
+		};
+		
+		for (size_t i = 0; i < frames; i++)
+		{
+			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].light) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to allocate descriptor sets!");
+			};
+		
+			VkDescriptorBufferInfo bufferInfo{
+				.buffer = uniformBuffers[i].light,
+				.offset = 0,
+				.range = sizeof(MVPUniform)
+			};
+		
+			std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+			
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = descriptorSets[i].light;
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+		};
+	}	
+	void setupOffscreenDescriptorSets()
+	{
+		VkDescriptorPool cubeDescriptorPool;
+		VkDescriptorPool cubeShadowMapDescriptorPool;
+
+		VkDescriptorSetLayoutBinding vertexLayoutBinding{
+			.binding = 0,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_ALL,
 			.pImmutableSamplers = nullptr
 		};
 
@@ -1078,14 +1157,14 @@ class ShadowMapping : public IVulkanApp
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &planeDescriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &cubeShadowMapDescriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 		
 		std::vector<VkDescriptorSetLayout> cubeLayouts(frames, descriptorSetLayouts.offscreen);
 
-		std::vector<VkDescriptorSetLayout> planeLayouts(frames, descriptorSetLayouts.offscreen);
+		std::vector<VkDescriptorSetLayout> cubeShadowMapLayouts(frames, descriptorSetLayouts.offscreen);
 			
 		VkDescriptorSetAllocateInfo cubeAllocInfo
 		{
@@ -1095,12 +1174,12 @@ class ShadowMapping : public IVulkanApp
 			.pSetLayouts = cubeLayouts.data()
 		};
 
-		VkDescriptorSetAllocateInfo planeAllocInfo
+		VkDescriptorSetAllocateInfo cubeShadowMapAllocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = planeDescriptorPool,
+			.descriptorPool = cubeShadowMapDescriptorPool,
 			.descriptorSetCount = 1,
-			.pSetLayouts = planeLayouts.data()
+			.pSetLayouts = cubeShadowMapLayouts.data()
 		};
 		
 		for (size_t i = 0; i < frames; i++)
@@ -1110,7 +1189,7 @@ class ShadowMapping : public IVulkanApp
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
 
-			if (vkAllocateDescriptorSets(device, &planeAllocInfo, &descriptorSets[i].offscreenPlane) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(device, &cubeShadowMapAllocInfo, &descriptorSets[i].offscreenCubeShadowMap) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
@@ -1118,7 +1197,7 @@ class ShadowMapping : public IVulkanApp
 			VkDescriptorBufferInfo cubeBufferInfo{
 				.buffer = uniformBuffers[i].offscreenCube,
 				.offset = 0,
-				.range = sizeof(ShadowMapUniform)
+				.range = sizeof(OffscreenUniform)
 			};
 		
 			std::array<VkWriteDescriptorSet, 1> cubeDescriptorWrites{};
@@ -1133,24 +1212,24 @@ class ShadowMapping : public IVulkanApp
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(cubeDescriptorWrites.size()), cubeDescriptorWrites.data(), 0, nullptr);
 			
-			//Plane
-			VkDescriptorBufferInfo planeBufferInfo{
-				.buffer = uniformBuffers[i].offscreenPlane,
+			//CubeShadowMap
+			VkDescriptorBufferInfo cubeShadowMapBufferInfo{
+				.buffer = uniformBuffers[i].offscreenCubeShadowMap,
 				.offset = 0,
-				.range = sizeof(ShadowMapUniform)
+				.range = sizeof(OffscreenUniform)
 			};
 		
-			std::array<VkWriteDescriptorSet, 1> planeDescriptorWrites{};
+			std::array<VkWriteDescriptorSet, 1> cubeShadowMapDescriptorWrites{};
 			
-			planeDescriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			planeDescriptorWrites[0].dstSet = descriptorSets[i].offscreenPlane;
-			planeDescriptorWrites[0].dstBinding = 0;
-			planeDescriptorWrites[0].dstArrayElement = 0;
-			planeDescriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			planeDescriptorWrites[0].descriptorCount = 1;
-			planeDescriptorWrites[0].pBufferInfo = &planeBufferInfo;
+			cubeShadowMapDescriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			cubeShadowMapDescriptorWrites[0].dstSet = descriptorSets[i].offscreenCubeShadowMap;
+			cubeShadowMapDescriptorWrites[0].dstBinding = 0;
+			cubeShadowMapDescriptorWrites[0].dstArrayElement = 0;
+			cubeShadowMapDescriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			cubeShadowMapDescriptorWrites[0].descriptorCount = 1;
+			cubeShadowMapDescriptorWrites[0].pBufferInfo = &cubeShadowMapBufferInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(planeDescriptorWrites.size()), planeDescriptorWrites.data(), 0, nullptr);
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(cubeShadowMapDescriptorWrites.size()), cubeShadowMapDescriptorWrites.data(), 0, nullptr);
 		};
 	}	
 
@@ -1287,7 +1366,7 @@ class ShadowMapping : public IVulkanApp
 		};
 	}	
 
-	void setupPlaneDescriptorSets()
+	void setupCubeShadowMapDescriptorSets()
 	{
 		VkDescriptorPool descriptorPool;
 		VkDescriptorSetLayoutBinding vertexLayoutBinding{
@@ -1323,7 +1402,7 @@ class ShadowMapping : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.plane))
+		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.cubeShadowMap))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -1353,7 +1432,7 @@ class ShadowMapping : public IVulkanApp
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 		
-		std::vector<VkDescriptorSetLayout> layouts(frames, descriptorSetLayouts.plane);
+		std::vector<VkDescriptorSetLayout> layouts(frames, descriptorSetLayouts.cubeShadowMap);
 		
 		VkDescriptorSetAllocateInfo allocInfo
 		{
@@ -1365,13 +1444,13 @@ class ShadowMapping : public IVulkanApp
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].plane) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].cubeShadowMap) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
 
 			VkDescriptorBufferInfo bufferInfo{
-				.buffer = uniformBuffers[i].plane,
+				.buffer = uniformBuffers[i].cubeShadowMap,
 				.offset = 0,
 				.range = sizeof(ObjectUniform)
 			};
@@ -1393,7 +1472,7 @@ class ShadowMapping : public IVulkanApp
 			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 			
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i].plane;
+			descriptorWrites[0].dstSet = descriptorSets[i].cubeShadowMap;
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1401,7 +1480,7 @@ class ShadowMapping : public IVulkanApp
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 			
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i].plane;
+			descriptorWrites[1].dstSet = descriptorSets[i].cubeShadowMap;
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1409,7 +1488,7 @@ class ShadowMapping : public IVulkanApp
 			descriptorWrites[1].pImageInfo = &imageInfo;
 	
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = descriptorSets[i].plane;
+			descriptorWrites[2].dstSet = descriptorSets[i].cubeShadowMap;
 			descriptorWrites[2].dstBinding = 2;
 			descriptorWrites[2].dstArrayElement = 0;
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1453,6 +1532,22 @@ class ShadowMapping : public IVulkanApp
 		};
 	};
 
+	void setupLightPipelineLayout()
+	{
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.setLayoutCount = 1,
+			.pSetLayouts = &descriptorSetLayouts.light,
+			.pushConstantRangeCount = 0,
+			.pPushConstantRanges = nullptr
+		};
+	
+		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.light) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create pipeline layout!");
+		};
+	};
+
 	void setupOffscreenPipelineLayout()
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
@@ -1469,29 +1564,29 @@ class ShadowMapping : public IVulkanApp
 		};
 	};
 
-	void setupPlanePipelineLayout()
+	void setupCubeShadowMapPipelineLayout()
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.setLayoutCount = 1,
-			.pSetLayouts = &descriptorSetLayouts.plane,
+			.pSetLayouts = &descriptorSetLayouts.cubeShadowMap,
 			.pushConstantRangeCount = 0,
 			.pPushConstantRanges = nullptr
 		};
 	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.plane) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.cubeShadowMap) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
 	};
 
-	void setupOffscreenPipeline()
+	void setupLightPipeline()
 	{
-		setupOffscreenPipelineLayout();
+		setupLightPipelineLayout();
 
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/shadowMapping/offscreen/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/shadowMapping/depthReadFrag/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/light/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/light/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription
 		{
@@ -1568,6 +1663,170 @@ class ShadowMapping : public IVulkanApp
 			.stencilTestEnable = VK_FALSE,
 			//.front = stencilOpState,
 			//.back = stencilOpState,
+			.minDepthBounds = 0.f,
+			.maxDepthBounds = 1.f
+		};
+
+		std::vector<VkDynamicState> dynamicStates = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR,
+		};
+
+		VkPipelineDynamicStateCreateInfo dynamicState {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+			.pDynamicStates = dynamicStates.data()
+		};
+
+		VkPipelineRasterizationStateCreateInfo rasterizer{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			.depthClampEnable = VK_FALSE,
+			.rasterizerDiscardEnable = VK_FALSE,
+			.polygonMode = VK_POLYGON_MODE_FILL,
+			.cullMode = VK_CULL_MODE_NONE,
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.depthBiasEnable = VK_FALSE,
+			.depthBiasConstantFactor = 0.f,
+			.depthBiasClamp = 0.f,
+			.depthBiasSlopeFactor = 0.f,
+			.lineWidth = 1.f
+		};
+
+		VkPipelineMultisampleStateCreateInfo multisampling{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			.rasterizationSamples = VK_SAMPLE_COUNT_16_BIT,
+			.minSampleShading = 0.2f,
+			.pSampleMask = nullptr,
+			.alphaToCoverageEnable = VK_FALSE,
+			.alphaToOneEnable = VK_FALSE
+		};
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{
+			.blendEnable = VK_TRUE,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.colorBlendOp = VK_BLEND_OP_ADD,
+			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+			.alphaBlendOp = VK_BLEND_OP_ADD,
+			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		VkPipelineColorBlendStateCreateInfo colorBlending{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			.logicOpEnable = VK_FALSE,
+			.logicOp = VK_LOGIC_OP_COPY,
+			.attachmentCount = 1,
+			.pAttachments = &colorBlendAttachment,
+			.blendConstants = {0.f, 0.f, 0.f, 0.f}
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineInfo{
+			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.stageCount = static_cast<uint32_t>(shaderStages.size()),
+			.pStages = shaderStages.data(),
+			.pVertexInputState = &vertexInputInfo,
+			.pInputAssemblyState = &inputAssembly,
+			.pViewportState = &viewportState,
+			.pRasterizationState = &rasterizer,
+			.pMultisampleState = &multisampling,
+			.pDepthStencilState = &depthStencil,
+			.pColorBlendState = &colorBlending,
+			.pDynamicState = &dynamicState,
+			.layout = pipelineLayouts.light,
+			.renderPass = renderPasses.renderPass,
+			.subpass = 0,
+			.basePipelineHandle = VK_NULL_HANDLE
+		};
+
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create primitive graphics pipeline!");
+		}
+	};
+
+	void setupOffscreenPipeline()
+	{
+		setupOffscreenPipelineLayout();
+
+		shaderStages.clear();
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/offscreen/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/offscreen/geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/offscreen/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+	
+		VkVertexInputBindingDescription bindingDescription
+		{
+			.binding = 0,
+			.stride = sizeof(Vertex),
+			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+		};		
+		
+		std::array<VkVertexInputBindingDescription, 1> bindingDescriptions{bindingDescription};
+		
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
+		
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, normal);
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+		
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),	
+			.pVertexBindingDescriptions = bindingDescriptions.data(),
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+			.pVertexAttributeDescriptions = attributeDescriptions.data()
+		};
+		
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.primitiveRestartEnable = VK_FALSE
+		};
+
+		VkViewport viewport{
+			.x = 0.f,
+			.y = 0.f,
+			.width = (float)VulkanConfig::swapChainExtent.width,
+			.height = (float)VulkanConfig::swapChainExtent.height,
+			.minDepth = 0.f,
+			.maxDepth = 1.f};
+
+		VkPipelineViewportStateCreateInfo viewportState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			.viewportCount = 1,
+			.scissorCount = 1};
+
+		// stencil info
+		VkStencilOpState stencilOpState {
+			.failOp = VK_STENCIL_OP_KEEP,
+			.passOp = VK_STENCIL_OP_REPLACE,
+			.depthFailOp = VK_STENCIL_OP_KEEP,
+			.compareOp = VK_COMPARE_OP_ALWAYS,
+			.compareMask = 0xFF,
+			.writeMask = 0xFF,
+			.reference = 1 
+		};
+
+		VkPipelineDepthStencilStateCreateInfo depthStencil {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
+			.depthCompareOp = VK_COMPARE_OP_LESS,
+			.depthBoundsTestEnable = VK_FALSE,
+			.stencilTestEnable = VK_FALSE,
 			.minDepthBounds = 0.f,
 			.maxDepthBounds = 1.f
 		};
@@ -1820,8 +2079,8 @@ class ShadowMapping : public IVulkanApp
 		setupCubePipelineLayout();
 
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/shadowMapping/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/shadowMapping/container/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/cubemapShadowMap/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/container/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription
 		{
@@ -1980,13 +2239,13 @@ class ShadowMapping : public IVulkanApp
 		}
 	};
 
-	void setupPlanePipeline()
+	void setupCubeShadowMapPipeline()
 	{
-		setupPlanePipelineLayout();
+		setupCubeShadowMapPipelineLayout();
 
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/shadowMapping/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/shadowMapping/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/cubemapShadowMap/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/omniDirectionalShadowMapping/cubemapShadowMap/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
@@ -2082,7 +2341,7 @@ class ShadowMapping : public IVulkanApp
 			.depthClampEnable = VK_FALSE,
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_FRONT_BIT,
+			.cullMode = VK_CULL_MODE_NONE,
 			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.f,
@@ -2132,13 +2391,13 @@ class ShadowMapping : public IVulkanApp
 			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.plane,
+			.layout = pipelineLayouts.cubeShadowMap,
 			.renderPass = renderPasses.renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.plane) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cubeShadowMap) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -2148,11 +2407,18 @@ class ShadowMapping : public IVulkanApp
 	{
 		// Light	
 		glm::vec3 lightDir = glm::vec3(0.f, -6.f, 0.f);
-		glm::vec3 containerPos = glm::vec3(5.f, 4.f, 2.f);
-		glm::vec3 planePos = glm::vec3(0., 1.f, 0.);
+		glm::vec3 containerPos = glm::vec3(4.f, 2.f, 0.f);
+		glm::vec3 lightPos = glm::vec3(0.f + steps.x, lightY + steps.y, 0.f);
+		glm::vec3 cubeShadowMapPos = glm::vec3(0.f, 0.f, 0.f);
+		glm::mat4 proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		proj[1][1] *= -1.f;
 
-		ShadowMapUniform offscreenUniform;		
-		glm::mat4 model = glm::mat4(1.);		
+		glm::mat4 offscreenProj = glm::perspective(glm::radians(90.f), (float)((float)offscreenWidth / (float)offscreenHeight), 0.1f, 25.f);
+//		offscreenProj[1][1] *= -1.f;
+
+		OffscreenUniform offscreenUniform;		
+		MVPUniform lightUniform;		
+		glm::mat4 model = glm::mat4(1.f);		
 		model = glm::translate(model, containerPos);
 
 		glm::mat4 lightPerspective = glm::lookAt(
@@ -2161,46 +2427,58 @@ class ShadowMapping : public IVulkanApp
 			glm::vec3(0.f, 1.0f, 0.f)
 		);
 
-//		glm::mat4 lightPerspective = camera.getViewMatrix();
-		glm::mat4 lightProj = glm::ortho(-10.f, 10.f, -10.f, 10.f, .1f, 30.f);
-//		glm::mat4 lightProj = glm::perspective(glm::radians(45.f), 1.0f, 1.f, 96.f);
+		glm::mat4 lightProj = glm::perspective(glm::radians(45.f), 1.0f, 1.f, 96.f);
 		lightProj[1][1] *= -1.f;
 
 		offscreenUniform.model = model;		
-		offscreenUniform.view = lightPerspective;
-		offscreenUniform.proj = lightProj;
+		offscreenUniform.projection = offscreenProj;		
+		offscreenUniform.lightPos = lightPos;		
+
+		offscreenUniform.transforms[0] = offscreenProj * glm::lookAt(lightPos, lightPos + glm::vec3(1., 0., 0.), glm::vec3(0., -1., 0.));	
+		offscreenUniform.transforms[1] = offscreenProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1., 0., 0.), glm::vec3(0., -1., 0.));	
+		offscreenUniform.transforms[2] = offscreenProj * glm::lookAt(lightPos, lightPos + glm::vec3(0., 1., 0.), glm::vec3(0., 0., 1.));	
+		offscreenUniform.transforms[3] = offscreenProj * glm::lookAt(lightPos, lightPos + glm::vec3(0., -1., 0.), glm::vec3(0., 0., -1.));	
+		offscreenUniform.transforms[4] = offscreenProj * glm::lookAt(lightPos, lightPos + glm::vec3(0., 0., 1.), glm::vec3(0., -1., 0.));	
+		offscreenUniform.transforms[5] = offscreenProj * glm::lookAt(lightPos, lightPos + glm::vec3(0., 0., -1.), glm::vec3(0., -1., 0.));	
 
 		memcpy(uniformBuffersMapped[currentImage].offscreenCube, &offscreenUniform, sizeof(offscreenUniform));
 
-		model = glm::mat4(1.);
-		model = glm::scale(model, glm::vec3(40., 1., 40.));
-		model = glm::translate(model, planePos);
+		model = glm::mat4(1.f);
+		model = glm::scale(model, glm::vec3(10.f));
+		model = glm::translate(model, cubeShadowMapPos);
 
 		offscreenUniform.model = model;		
 
-		memcpy(uniformBuffersMapped[currentImage].offscreenPlane, &offscreenUniform, sizeof(offscreenUniform));
+		memcpy(uniformBuffersMapped[currentImage].offscreenCubeShadowMap, &offscreenUniform, sizeof(offscreenUniform));
 
 		ObjectUniform objectUniform;
-		model = glm::mat4(1.);
-		model = glm::scale(model, glm::vec3(40., 1., 40.));
-		model = glm::translate(model, planePos);
+		model = glm::mat4(1.f);
+		model = glm::scale(model, glm::vec3(10.f));
+		model = glm::translate(model, cubeShadowMapPos);
 
 		objectUniform.model = model;		
 		objectUniform.view = camera.getViewMatrix();
-		objectUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		objectUniform.proj = proj;
 		objectUniform.cameraPos = camera.cameraPos;
 		objectUniform.lightDir = lightDir; 
-
-		objectUniform.proj[1][1] *= -1.;
 		objectUniform.lightSpace = lightProj * -lightPerspective;
+		objectUniform.lightPos = lightPos;
 		
-		memcpy(uniformBuffersMapped[currentImage].plane, &objectUniform, sizeof(objectUniform));
+		memcpy(uniformBuffersMapped[currentImage].cubeShadowMap, &objectUniform, sizeof(objectUniform));
 
-		model = glm::mat4(1.);
+		model = glm::mat4(1.f);
 		model = glm::translate(model, containerPos);
 		objectUniform.model = model;		
 
 		memcpy(uniformBuffersMapped[currentImage].cube, &objectUniform, sizeof(objectUniform));
+
+		//Light
+		
+		lightUniform.model = glm::translate(glm::mat4(1.), lightPos);
+		lightUniform.view = camera.getViewMatrix();
+		lightUniform.proj = proj;
+		
+		memcpy(uniformBuffersMapped[currentImage].light, &lightUniform, sizeof(lightUniform));
 	};
 
 	void processInput(GLFWwindow * window)
@@ -2209,7 +2487,7 @@ class ShadowMapping : public IVulkanApp
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
 			camera.move(FORWARD);
-			step += 0.05;
+			step += 0.05f;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 			camera.move(BACKWARD);
@@ -2272,21 +2550,19 @@ class ShadowMapping : public IVulkanApp
 
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-		VkBuffer vertexPlaneBuffers[] = { vertexCubeBuffer };
+		VkBuffer vertexCubeShadowMapBuffers[] = { vertexCubeBuffer };
 		
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.offscreen);	
 		
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentFrame].offscreenPlane, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentFrame].offscreenCubeShadowMap, 0, nullptr);
 		
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexPlaneBuffers, offsets);
-		
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.plane.buffer, 0, VK_INDEX_TYPE_UINT32);		
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(planeIndices.size()), 1, 0, 0, 0);
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentFrame].offscreenCube, 0, nullptr);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeShadowMapBuffers, offsets);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.cube.buffer, 0, VK_INDEX_TYPE_UINT32);		
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.offscreen, 0, 1, &descriptorSets[currentFrame].offscreenCube, 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
 
@@ -2310,26 +2586,30 @@ class ShadowMapping : public IVulkanApp
 		scissor.extent = VulkanConfig::swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.plane);	
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubeShadowMap);	
 		
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.plane, 0, 1, &descriptorSets[currentFrame].plane, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.cubeShadowMap, 0, 1, &descriptorSets[currentFrame].cubeShadowMap, 0, nullptr);
 		
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexPlaneBuffers, offsets);
-		
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.plane.buffer, 0, VK_INDEX_TYPE_UINT32);		
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeShadowMapBuffers, offsets);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(planeIndices.size()), 1, 0, 0, 0);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.cube.buffer, 0, VK_INDEX_TYPE_UINT32);		
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cube);	
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.cube, 0, 1, &descriptorSets[currentFrame].cube, 0, nullptr);
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.cube.buffer, 0, VK_INDEX_TYPE_UINT32);		
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.light);	
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.light, 0, 1, &descriptorSets[currentFrame].light, 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
 
 		// Debug
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);	
+/*		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.debug);	
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.cube, 0, 1, &descriptorSets[currentFrame].cube, 0, nullptr);
 
@@ -2337,13 +2617,19 @@ class ShadowMapping : public IVulkanApp
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
 
-
+*/
 		vkCmdEndRenderPass(commandBuffer);
 
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to record command buffer!");
 		}
+	};
+
+	void setupLightResources()
+	{
+		setupLightDescriptorSets();	
+		setupLightPipeline();
 	};
 
 	void setupOffscreenResources()
@@ -2358,10 +2644,10 @@ class ShadowMapping : public IVulkanApp
 		setupCubePipeline();
 	};
 
-	void setupPlaneResources()
+	void setupCubeShadowMapResources()
 	{
-		setupPlaneDescriptorSets();	
-		setupPlanePipeline();
+		setupCubeShadowMapDescriptorSets();	
+		setupCubeShadowMapPipeline();
 	};
 
 	void init(GLFWwindow* window)
@@ -2378,11 +2664,11 @@ class ShadowMapping : public IVulkanApp
 		setupWoodImageView();
 		setupContainerImageView();
 		setupUniformBuffers();
+		setupLightResources();
 		setupCubeResources();
-		setupPlaneResources();
+		setupCubeShadowMapResources();
 		setupOffscreenResources();
 		setupDebugPipeline();
-		setupPlaneIndexBuffer();
 		setupCubeIndexBuffer();
 		createFramebuffers();
 		createOffscreenFramebuffers();
@@ -2399,15 +2685,12 @@ class ShadowMapping : public IVulkanApp
 
 		for (size_t i = 0; i < frames; i++)
 		{
-			vkDestroyBuffer(device, uniformBuffers[i].plane, nullptr);
-			vkFreeMemory(device, uniformBuffersMemory[i].plane, nullptr);
+			vkDestroyBuffer(device, uniformBuffers[i].cubeShadowMap, nullptr);
+			vkFreeMemory(device, uniformBuffersMemory[i].cubeShadowMap, nullptr);
 		}		
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.plane, nullptr);
+		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.cubeShadowMap, nullptr);
 
-		vkDestroyBuffer(device, indexBuffers.plane.buffer, nullptr);
-		vkFreeMemory(device, indexBuffers.plane.memory, nullptr);
-		
 		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
 		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
 		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
@@ -2451,7 +2734,7 @@ class ShadowMapping : public IVulkanApp
 		setupDepth();
 		setupOffscreen();
 		setupCubeDescriptorSets();
-		setupPlaneDescriptorSets();
+		setupCubeShadowMapDescriptorSets();
 		
 		createOffscreenFramebuffers();
 		createFramebuffers();

@@ -19,3 +19,12 @@ $GLSL_PATH shadowMapping/debug/shader.frag -o shadowMapping/debug/frag.spv
 $GLSL_PATH shadowMapping/depthReadFrag/shader.frag -o shadowMapping/depthReadFrag/frag.spv
 $GLSL_PATH shadowMapping/container/shader.frag -o shadowMapping/container/frag.spv
 $GLSL_PATH shadowMapping/offscreen/shader.vert -o shadowMapping/offscreen/vert.spv
+$GLSL_PATH omniDirectionalShadowMapping/cubemapShadowMap/shader.vert -o omniDirectionalShadowMapping/cubemapShadowMap/vert.spv
+$GLSL_PATH omniDirectionalShadowMapping/cubemapShadowMap/shader.geom -o omniDirectionalShadowMapping/cubemapShadowMap/geom.spv
+$GLSL_PATH omniDirectionalShadowMapping/cubemapShadowMap/shader.frag -o omniDirectionalShadowMapping/cubemapShadowMap/frag.spv
+$GLSL_PATH omniDirectionalShadowMapping/light/shader.vert -o omniDirectionalShadowMapping/light/vert.spv
+$GLSL_PATH omniDirectionalShadowMapping/light/shader.frag -o omniDirectionalShadowMapping/light/frag.spv
+$GLSL_PATH omniDirectionalShadowMapping/offscreen/shader.vert -o omniDirectionalShadowMapping/offscreen/vert.spv
+$GLSL_PATH omniDirectionalShadowMapping/offscreen/shader.geom -o omniDirectionalShadowMapping/offscreen/geom.spv
+$GLSL_PATH omniDirectionalShadowMapping/offscreen/shader.frag -o omniDirectionalShadowMapping/offscreen/frag.spv
+$GLSL_PATH omniDirectionalShadowMapping/container/shader.frag -o omniDirectionalShadowMapping/container/frag.spv

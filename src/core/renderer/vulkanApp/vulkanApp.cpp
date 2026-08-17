@@ -426,14 +426,20 @@ int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
+	
 	int score = 0;
 
 	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) score += 1000;
 
 	score += deviceProperties.limits.maxImageDimension2D;
+	
+	deviceFeatures.geometryShader = VK_TRUE;
 
-	if (!deviceFeatures.geometryShader) return 0;
+	if (!deviceFeatures.geometryShader) 
+	{
+		std::cout << "Geometry shader not supported!\n";
+		return 0;
+	};
 
 	return score;
 }
@@ -520,6 +526,7 @@ void IVulkanApp::createLogicalDevice()
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
+	deviceFeatures.geometryShader = VK_TRUE;
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
@@ -564,6 +571,7 @@ void IVulkanApp::pickPhysicalDevice()
 	if (candidates.rbegin()->first > 0)
 	{
 		physicalDevice = candidates.rbegin()->second;
+		
 		VulkanConfig::msaaSamples = getMaxUsableSampleCount();
 		//VulkanConfig::msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	}

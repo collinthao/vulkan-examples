@@ -35,10 +35,11 @@
 #include "./examples/directionalLight/directionalLight.h"
 #include "./examples/postProcessing/postProcessing.h"
 #include "./examples/shadowMapping/shadowMapping.h"
+#include "./examples/omnidirectionalShadowMapping/omnidirectionalShadowMapping.h"
 
 int main()
 {
-	Engine<ShadowMapping, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<OmniDirectionalShadowMapping, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
