@@ -46,8 +46,8 @@ void main()
 
 	float shadow = ShadowCalculation(FragPos.xyz);
 	
-//	vec3 result = ((ambient + (shadow)) * diffuse) * textureSample;
-	vec3 result = shadow * textureSample;
+	vec3 result = ((ambient + (shadow)) * diffuse) * textureSample;
+//	vec3 result = shadow * textureSample;
 //	vec3 result = vec3(shadow);
 
 	FragColor = vec4(result, 1.);

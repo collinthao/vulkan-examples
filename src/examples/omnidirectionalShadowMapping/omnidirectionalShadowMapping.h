@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
+#include "../../../src/debugUtils/debugUtils.h"
 
 class OmniDirectionalShadowMapping : public IVulkanApp
 {
@@ -2408,7 +2409,7 @@ class OmniDirectionalShadowMapping : public IVulkanApp
 		// Light	
 		glm::vec3 lightDir = glm::vec3(0.f, -6.f, 0.f);
 		glm::vec3 containerPos = glm::vec3(4.f, 2.f, 0.f);
-		glm::vec3 lightPos = glm::vec3(0.f + steps.x, lightY + steps.y, 0.f);
+		glm::vec3 lightPos = glm::vec3(0.f , lightY + steps.y, 0.f + steps.x);
 		glm::vec3 cubeShadowMapPos = glm::vec3(0.f, 0.f, 0.f);
 		glm::mat4 proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		proj[1][1] *= -1.f;
@@ -2461,7 +2462,7 @@ class OmniDirectionalShadowMapping : public IVulkanApp
 		objectUniform.proj = proj;
 		objectUniform.cameraPos = camera.cameraPos;
 		objectUniform.lightDir = lightDir; 
-		objectUniform.lightSpace = lightProj * -lightPerspective;
+		objectUniform.lightSpace = lightProj * - lightPerspective;
 		objectUniform.lightPos = lightPos;
 		
 		memcpy(uniformBuffersMapped[currentImage].cubeShadowMap, &objectUniform, sizeof(objectUniform));
@@ -2526,7 +2527,7 @@ class OmniDirectionalShadowMapping : public IVulkanApp
 
 		std::array<VkClearValue, 2> clearValues{};
 		clearValues[0].color = {{1.0f, 1.0f, 1.0f, 1.f}};
-		clearValues[1].depthStencil = {1.f, 0};
+		clearValues[1].depthStencil = {0.f, 0};
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();

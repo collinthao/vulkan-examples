@@ -34,7 +34,7 @@ void main()
 {
 	gl_Position = u.proj * u.view * u.model * vec4(inPosition, 1.);
 	texCoords = inTexCoord;
-	FragPos = vec4(inPosition, 1.);
+	FragPos = u.model * vec4(inPosition, 1.);
 	Normal = mat3(transpose(inverse(u.model))) * inNormal;
 	CameraPos = u.cameraPos;
 	LightDir = u.lightDir;

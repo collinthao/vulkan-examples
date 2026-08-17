@@ -21,6 +21,21 @@ inline std::ostream& operator << (std::ostream& os, const glm::vec3& v)
 	os << "x: " << v.x << " | y: " << v.y << " | z: " << v.z << '\n';
 	return os;
 }
+
+inline std::ostream& operator << (std::ostream& os, const glm::vec4& v)
+{
+	os << "x: " << v.x << " | y: " << v.y << " | z: " << v.z <<  " | w: " << v.w << '\n';
+	return os;
+}
+
+inline std::ostream& operator << (std::ostream& os, const glm::mat4& m)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		std::cout << m[i] << '\n';
+	};	
+	return os;
+}
 /*
 template <typename T, size_t N>
 inline std::ostream& operator << (std::ostream& os, const std::array<T,N>& a)
