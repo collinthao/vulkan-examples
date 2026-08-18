@@ -28,3 +28,7 @@ $GLSL_PATH omniDirectionalShadowMapping/offscreen/shader.vert -o omniDirectional
 $GLSL_PATH omniDirectionalShadowMapping/offscreen/shader.geom -o omniDirectionalShadowMapping/offscreen/geom.spv
 $GLSL_PATH omniDirectionalShadowMapping/offscreen/shader.frag -o omniDirectionalShadowMapping/offscreen/frag.spv
 $GLSL_PATH omniDirectionalShadowMapping/container/shader.frag -o omniDirectionalShadowMapping/container/frag.spv
+$GLSL_PATH normalMapping/pointLight/shader.vert -o normalMapping/pointLight/vert.spv
+$GLSL_PATH normalMapping/pointLight/shader.frag -o normalMapping/pointLight/frag.spv
+$GLSL_PATH normalMapping/object/shader.vert -o normalMapping/object/vert.spv
+$GLSL_PATH normalMapping/object/shader.frag -o normalMapping/object/frag.spv

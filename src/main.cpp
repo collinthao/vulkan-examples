@@ -36,10 +36,11 @@
 #include "./examples/postProcessing/postProcessing.h"
 #include "./examples/shadowMapping/shadowMapping.h"
 #include "./examples/omnidirectionalShadowMapping/omnidirectionalShadowMapping.h"
+#include "./examples/normalMapping/normalMapping.h"
 
 int main()
 {
-	Engine<OmniDirectionalShadowMapping, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<NormalMapping, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
