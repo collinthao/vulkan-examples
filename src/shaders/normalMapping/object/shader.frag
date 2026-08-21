@@ -1,11 +1,11 @@
 #version 450 core
 
 layout(location = 0) out vec4 FragColor;
+
 layout(location = 0) in vec2 texCoords;
 layout(location = 1) in vec3 FragPos;
-layout(location = 2) in vec3 Normal;
-layout(location = 3) in vec3 CameraPos;
-layout(location = 4) in vec3 LightPos;
+layout(location = 2) in vec3 CameraPos;
+layout(location = 3) in vec3 LightPos;
 
 layout(binding = 1) uniform sampler2D texSampler;
 layout(binding = 2) uniform sampler2D normSampler;

@@ -17,16 +17,19 @@ layout(binding = 0) uniform ObjectUniform
 
 layout(location = 0) out vec2 texCoords;
 layout(location = 1) out vec3 FragPos;
-layout(location = 2) out vec3 Normal;
-layout(location = 3) out vec3 CameraPos;
-layout(location = 4) out vec3 LightPos;
+layout(location = 2) out vec3 CameraPos;
+layout(location = 3) out vec3 LightPos;
 
 void main()
 {
 	gl_Position = ud.proj * ud.view * ud.model * vec4(inPosition, 1.);
 	texCoords = inTexCoord;
-	FragPos = vec3(ud.model * vec4(inPosition, 1.));
-	Normal = mat3(transpose(inverse(ud.model))) * inNormal;
-	CameraPos = ud.cameraPos;
-	LightPos = ud.lightPos;
+	vec3 T = normalize(vec3(ud.model * vec4(inTangent, 0.0)));
+	vec3 N = normalize(vec3(ud.model * vec4(inNormal, 0.0)));
+	vec3 B = cross(T, N);
+	mat3 TBN = transpose(mat3(T, B, N));
+
+	FragPos = TBN * vec3(ud.model * vec4(inPosition, 1.));
+	CameraPos = TBN * ud.cameraPos;
+	LightPos = TBN * ud.lightPos;
 }

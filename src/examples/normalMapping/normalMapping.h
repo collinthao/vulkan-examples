@@ -11,8 +11,8 @@ class NormalMapping : public IVulkanApp
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	std::vector<VertexNormal> quadVerticesNormal{};
 	static inline const std::vector<uint32_t> quadIndices = {
-	    1, 3, 2,
 	    3, 1, 0,
+	    1, 3, 2,
 	};
 
 	glm::vec3 tangent1, bitangent1;
@@ -119,8 +119,8 @@ class NormalMapping : public IVulkanApp
 	void calculateTangentAndBitangents()
 	{
 		glm::vec3 pos1 = IVulkanApp::cubeVertices[3].pos;
-		glm::vec3 pos2 = IVulkanApp::cubeVertices[0].pos;		
-		glm::vec3 pos3 = IVulkanApp::cubeVertices[1].pos;		
+		glm::vec3 pos2 = IVulkanApp::cubeVertices[0].pos;
+		glm::vec3 pos3 = IVulkanApp::cubeVertices[1].pos;
 		glm::vec3 pos4 = IVulkanApp::cubeVertices[2].pos;		
 
 		glm::vec3 normal = glm::vec3{0., 0., 1.};
@@ -159,8 +159,8 @@ class NormalMapping : public IVulkanApp
 		tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 		
 		bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-		bitangent2.y = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.y);
-		bitangent2.z = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.z);
+		bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+		bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 		
 		quadVerticesNormal = {
 		{pos1, normal, tangent1, bitangent1, uv1},	
@@ -1460,7 +1460,7 @@ class NormalMapping : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		// Light	
-		glm::vec3 lightPos = glm::vec3(2., 5., 2.);
+		glm::vec3 lightPos = glm::vec3(sin(glfwGetTime()) * 2., 5., 2.);
 		LightUniform lightUniform;
 		lightUniform.model = glm::mat4(1.);		
 		lightUniform.model = glm::translate(lightUniform.model, lightPos);
@@ -1482,6 +1482,8 @@ class NormalMapping : public IVulkanApp
 		objectUniform.proj[1][1] *= -1.;
 		
 		memcpy(uniformBuffersMapped[currentImage].cube, &objectUniform, sizeof(objectUniform));
+
+		//std::cout << "Model * bitangent2 = " << objectUniform.model * glm::vec4(bitangent2.x, bitangent2.y, bitangent2.z, 1.) << '\n';
 	};
 
 	void processInput(GLFWwindow * window)
