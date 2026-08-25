@@ -32,3 +32,7 @@ $GLSL_PATH normalMapping/pointLight/shader.vert -o normalMapping/pointLight/vert
 $GLSL_PATH normalMapping/pointLight/shader.frag -o normalMapping/pointLight/frag.spv
 $GLSL_PATH normalMapping/object/shader.vert -o normalMapping/object/vert.spv
 $GLSL_PATH normalMapping/object/shader.frag -o normalMapping/object/frag.spv
+$GLSL_PATH parallaxMapping/pointLight/shader.vert -o parallaxMapping/pointLight/vert.spv
+$GLSL_PATH parallaxMapping/pointLight/shader.frag -o parallaxMapping/pointLight/frag.spv
+$GLSL_PATH parallaxMapping/object/shader.vert -o parallaxMapping/object/vert.spv
+$GLSL_PATH parallaxMapping/object/shader.frag -o parallaxMapping/object/frag.spv

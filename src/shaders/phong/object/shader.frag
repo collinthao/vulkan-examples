@@ -11,6 +11,7 @@ layout(binding = 1) uniform sampler2D texSampler;
 
 void main()
 {
+	vec3 color = vec3(1., 0.5, 0.31);
 	vec3 lightPos = LightPos;
 
 	vec3 normal = normalize(Normal);
@@ -29,14 +30,14 @@ void main()
 	
 	vec3 reflectDir = reflect(-lightDir, normal);
 
-	float spec = pow(max(dot(cameraDir, reflectDir), 0.), 32.);	
+	float spec = pow(max(dot(cameraDir, reflectDir), 0.), 64.);	
 	float specularStrength = .5;	
 
 	vec3 specular = specularStrength * spec * vec3(1., 1., 1.);
 
 //	vec3 result = (ambient + diffuse + specular) * vec3(texture(texSampler, vec2(texCoords.x, texCoords.y)));
 
-	vec3 result = (ambient + diffuse + specular) * vec3(1., 0., 0.);
+	vec3 result = (ambient + diffuse + specular) * color;
 
 	FragColor = vec4(result, 1.);
 }

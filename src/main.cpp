@@ -37,10 +37,11 @@
 #include "./examples/shadowMapping/shadowMapping.h"
 #include "./examples/omnidirectionalShadowMapping/omnidirectionalShadowMapping.h"
 #include "./examples/normalMapping/normalMapping.h"
+#include "./examples/parallaxMapping/parallaxMapping.h"
 
 int main()
 {
-	Engine<NormalMapping, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<ParallaxMapping, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

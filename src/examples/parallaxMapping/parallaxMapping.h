@@ -2,13 +2,22 @@
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
-class Phong : public IVulkanApp
+class ParallaxMapping : public IVulkanApp
 {
 	public:
-	Phong() = default;
+	ParallaxMapping() = default;
 	constexpr static int frames = 2;
 	
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
+	std::vector<VertexNormal> quadVerticesNormal{};
+	static inline const std::vector<uint32_t> quadIndices = {
+	    3, 1, 0,
+	    1, 3, 2,
+	};
+
+	glm::vec3 tangent1, bitangent1;
+	glm::vec3 tangent2, bitangent2;
+
 	struct LightUniform
 	{
 		alignas(16) glm::mat4 model;
@@ -74,113 +83,179 @@ class Phong : public IVulkanApp
 		VkDeviceMemory light;
 	};
 
+	struct IndexBuffer
+	{
+		VkBuffer buffer;		
+		VkDeviceMemory memory;
+	};
+
+	struct
+	{
+		IndexBuffer quadIndex;
+		IndexBuffer quadNormal;
+	} indexBuffers;
+
 	std::array<UniformBuffers, frames> uniformBuffers;	
 	std::array<UniformBuffersMapped, frames> uniformBuffersMapped;	
 	std::array<UniformBuffersMemory, frames> uniformBuffersMemory;	
-	
-	struct
+
+	VkSampler sampler;
+
+	struct Texture
 	{
-		VkSampler sampler;
 		VkImageView imageView;
 		VkImage     image;
 		VkDeviceMemory imageMemory;
-	} texture;		
+	};		
 
 	struct
 	{
-		VkImageView imageView;
-		VkImage     image;
-		VkDeviceMemory imageMemory;
-	} depth;		
+		Texture brick;	
+		Texture brickNormal;	
+		Texture brickDisp;	
+		Texture depth;
+		Texture resolved;
+	} texture;	
 
-	struct
+	void calculateTangentAndBitangents()
 	{
-		VkImageView imageView;
-		VkImage     image;
-		VkDeviceMemory imageMemory;
-	} resolved;		
+		glm::vec3 pos1 = IVulkanApp::cubeVertices[3].pos;
+		glm::vec3 pos2 = IVulkanApp::cubeVertices[0].pos;
+		glm::vec3 pos3 = IVulkanApp::cubeVertices[1].pos;
+		glm::vec3 pos4 = IVulkanApp::cubeVertices[2].pos;		
+		glm::vec3 normal = glm::vec3{0., 0., 1.};
+		
+		glm::vec2 uv1(0.0, 1.0);
+		glm::vec2 uv2(0.0, 0.0);
+		glm::vec2 uv3(1.0, 0.0);
+		glm::vec2 uv4(1.0, 1.0);
+
+		// First Triangle
+		glm::vec3 edge1 = pos2 - pos1;
+		glm::vec3 edge2 = pos3 - pos1;
+		glm::vec2 deltaUV1 = uv2 - uv1; //(0.0, -1.0)
+		glm::vec2 deltaUV2 = uv3 - uv1; //(1.0, -1.0)
+				
+		float f = 1.0f/(deltaUV1.x*deltaUV2.y-deltaUV2.x*deltaUV1.y);
+		
+		tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+		tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+		tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+		
+		bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+		bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+		bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+		// Second Triangle
+		edge1 = pos3 - pos1;
+		edge2 = pos4 - pos1;
+		deltaUV1 = uv3 - uv1;
+		deltaUV2 = uv4 - uv1;
+				
+		f = 1.0f/(deltaUV1.x*deltaUV2.y-deltaUV2.x*deltaUV1.y);
+		
+		tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+		tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+		tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+		
+		bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+		bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+		bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+		tangent1 = glm::normalize(tangent1);	
+		bitangent1 =glm::normalize(bitangent1);
+		tangent2 = glm::normalize(tangent2);	
+		bitangent2 =glm::normalize(bitangent2);
+
+		quadVerticesNormal = {
+			{pos1, normal, tangent1, bitangent1, uv1},	
+			{pos2, normal, tangent1, bitangent1, uv2},	
+			{pos3, normal, tangent1, bitangent1, uv3},	
+			{pos1, normal, tangent2, bitangent2, uv1},	
+			{pos3, normal, tangent2, bitangent2, uv3},	
+			{pos4, normal, tangent2, bitangent2, uv4}};
+	}	
 
 	void setUpRenderPass()
 	{
 		VkAttachmentDescription colorAttachment{
 			.format = swapChainImageFormat,
-			.samples = VulkanConfig::msaaSamples,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+				.samples = VulkanConfig::msaaSamples,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 		};	
-		
+
 		VkAttachmentDescription colorAttachmentResolve{
-		.format = swapChainImageFormat,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
-		.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+			.format = swapChainImageFormat,
+				.samples = VK_SAMPLE_COUNT_1_BIT,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 		};
 
 		VkAttachmentDescription depthAttachment{
 			.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
-			.samples = VulkanConfig::msaaSamples,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+				.samples = VulkanConfig::msaaSamples,
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+				.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
 		VkAttachmentReference colorAttachmentRef{
 			.attachment = 0,
-			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-	
+				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
 		VkAttachmentReference depthAttachmentRef{
 			.attachment = 1,
-			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+				.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
 		VkAttachmentReference colorAttachmentResolveRef{
-		.attachment = 2,
-		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+			.attachment = 2,
+				.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
 		VkSubpassDescription subpass{
 			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-			.colorAttachmentCount = 1,
-			.pColorAttachments = &colorAttachmentRef,
-			.pResolveAttachments = &colorAttachmentResolveRef,
-			.pDepthStencilAttachment = &depthAttachmentRef,
-};
-		
+				.colorAttachmentCount = 1,
+				.pColorAttachments = &colorAttachmentRef,
+				.pResolveAttachments = &colorAttachmentResolveRef,
+				.pDepthStencilAttachment = &depthAttachmentRef,
+		};
+
 		VkSubpassDependency dependency{
 			.srcSubpass = VK_SUBPASS_EXTERNAL,
-			.dstSubpass = 0,
-			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-			.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+				.dstSubpass = 0,
+				.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+				.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
 		};	
 
 		std::array<VkAttachmentDescription, 3> attachments{colorAttachment, depthAttachment, colorAttachmentResolve};
-		
+
 		VkRenderPassCreateInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-			.attachmentCount = static_cast<uint32_t>(attachments.size()),
-			.pAttachments = attachments.data(),
-			.subpassCount = 1,
-			.pSubpasses = &subpass,
-			.dependencyCount = 1,
-			.pDependencies = &dependency
+				.attachmentCount = static_cast<uint32_t>(attachments.size()),
+				.pAttachments = attachments.data(),
+				.subpassCount = 1,
+				.pSubpasses = &subpass,
+				.dependencyCount = 1,
+				.pDependencies = &dependency
 		};
-		
+
 		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		};
 	};
-	
+
 	void createFramebuffers()
 	{
 		swapChainFramebuffers.resize(swapChainImageViews.size());
@@ -188,11 +263,11 @@ class Phong : public IVulkanApp
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
 		{
 			std::array<VkImageView, 3> attachments = { 
-				resolved.imageView,
-				depth.imageView,
+				texture.resolved.imageView,
+				texture.depth.imageView,
 				swapChainImageViews[i] 
 			};
-			
+
 			VkFramebufferCreateInfo framebufferInfo{};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = renderPasses.renderPass;
@@ -213,7 +288,7 @@ class Phong : public IVulkanApp
 	{
 		VkDeviceSize objectBufferSize = sizeof(ObjectUniform);	
 		VkDeviceSize lightBufferSize = sizeof(LightUniform);	
-		
+
 		for (size_t i = 0; i < frames; i++)
 		{
 			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, device, physicalDevice);
@@ -264,13 +339,13 @@ class Phong : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &resolved.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &texture.resolved.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, resolved.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, texture.resolved.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -279,15 +354,15 @@ class Phong : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &resolved.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.resolved.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for resolved image!");
 		};
 	
-		vkBindImageMemory(device, resolved.image, resolved.imageMemory, 0);
+		vkBindImageMemory(device, texture.resolved.image, texture.resolved.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = resolved.image,
+			.image = texture.resolved.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = swapChainImageFormat
 		};			
@@ -298,7 +373,7 @@ class Phong : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &resolved.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.resolved.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create resolved image view!");
 		};
@@ -324,13 +399,13 @@ class Phong : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &depth.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &texture.depth.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, depth.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, texture.depth.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -339,12 +414,12 @@ class Phong : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &depth.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.depth.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for depth image!");
 		};
 	
-		vkBindImageMemory(device, depth.image, depth.imageMemory, 0);
+		vkBindImageMemory(device, texture.depth.image, texture.depth.imageMemory, 0);
 	
 		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
 		
@@ -356,7 +431,7 @@ class Phong : public IVulkanApp
 			.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = depth.image	
+			.image = texture.depth.image	
 		};
 
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;	
@@ -380,7 +455,7 @@ class Phong : public IVulkanApp
 	
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = depth.image,
+			.image = texture.depth.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
 		};			
@@ -391,15 +466,15 @@ class Phong : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &depth.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.depth.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create depth image view!");
 		};
 	};
 
-	void loadTexture()
+	void loadBrickDispTexture()
 	{
-		const std::string path = ROOT_DIR + "/resource/textures/container.png";
+		const std::string path = ROOT_DIR + "/resource/textures/brickWall2/brickWall2_disp.jpg";
 		int texWidth, texHeight, texChannels;
 		stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
 		
@@ -441,13 +516,13 @@ class Phong : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &texture.brickDisp.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, texture.brickDisp.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -455,12 +530,12 @@ class Phong : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 		
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.brickDisp.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(device, texture.image, texture.imageMemory, 0);
+		vkBindImageMemory(device, texture.brickDisp.image, texture.brickDisp.imageMemory, 0);
 		
 		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
 		
@@ -472,7 +547,8 @@ class Phong : public IVulkanApp
 			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = texture.image};
+			.image = texture.brickDisp.image
+		};
 
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
 		barrier.subresourceRange.baseMipLevel = 0;
@@ -516,7 +592,307 @@ class Phong : public IVulkanApp
 		vkCmdCopyBufferToImage(
 			commandBuffer,
 			stagingBuffer,
-			texture.image,
+			texture.brickDisp.image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region);	
+	
+		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;	
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	
+		vkCmdPipelineBarrier(
+		commandBuffer,
+		srcStage, dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+	}
+
+	void loadBrickNormalTexture()
+	{
+		const std::string path = ROOT_DIR + "/resource/textures/brickWall2/brickWall2_normal.jpg";
+		int texWidth, texHeight, texChannels;
+		stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+		
+		if (!pixels)
+		{
+			throw std::runtime_error("failed to load texture image!");	
+		};
+		
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
+	
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+		
+		void * data;
+		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		
+		memcpy(data, pixels, static_cast<size_t>(imageSize));	
+		vkUnmapMemory(device, stagingBufferMemory);
+		
+		stbi_image_free(pixels);
+		
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = static_cast<uint32_t>(mipLevels),
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+
+		imageInfo.extent.width = static_cast<uint32_t>(texWidth);
+		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(device, &imageInfo, nullptr, &texture.brickNormal.image))
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+		
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(device, texture.brickNormal.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+		};
+		
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.brickNormal.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate image memory!");	
+		};
+		
+		vkBindImageMemory(device, texture.brickNormal.image, texture.brickNormal.imageMemory, 0);
+		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		
+		VkImageMemoryBarrier barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = 0,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = texture.brickNormal.image
+		};
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags dstStage;
+		
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;		
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		
+		VkBufferImageCopy region{
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+			.imageOffset = {0,0,0},
+			.imageExtent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1}
+		};	
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		vkCmdCopyBufferToImage(
+			commandBuffer,
+			stagingBuffer,
+			texture.brickNormal.image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region);	
+	
+		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;	
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	
+		vkCmdPipelineBarrier(
+		commandBuffer,
+		srcStage, dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+	}
+
+	void loadBrickTexture()
+	{
+		const std::string path = ROOT_DIR + "/resource/textures/brickWall2/brickWall2.jpg";
+		int texWidth, texHeight, texChannels;
+		stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+		
+		if (!pixels)
+		{
+			throw std::runtime_error("failed to load texture image!");	
+		};
+		
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
+	
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+		
+		void * data;
+		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		
+		memcpy(data, pixels, static_cast<size_t>(imageSize));	
+		vkUnmapMemory(device, stagingBufferMemory);
+		
+		stbi_image_free(pixels);
+		
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = static_cast<uint32_t>(mipLevels),
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+
+		imageInfo.extent.width = static_cast<uint32_t>(texWidth);
+		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(device, &imageInfo, nullptr, &texture.brick.image))
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+		
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(device, texture.brick.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+		};
+		
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.brick.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate image memory!");	
+		};
+		
+		vkBindImageMemory(device, texture.brick.image, texture.brick.imageMemory, 0);
+		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		
+		VkImageMemoryBarrier barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = 0,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = texture.brick.image
+		};
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags dstStage;
+		
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;		
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		
+		VkBufferImageCopy region{
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+			.imageOffset = {0,0,0},
+			.imageExtent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1}
+		};	
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		vkCmdCopyBufferToImage(
+			commandBuffer,
+			stagingBuffer,
+			texture.brick.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&region);	
@@ -546,11 +922,11 @@ class Phong : public IVulkanApp
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 	}	
 
-	void setupImageViews()
+	void setupBrickDispImageView()
 	{
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = texture.image,
+			.image = texture.brickDisp.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_R8G8B8A8_SRGB};		
 
@@ -561,7 +937,49 @@ class Phong : public IVulkanApp
 			viewInfo.subresourceRange.layerCount = 1;
 
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.imageView))
+		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.brickDisp.imageView))
+		{
+			throw std::runtime_error("failed to create image view!");	
+		};
+	};
+
+	void setupBrickNormalImageView()
+	{
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = texture.brickNormal.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB};		
+
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+		
+		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.brickNormal.imageView))
+		{
+			throw std::runtime_error("failed to create image view!");	
+		};
+	};
+
+	void setupBrickImageView()
+	{
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = texture.brick.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB};		
+
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+		
+		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.brick.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -591,7 +1009,7 @@ class Phong : public IVulkanApp
 			.unnormalizedCoordinates = VK_FALSE
 		};		
 		
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &texture.sampler))
+		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler))
 		{
 			throw std::runtime_error("failed to create sampler!");	
 		};
@@ -695,7 +1113,23 @@ class Phong : public IVulkanApp
 			.pImmutableSamplers = nullptr
 		};
 
-		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{vertexLayoutBinding, fragmentLayoutBinding};
+		VkDescriptorSetLayoutBinding normalLayoutBinding{
+			.binding = 2,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		VkDescriptorSetLayoutBinding dispLayoutBinding{
+			.binding = 3,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 4> setLayoutBindings{vertexLayoutBinding, fragmentLayoutBinding, normalLayoutBinding, dispLayoutBinding};
 		
 		VkDescriptorSetLayoutCreateInfo layoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -708,18 +1142,28 @@ class Phong : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		std::array<VkDescriptorPoolSize, 4> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 4;
 
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 4;
+
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(frames) * 4;
+
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 4;
+
+
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(frames) * 2,
+			.maxSets = static_cast<uint32_t>(frames) * 4,
 			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
 			.pPoolSizes = poolSizes.data()
 		};	
@@ -729,7 +1173,7 @@ class Phong : public IVulkanApp
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 		
-		std::array<VkDescriptorSetLayout, 2> layouts{};
+		std::array<VkDescriptorSetLayout, 4> layouts{};
 		layouts.fill(descriptorSetLayouts.cube);	
 		
 		VkDescriptorSetAllocateInfo allocInfo
@@ -755,12 +1199,26 @@ class Phong : public IVulkanApp
 			
 			VkDescriptorImageInfo imageInfo
 			{
-				.sampler = texture.sampler,
-				.imageView = texture.imageView,
+				.sampler = sampler,
+				.imageView = texture.brick.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
-			
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+			VkDescriptorImageInfo imageNormalInfo
+			{
+				.sampler = sampler,
+				.imageView = texture.brickNormal.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+
+			VkDescriptorImageInfo imageDispInfo
+			{
+				.sampler = sampler,
+				.imageView = texture.brickDisp.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+	
+			std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 			
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i].cube;
@@ -778,9 +1236,44 @@ class Phong : public IVulkanApp
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
 
+			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[2].dstSet = descriptorSets[i].cube;
+			descriptorWrites[2].dstBinding = 2;
+			descriptorWrites[2].dstArrayElement = 0;
+			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[2].descriptorCount = 1;
+			descriptorWrites[2].pImageInfo = &imageNormalInfo;
+			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[3].dstSet = descriptorSets[i].cube;
+			descriptorWrites[3].dstBinding = 3;
+			descriptorWrites[3].dstArrayElement = 0;
+			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[3].descriptorCount = 1;
+			descriptorWrites[3].pImageInfo = &imageDispInfo;
+
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
+
+	void setupQuadIndexBuffer()
+	{
+		VkDeviceSize bufferSize = sizeof(quadIndices[0]) * quadIndices.size();
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+
+		void* data;
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, quadIndices.data(), (size_t)bufferSize);
+		vkUnmapMemory(device, stagingBufferMemory);
+
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers.quadIndex.buffer, indexBuffers.quadIndex.memory, device, physicalDevice);
+		copyBuffer(stagingBuffer, indexBuffers.quadIndex.buffer, bufferSize);
+		
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+	}	 
 
 	void addShader(const std::string&& path, VkShaderStageFlagBits stage)
 	{
@@ -835,8 +1328,8 @@ class Phong : public IVulkanApp
 		setupLightPipelineLayout();
 		
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/phong/pointLight/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/phong/pointLight/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/parallaxMapping/pointLight/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/parallaxMapping/pointLight/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
@@ -998,36 +1491,45 @@ class Phong : public IVulkanApp
 	{
 		setupCubePipelineLayout();
 
-		addShader(SHADER_DIRECTORY + "/phong/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/phong/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/parallaxMapping/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/parallaxMapping/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
-			.stride = sizeof(Vertex),
+			.stride = sizeof(VertexNormal),
 			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
 		};		
 		
 		std::array<VkVertexInputBindingDescription, 1> bindingDescriptions{bindingDescription};
 		
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
-		
+		std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions;
+
+	
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+		attributeDescriptions[0].offset = offsetof(VertexNormal, pos);
+
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
+		attributeDescriptions[1].offset = offsetof(VertexNormal, normal);
+
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, normal);
+		attributeDescriptions[2].offset = offsetof(VertexNormal, tangent);
+
 		attributeDescriptions[3].binding = 0;
 		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
-		
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(VertexNormal, bitangent);
+
+		attributeDescriptions[4].binding = 0;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[4].offset = offsetof(VertexNormal, texCoord);
+	
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),	
@@ -1095,7 +1597,7 @@ class Phong : public IVulkanApp
 			.depthClampEnable = VK_FALSE,
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_BACK_BIT,
+			.cullMode = VK_CULL_MODE_NONE,
 			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.f,
@@ -1160,10 +1662,11 @@ class Phong : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		// Light	
-		glm::vec3 lightPos = glm::vec3(1.,  2., 2.);
+		glm::vec3 lightPos = glm::vec3(.5, 1., .3);
 		LightUniform lightUniform;
 		lightUniform.model = glm::mat4(1.);		
 		lightUniform.model = glm::translate(lightUniform.model, lightPos);
+		lightUniform.model = glm::scale(lightUniform.model, glm::vec3(.1));
 		lightUniform.view = camera.getViewMatrix();
 		lightUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		lightUniform.proj[1][1] *= -1.;
@@ -1172,7 +1675,7 @@ class Phong : public IVulkanApp
 
 		ObjectUniform objectUniform;
 		
-		objectUniform.model = glm::mat4(1.);		
+		objectUniform.model = glm::translate(glm::mat4(1.), glm::vec3(1., 0., 1.));		
 		objectUniform.view = camera.getViewMatrix();
 		objectUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		objectUniform.cameraPos = camera.cameraPos;
@@ -1249,17 +1752,23 @@ class Phong : public IVulkanApp
 		
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.cube, 0, 1, &descriptorSets[currentFrame].cube, 0, nullptr);
 		
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &indexBuffers.quadNormal.buffer, offsets);
 		
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
+		vkCmdDraw(commandBuffer, static_cast<uint32_t>(quadVerticesNormal.size()), 1, 0, 0);	
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Phong::cubeIndices.size()), 1, 0, 0, 0);
+//		vkCmdBindIndexBuffer(commandBuffer, indexBuffers.quadIndex.buffer, 0, VK_INDEX_TYPE_UINT32);		
+
+//		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ParallaxMapping::quadIndices.size()), 1, 0, 0, 0);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.light);	
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.light, 0, 1, &descriptorSets[currentFrame].light, 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(Phong::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(ParallaxMapping::cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -1280,19 +1789,26 @@ class Phong : public IVulkanApp
 		setupLightDescriptorSets();	
 		setupLightPipeline();
 	};
-
+	
 	void init(GLFWwindow* window)
 	{
 		IVulkanApp::init(window);	
+		calculateTangentAndBitangents();
+		createVertexBuffer<VertexNormal>(quadVerticesNormal, indexBuffers.quadNormal.buffer, indexBuffers.quadNormal.memory);
 		setUpRenderPass();
 		setupSamplers();
-		loadTexture();
+		loadBrickTexture();
+		loadBrickNormalTexture();
+		loadBrickDispTexture();
 		setupResolved();
 		setupDepth();
-		setupImageViews();
+		setupBrickImageView();
+		setupBrickNormalImageView();
+		setupBrickDispImageView();
 		setupUniformBuffers();
 		setupCubeResources();
 		setupLightResources();
+		setupQuadIndexBuffer();
 		createFramebuffers();
 	};
 
@@ -1322,8 +1838,8 @@ class Phong : public IVulkanApp
 
 		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
 
-		vkDestroyImage(device, texture.image, nullptr);
-		vkFreeMemory(device, texture.imageMemory, nullptr);
+		vkDestroyImage(device, texture.brick.image, nullptr);
+		vkFreeMemory(device, texture.brick.imageMemory, nullptr);
 
 		vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
 

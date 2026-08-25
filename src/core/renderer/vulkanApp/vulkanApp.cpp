@@ -1,6 +1,6 @@
 #include "vulkanApp.h"
 
-glm::vec3 IVulkanApp::cameraPos = glm::vec3(0., 5., 3.);
+glm::vec3 IVulkanApp::cameraPos = glm::vec3(0., 0., 3.);
 glm::vec3 IVulkanApp::cameraFront = glm::vec3(0.f, 0.f, -1.f);
 glm::vec3 IVulkanApp::cameraUp = glm::vec3(0.f,1.f, 0.f);
 Camera IVulkanApp::camera = Camera(IVulkanApp::cameraPos, IVulkanApp::cameraFront, IVulkanApp::cameraUp);
