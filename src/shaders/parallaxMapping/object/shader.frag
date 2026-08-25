@@ -58,9 +58,36 @@ void main()
 
 vec2 ParallaxMapping(vec2 texCoords, vec3 cameraDir)
 {
-	float height = texture(dispSampler, texCoords).r;
+	const float numLayers = 10;	
 	
-	vec2 p = cameraDir.xy * (height * .2);
+	float layerDepth = 1.0/numLayers;
 	
-	return texCoords - p;
+	float currentLayerDepth = 0.0;
+
+	vec2 P = cameraDir.xy * (.2);
+	
+	vec2 deltaTexCoords = P/numLayers;
+	
+	vec2 currentTexCoords = texCoords;
+	
+	float currentDepthMapValue = texture(dispSampler, currentTexCoords).r;
+	
+	while (currentLayerDepth < currentDepthMapValue)
+	{
+		currentTexCoords -= deltaTexCoords;
+
+		currentDepthMapValue = texture(dispSampler, currentTexCoords).r;
+		
+		currentLayerDepth += layerDepth;
+	};
+
+	vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+	
+	float afterDepth = currentDepthMapValue - currentLayerDepth;
+	float beforeDepth = texture(dispSampler, prevTexCoords).r - currentLayerDepth + layerDepth;
+	
+	float weight = afterDepth/(afterDepth-beforeDepth);
+	vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+	
+	return finalTexCoords;
 }
