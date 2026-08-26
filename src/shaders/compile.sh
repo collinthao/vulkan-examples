@@ -36,3 +36,9 @@ $GLSL_PATH parallaxMapping/pointLight/shader.vert -o parallaxMapping/pointLight/
 $GLSL_PATH parallaxMapping/pointLight/shader.frag -o parallaxMapping/pointLight/frag.spv
 $GLSL_PATH parallaxMapping/object/shader.vert -o parallaxMapping/object/vert.spv
 $GLSL_PATH parallaxMapping/object/shader.frag -o parallaxMapping/object/frag.spv
+$GLSL_PATH hdr/postProcessing/shader.vert -o hdr/postProcessing/vert.spv
+$GLSL_PATH hdr/postProcessing/shader.frag -o hdr/postProcessing/frag.spv
+$GLSL_PATH hdr/pointLight/shader.vert -o hdr/pointLight/vert.spv
+$GLSL_PATH hdr/pointLight/shader.frag -o hdr/pointLight/frag.spv
+$GLSL_PATH hdr/object/shader.vert -o hdr/object/vert.spv
+$GLSL_PATH hdr/object/shader.frag -o hdr/object/frag.spv

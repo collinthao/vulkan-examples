@@ -38,10 +38,11 @@
 #include "./examples/omnidirectionalShadowMapping/omnidirectionalShadowMapping.h"
 #include "./examples/normalMapping/normalMapping.h"
 #include "./examples/parallaxMapping/parallaxMapping.h"
+#include "./examples/hdr/hdr.h"
 
 int main()
 {
-	Engine<ParallaxMapping, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<HDR, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
