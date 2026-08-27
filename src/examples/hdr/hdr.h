@@ -85,14 +85,19 @@ class HDR : public IVulkanApp
 	std::array<UniformBuffersMapped, frames> uniformBuffersMapped;	
 	std::array<UniformBuffersMemory, frames> uniformBuffersMemory;	
 	
-	struct
+	VkSampler sampler;
+	struct Texture
 	{
-		VkSampler sampler;
 		VkImageView imageView;
 		VkImage     image;
 		VkDeviceMemory imageMemory;
-	} texture;		
+	};	
 
+	struct
+	{
+		Texture wood;
+	} textures;
+	
 	struct
 	{
 		VkImageView imageView;
@@ -346,7 +351,8 @@ class HDR : public IVulkanApp
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
 			.flags = 0,
 			.imageType = VK_IMAGE_TYPE_2D,
-			.format = swapChainImageFormat,
+			//.format = swapChainImageFormat,
+			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
 			.mipLevels = 1,
 			.arrayLayers = 1,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
@@ -385,7 +391,7 @@ class HDR : public IVulkanApp
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = color.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = swapChainImageFormat
+			.format = VK_FORMAT_R16G16B16A16_SFLOAT
 		};			
 		
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -407,7 +413,7 @@ class HDR : public IVulkanApp
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
 			.flags = 0,
 			.imageType = VK_IMAGE_TYPE_2D,
-			.format = swapChainImageFormat,
+			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
 			.mipLevels = 1,
 			.arrayLayers = 1,
 			.samples = VulkanConfig::msaaSamples,
@@ -446,7 +452,7 @@ class HDR : public IVulkanApp
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = resolved.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = swapChainImageFormat
+			.format = VK_FORMAT_R16G16B16A16_SFLOAT
 		};			
 		
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -556,7 +562,7 @@ class HDR : public IVulkanApp
 
 	void loadTexture()
 	{
-		const std::string path = ROOT_DIR + "/resource/textures/container.png";
+		const std::string path = ROOT_DIR + "/resource/textures/wood.png";
 		int texWidth, texHeight, texChannels;
 		stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
 		
@@ -598,13 +604,13 @@ class HDR : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &textures.wood.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, textures.wood.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -612,12 +618,12 @@ class HDR : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 		
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.wood.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(device, texture.image, texture.imageMemory, 0);
+		vkBindImageMemory(device, textures.wood.image, textures.wood.imageMemory, 0);
 		
 		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
 		
@@ -629,7 +635,7 @@ class HDR : public IVulkanApp
 			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = texture.image};
+			.image = textures.wood.image};
 
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
 		barrier.subresourceRange.baseMipLevel = 0;
@@ -673,7 +679,7 @@ class HDR : public IVulkanApp
 		vkCmdCopyBufferToImage(
 			commandBuffer,
 			stagingBuffer,
-			texture.image,
+			textures.wood.image,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1,
 			&region);	
@@ -707,10 +713,9 @@ class HDR : public IVulkanApp
 	{
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = texture.image,
+			.image = textures.wood.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_R8G8B8A8_SRGB};		
-
 			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			viewInfo.subresourceRange.baseMipLevel = 0;
 			viewInfo.subresourceRange.levelCount = 1;
@@ -718,7 +723,7 @@ class HDR : public IVulkanApp
 			viewInfo.subresourceRange.layerCount = 1;
 
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.imageView))
+		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.wood.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -748,7 +753,7 @@ class HDR : public IVulkanApp
 			.unnormalizedCoordinates = VK_FALSE
 		};		
 		
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &texture.sampler))
+		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler))
 		{
 			throw std::runtime_error("failed to create sampler!");	
 		};
@@ -896,7 +901,7 @@ class HDR : public IVulkanApp
 					
 			VkDescriptorImageInfo imageInfo
 			{
-				.sampler = texture.sampler,
+				.sampler = sampler,
 				.imageView = color.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
@@ -993,8 +998,8 @@ class HDR : public IVulkanApp
 			
 			VkDescriptorImageInfo imageInfo
 			{
-				.sampler = texture.sampler,
-				.imageView = texture.imageView,
+				.sampler = sampler,
+				.imageView = textures.wood.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 			
@@ -1578,11 +1583,9 @@ class HDR : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		// Light	
-		glm::vec3 lightPos = glm::vec3(0, 0, -50.);
+		glm::vec3 lightPos = glm::vec3(0, 0, 49.5);
 		LightUniform lightUniform;
-		lightUniform.model = glm::mat4(1.);
-		lightUniform.model = glm::scale(lightUniform.model, glm::vec3(3., 3., 1.));		
-		lightUniform.model = glm::translate(lightUniform.model, lightPos);
+		lightUniform.model = glm::translate(glm::mat4(1.), lightPos);
 		lightUniform.view = camera.getViewMatrix();
 		lightUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		lightUniform.proj[1][1] *= -1.;
@@ -1590,8 +1593,8 @@ class HDR : public IVulkanApp
 		memcpy(uniformBuffersMapped[currentImage].light, &lightUniform, sizeof(lightUniform));
 
 		ObjectUniform objectUniform;
-		
-		objectUniform.model = glm::scale(glm::mat4(1.), glm::vec3(3., 3., 50.));		
+		objectUniform.model = glm::translate(glm::mat4(1.), glm::vec3(0., 0., 25.));		
+		objectUniform.model = glm::scale(objectUniform.model, glm::vec3(2.5, 2.5, 27.5));		
 		objectUniform.view = camera.getViewMatrix();
 		objectUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		objectUniform.cameraPos = camera.cameraPos;
@@ -1676,7 +1679,7 @@ class HDR : public IVulkanApp
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.light);	
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.light, 0, 1, &descriptorSets[currentFrame].light, 0, nullptr);
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.light, 0, 1, &descriptorSets[currentFrame].light, 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(HDR::cubeIndices.size()), 1, 0, 0, 0);
 
@@ -1728,7 +1731,6 @@ class HDR : public IVulkanApp
 	void init(GLFWwindow* window)
 	{
 		IVulkanApp::init(window);	
-		swapChainImageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
 		setupOffscreenPass();
 		setupRenderPass();
 		setupSamplers();
@@ -1771,8 +1773,8 @@ class HDR : public IVulkanApp
 
 		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
 
-		vkDestroyImage(device, texture.image, nullptr);
-		vkFreeMemory(device, texture.imageMemory, nullptr);
+		vkDestroyImage(device, textures.wood.image, nullptr);
+		vkFreeMemory(device, textures.wood.imageMemory, nullptr);
 
 		vkDestroyRenderPass(device, renderPasses.offscreenPass, nullptr);
 

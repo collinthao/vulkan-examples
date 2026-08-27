@@ -25,7 +25,7 @@ void main()
 	gl_Position = ud.proj * ud.view * ud.model * vec4(inPosition, 1.);
 	texCoords = inTexCoord;
 	FragPos = vec3(ud.model * vec4(inPosition, 1.));
-	Normal = mat3(transpose(inverse(ud.model))) * inNormal;
+	Normal = mat3(transpose(inverse(ud.model))) * -inNormal;
 	CameraPos = ud.cameraPos;
 	LightPos = ud.lightPos;
 }
