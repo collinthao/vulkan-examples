@@ -39,10 +39,12 @@
 #include "./examples/normalMapping/normalMapping.h"
 #include "./examples/parallaxMapping/parallaxMapping.h"
 #include "./examples/hdr/hdr.h"
+#include "./examples/bloom/bloom.h"
+#include "./examples/bloom_test/bloom.h"
 
 int main()
 {
-	Engine<HDR, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<Bloom, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

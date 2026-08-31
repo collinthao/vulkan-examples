@@ -217,7 +217,13 @@ void IVulkanApp::createImageViews()
 
 	for (size_t i = 0; i < swapChainImages.size(); i++)
 	{
+		const std::string swapChainImageName{"swapChainImages[" + std::to_string(i) + "]"};
+		const std::string swapChainImageViewName{"swapChainImageViews[" + std::to_string(i) + "]"};
+
 		swapChainImageViews[i] = Image::createView(swapChainImages[i], swapChainImageViews[i], VK_IMAGE_VIEW_TYPE_2D, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1, device, graphicsAndComputeQueue);
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, swapChainImages[i], swapChainImageName);
+
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, swapChainImageViews[i], swapChainImageViewName);
 	}
 }
 
@@ -406,17 +412,31 @@ void IVulkanApp::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInf
 	createInfo.pfnUserCallback = debugCallback;
 }
 
+void IVulkanApp::setupDebugObjectName(VkObjectType objectType, void * handle, std::string name)
+{
+	VkDebugUtilsObjectNameInfoEXT nameInfo = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT};
+
+	nameInfo.objectType = objectType;
+	nameInfo.objectHandle = reinterpret_cast<uint64_t>(handle);
+	nameInfo.pObjectName = name.c_str();
+	
+	std::cout << "Handle: " << nameInfo.objectHandle << '\n';
+	std::cout << "Name: " << nameInfo.pObjectName << '\n';
+	if (CreateDebugUtilsObjectNameEXT(instance, device, &nameInfo) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to set up debug object name!");
+	};
+}
+
 void IVulkanApp::setupDebugMessenger()
 {
-	if (!enableValidationLayers) return;
-		
 	VkDebugUtilsMessengerCreateInfoEXT createInfo;
 	populateDebugMessengerCreateInfo(createInfo);
 
 	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to set up debug messenger!");
-	}
+	};
 }
 
 int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)

@@ -42,3 +42,11 @@ $GLSL_PATH hdr/pointLight/shader.vert -o hdr/pointLight/vert.spv
 $GLSL_PATH hdr/pointLight/shader.frag -o hdr/pointLight/frag.spv
 $GLSL_PATH hdr/object/shader.vert -o hdr/object/vert.spv
 $GLSL_PATH hdr/object/shader.frag -o hdr/object/frag.spv
+$GLSL_PATH bloom/postProcessing/shader.vert -o bloom/postProcessing/vert.spv
+$GLSL_PATH bloom/postProcessing/shader.frag -o bloom/postProcessing/frag.spv
+$GLSL_PATH bloom/pointLight/shader.vert -o bloom/pointLight/vert.spv
+$GLSL_PATH bloom/pointLight/shader.frag -o bloom/pointLight/frag.spv
+$GLSL_PATH bloom/object/shader.vert -o bloom/object/vert.spv
+$GLSL_PATH bloom/object/shader.frag -o bloom/object/frag.spv
+$GLSL_PATH bloom/pingPong/shader.vert -o bloom/pingPong/vert.spv
+$GLSL_PATH bloom/pingPong/shader.frag -o bloom/pingPong/frag.spv

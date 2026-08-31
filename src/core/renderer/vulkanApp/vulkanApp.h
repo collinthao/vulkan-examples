@@ -241,6 +241,7 @@ class IVulkanApp
 	virtual VkSampleCountFlagBits getMaxUsableSampleCount();
 	virtual bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 	virtual void setupDebugMessenger();
+	virtual void setupDebugObjectName(VkObjectType objectType, void * handle, std::string name);
 	virtual void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 	virtual VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	virtual VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -305,6 +306,23 @@ class IVulkanApp
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 
 	};	
+
+	static VkResult CreateDebugUtilsObjectNameEXT(
+			VkInstance instance, 
+			VkDevice& device,
+			const VkDebugUtilsObjectNameInfoEXT* nameInfo	
+		)
+	{
+		auto func = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+		if (func != nullptr)
+		{
+			return func(device, nameInfo);
+		}
+		else
+		{
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
+		}
+	}
 
 	static VkResult CreateDebugUtilsMessengerEXT(
 		VkInstance instance, 
