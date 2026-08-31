@@ -1,3 +1,5 @@
+Graphic examples using Vulkan API and C++23 I've made to use for learning purposes/reference in other projects.
+
 To run, go to the /build directory in your cli of choice and run:
 ```
 cmake CMakeLists.txt ..

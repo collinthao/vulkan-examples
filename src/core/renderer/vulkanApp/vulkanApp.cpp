@@ -420,8 +420,6 @@ void IVulkanApp::setupDebugObjectName(VkObjectType objectType, void * handle, st
 	nameInfo.objectHandle = reinterpret_cast<uint64_t>(handle);
 	nameInfo.pObjectName = name.c_str();
 	
-	std::cout << "Handle: " << nameInfo.objectHandle << '\n';
-	std::cout << "Name: " << nameInfo.pObjectName << '\n';
 	if (CreateDebugUtilsObjectNameEXT(instance, device, &nameInfo) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to set up debug object name!");
