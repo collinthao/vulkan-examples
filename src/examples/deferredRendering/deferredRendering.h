@@ -2,23 +2,35 @@
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
-class BloomTest : public IVulkanApp
+class DeferredRendering : public IVulkanApp
 {
 	public:
-	BloomTest() = default;
+	DeferredRendering() = default;
 	constexpr static int frames = 2;
 	constexpr static int LIGHT_COUNT = 5;
 	bool first_iteration = true;
 	bool horizontal = true;
 	
+	std::array<glm::vec3, LIGHT_COUNT> lightColors
+	{
+		glm::vec3(200., 0., 0.),
+		glm::vec3(0., 200., 0.),
+		glm::vec3(200., 0., 200.),
+		glm::vec3(0., 0., 200.),
+		glm::vec3(200., 200., 0.)
+	};
+
+	glm::vec3 lightPositions[LIGHT_COUNT] =
+	{
+		glm::vec3(0., 0., 49.5),
+		glm::vec3(0., 4., 25.),
+		glm::vec3(2., 0., 10.),
+		glm::vec3(0., 0., 1.),
+		glm::vec3(1., 1., 39.)
+	};
+
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	std::vector<VkFramebuffer> offscreenFramebuffers;
-	std::array<VkFramebuffer, 2> pingPongFramebuffers;
-
-	struct PingPongUniform
-	{
-		alignas(4) bool horizontal;
-	};
 
 	struct LightUniform
 	{
@@ -42,7 +54,6 @@ class BloomTest : public IVulkanApp
 	{
 		VkRenderPass renderPass;	
 		VkRenderPass offscreenPass;	
-		VkRenderPass pingPongPass;	
 	} renderPasses{};
 	
 	struct
@@ -50,7 +61,6 @@ class BloomTest : public IVulkanApp
 		VkPipelineLayout cube;		
 		VkPipelineLayout quad;		
 		VkPipelineLayout light;		
-		VkPipelineLayout pingPongQuad;		
 	} pipelineLayouts;
 	
 	struct
@@ -58,7 +68,6 @@ class BloomTest : public IVulkanApp
 		VkPipeline cube;
 		VkPipeline quad;
 		VkPipeline light;
-		VkPipeline pingPongQuad;
 	} pipelines;	
 
 	struct
@@ -66,16 +75,13 @@ class BloomTest : public IVulkanApp
 		VkDescriptorSetLayout cube;
 		VkDescriptorSetLayout quad;
 		VkDescriptorSetLayout light;
-		VkDescriptorSetLayout pingPongQuad;
 	} descriptorSetLayouts;
 
 	struct DescriptorSets
 	{
+		std::vector<VkDescriptorSet> light;
 		VkDescriptorSet cube;
 		VkDescriptorSet quad;
-		VkDescriptorSet light;
-		VkDescriptorSet pingPongQuadFB1;
-		//VkDescriptorSet pingPongQuadFB2;
 	};
 
 	std::array<DescriptorSets, frames> descriptorSets;
@@ -83,22 +89,19 @@ class BloomTest : public IVulkanApp
 	struct UniformBuffers 
 	{
 		VkBuffer cube;
-		VkBuffer pingPong;
-		VkBuffer light;
+		std::vector<VkBuffer> light;
 	};
 	
 	struct UniformBuffersMapped
 	{
 		void * cube;
-		void * pingPong;
-		void * light;
+		std::vector<void *> light;
 	};
 	
 	struct UniformBuffersMemory
 	{
 		VkDeviceMemory cube;
-		VkDeviceMemory pingPong;
-		VkDeviceMemory light;
+		std::vector<VkDeviceMemory> light;
 	};
 
 	std::array<UniformBuffers, frames> uniformBuffers;	
@@ -115,62 +118,13 @@ class BloomTest : public IVulkanApp
 	struct
 	{
 		Texture wood;
-		Texture color;
-		Texture resolved;
-		Texture bloom;
-		Texture bloomResolve;
+		Texture position;
+		Texture normal;
+		Texture albedo;
+		Texture specular;
 		Texture depth;
-		Texture pingPong;
 	} textures;
 		
-	void setupPingPongPass()
-	{
-		VkAttachmentDescription colorAttachmentResolve{
-		.format = swapChainImageFormat,
-		.samples = VK_SAMPLE_COUNT_1_BIT,
-		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-		.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-		.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-
-		VkAttachmentReference colorAttachmentRef{
-			.attachment = 0,
-			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-		VkSubpassDescription subpass{
-			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-			.colorAttachmentCount = 1,
-			.pColorAttachments = &colorAttachmentRef
-		};	
-
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = 0;
-		dependency.dstSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependency.dstStageMask =  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		dependency.dstAccessMask =  VK_ACCESS_SHADER_READ_BIT;
-
-		std::array<VkAttachmentDescription, 1> attachments = {colorAttachmentResolve};
-
-		VkRenderPassCreateInfo renderPassInfo{
-			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-			.attachmentCount = static_cast<uint32_t>(attachments.size()),	
-			.pAttachments = attachments.data(),
-			.subpassCount = 1,
-			.pSubpasses = &subpass,
-			.dependencyCount = 1,
-			.pDependencies = &dependency
-		};
-		
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.pingPongPass))
-		{
-			throw std::runtime_error("Failed to create render pass!");
-		};
-	};
-
 	void setupRenderPass()
 	{
 		VkAttachmentDescription colorAttachmentResolve{
@@ -222,19 +176,19 @@ class BloomTest : public IVulkanApp
 
 	void setupOffscreenPass()
 	{
-		VkAttachmentDescription colorAttachment{
+		VkAttachmentDescription highResAttachment{
 			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
-			.samples = VulkanConfig::msaaSamples,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-		};	
+		};
 
-		VkAttachmentDescription colorAttachmentResolve{
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+		VkAttachmentDescription lowResAttachment{
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -246,7 +200,7 @@ class BloomTest : public IVulkanApp
 
 		VkAttachmentDescription depthAttachment{
 			.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
-			.samples = VulkanConfig::msaaSamples,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -254,35 +208,31 @@ class BloomTest : public IVulkanApp
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
-		VkAttachmentReference colorAttachmentRef{
-			.attachment = 0,
-			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-		VkAttachmentReference bloomAttachmentRef{
-			.attachment = 1,
-			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
 		VkAttachmentReference depthAttachmentRef{
-			.attachment = 2,
+			.attachment = 0,
 			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
-		VkAttachmentReference colorAttachmentResolveRef{
+		VkAttachmentReference positionAttachmentRef{
+		.attachment = 1,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+		VkAttachmentReference normalAttachmentRef{
+		.attachment = 2,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+		VkAttachmentReference albedoAttachmentRef{
 		.attachment = 3,
 		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-		VkAttachmentReference bloomColorAttachmentResolveRef{
+		VkAttachmentReference specularAttachmentRef{
 		.attachment = 4,
 		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-		std::array<VkAttachmentReference, 2> colorAttachments{colorAttachmentRef, bloomAttachmentRef};	
-
-		std::array<VkAttachmentReference, 2> colorAttachmentResolves{colorAttachmentResolveRef, bloomColorAttachmentResolveRef};	
+		std::array<VkAttachmentReference, 4> colorAttachments{positionAttachmentRef, normalAttachmentRef, albedoAttachmentRef, specularAttachmentRef};	
 
 		VkSubpassDescription subpass{
 			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-			.colorAttachmentCount = 2,
+			.colorAttachmentCount = 4,
 			.pColorAttachments = colorAttachments.data(),
-			.pResolveAttachments = colorAttachmentResolves.data(),
 			.pDepthStencilAttachment = &depthAttachmentRef,
 };
 		
@@ -302,7 +252,7 @@ class BloomTest : public IVulkanApp
 		dependency[1].dstStageMask =  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		dependency[1].dstAccessMask =  VK_ACCESS_SHADER_READ_BIT;
 
-		std::array<VkAttachmentDescription, 5> attachments{colorAttachment, colorAttachment, depthAttachment, colorAttachmentResolve, colorAttachmentResolve};
+		std::array<VkAttachmentDescription, 5> attachments{depthAttachment, highResAttachment, highResAttachment, lowResAttachment, lowResAttachment};
 		
 		VkRenderPassCreateInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -346,30 +296,6 @@ class BloomTest : public IVulkanApp
 		}
 	}
 
-	void createPingPongFramebuffers()
-	{
-		for (size_t i = 0; i < 2; i++)
-		{
-			std::array<VkImageView, 1> attachments = { 
-				textures.pingPong.imageView,
-			};
-			
-			VkFramebufferCreateInfo framebufferInfo{};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = renderPasses.pingPongPass;
-			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-			framebufferInfo.pAttachments = attachments.data();
-			framebufferInfo.width = VulkanConfig::swapChainExtent.width;
-			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
-			framebufferInfo.layers = 1;
-
-			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &pingPongFramebuffers[i]) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to create framebuffer!");
-			};
-		}
-	}
-
 	void createOffscreenFramebuffers()
 	{
 		offscreenFramebuffers.resize(swapChainImageViews.size());
@@ -377,11 +303,11 @@ class BloomTest : public IVulkanApp
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
 		{
 			std::array<VkImageView, 5> attachments = { 
-				textures.resolved.imageView,
-				textures.bloom.imageView,
 				textures.depth.imageView,
-				textures.color.imageView,
-				textures.bloomResolve.imageView,
+				textures.position.imageView,
+				textures.normal.imageView,
+				textures.albedo.imageView,
+				textures.specular.imageView,
 			};
 			
 			VkFramebufferCreateInfo framebufferInfo{};
@@ -404,25 +330,30 @@ class BloomTest : public IVulkanApp
 	{
 		VkDeviceSize objectBufferSize = sizeof(ObjectUniform);	
 		VkDeviceSize lightBufferSize = sizeof(LightUniform);	
-		VkDeviceSize pingPongBufferSize = sizeof(PingPongUniform);	
 		
 		for (size_t i = 0; i < frames; i++)
 		{
 			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, device, physicalDevice);
 			
 			vkMapMemory(device, uniformBuffersMemory[i].cube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cube);
-
-			Buffer::create(pingPongBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].pingPong, uniformBuffersMemory[i].pingPong, device, physicalDevice);
-			
-			vkMapMemory(device, uniformBuffersMemory[i].pingPong, 0, pingPongBufferSize, 0, &uniformBuffersMapped[i].pingPong);
 		};
 		
 		//Light
-		for (size_t i = 0; i < frames; i++)
+		uniformBuffers[0].light.resize(LIGHT_COUNT);
+		uniformBuffers[1].light.resize(LIGHT_COUNT);
+		uniformBuffersMemory[0].light.resize(LIGHT_COUNT);
+		uniformBuffersMemory[1].light.resize(LIGHT_COUNT);
+		uniformBuffersMapped[0].light.resize(LIGHT_COUNT);
+		uniformBuffersMapped[1].light.resize(LIGHT_COUNT);
+
+		for (size_t j = 0; j < LIGHT_COUNT; j++)
 		{
-			Buffer::create(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light, uniformBuffersMemory[i].light, device, physicalDevice);
+			for (size_t i = 0; i < frames; i++)
+			{
+				Buffer::create(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light[j], uniformBuffersMemory[i].light[j], device, physicalDevice);
 				
-			vkMapMemory(device, uniformBuffersMemory[i].light, 0, lightBufferSize, 0, &uniformBuffersMapped[i].light);
+				vkMapMemory(device, uniformBuffersMemory[i].light[j], 0, lightBufferSize, 0, &uniformBuffersMapped[i].light[j]);
+			};
 		};
 	}
 
@@ -442,16 +373,16 @@ class BloomTest : public IVulkanApp
 		throw std::runtime_error("failed to find a suitable memory type!");
 	}
 
-	void setupBloomTest()
+	void setupAlbedo()
 	{
 		VkImageCreateInfo imageInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
 			.flags = 0,
 			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
 			.mipLevels = 1,
 			.arrayLayers = 1,
-			.samples = VulkanConfig::msaaSamples,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.tiling = VK_IMAGE_TILING_OPTIMAL,
 			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -462,13 +393,13 @@ class BloomTest : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.bloom.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &textures.albedo.image))
 		{
-			throw std::runtime_error("failed to create resolved image!");
+			throw std::runtime_error("failed to create albedo image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.bloom.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, textures.albedo.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -477,18 +408,17 @@ class BloomTest : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.bloom.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.albedo.imageMemory) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to allocate memory for bloom image!");
+			throw std::runtime_error("failed to allocate memory for albedo image!");
 		};
 	
-		vkBindImageMemory(device, textures.bloom.image, textures.bloom.imageMemory, 0);
-
+		vkBindImageMemory(device, textures.albedo.image, textures.albedo.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.bloom.image,
+			.image = textures.albedo.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT
+			.format = VK_FORMAT_R8G8B8A8_SRGB
 		};			
 		
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -497,13 +427,73 @@ class BloomTest : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.bloom.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.albedo.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
 	};	
 
-	void setupBloomTestResolve()
+	void setupSpecular()
+	{
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
+		};
+		
+		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
+		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(device, &imageInfo, nullptr, &textures.specular.image))
+		{
+			throw std::runtime_error("failed to create resolved image!");
+		};	
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(device, textures.specular.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+		};
+
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.specular.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate memory for specular image!");
+		};
+	
+		vkBindImageMemory(device, textures.specular.image, textures.specular.imageMemory, 0);
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.specular.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		
+		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.specular.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create color image view!");
+		};
+	};	
+
+	void setupNormal()
 	{
 		VkImageCreateInfo imageInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
@@ -523,13 +513,13 @@ class BloomTest : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.bloomResolve.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &textures.normal.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.bloomResolve.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, textures.normal.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -538,15 +528,15 @@ class BloomTest : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.bloomResolve.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.normal.imageMemory) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to allocate memory for color image!");
+			throw std::runtime_error("failed to allocate memory for normal image!");
 		};
 	
-		vkBindImageMemory(device, textures.bloomResolve.image, textures.bloomResolve.imageMemory, 0);
+		vkBindImageMemory(device, textures.normal.image, textures.normal.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.bloomResolve.image,
+			.image = textures.normal.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_R16G16B16A16_SFLOAT
 		};			
@@ -557,73 +547,13 @@ class BloomTest : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.bloomResolve.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.normal.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
 	};	
 
-	void setupPingPongTexture()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = swapChainImageFormat,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.pingPong.image))
-		{
-			throw std::runtime_error("failed to create resolved image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.pingPong.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
-		};
-
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.pingPong.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for color image!");
-		};
-	
-		vkBindImageMemory(device, textures.pingPong.image, textures.pingPong.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.pingPong.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = swapChainImageFormat
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.pingPong.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create color image view!");
-		};
-	};	
-
-	void setupColor()
+	void setupPosition()
 	{
 		VkImageCreateInfo imageInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
@@ -643,13 +573,13 @@ class BloomTest : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.color.image))
+		if(vkCreateImage(device, &imageInfo, nullptr, &textures.position.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.color.image, &memRequirements);
+		vkGetImageMemoryRequirements(device, textures.position.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -658,15 +588,15 @@ class BloomTest : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.color.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.position.imageMemory) != VK_SUCCESS)
 		{
-			throw std::runtime_error("failed to allocate memory for color image!");
+			throw std::runtime_error("failed to allocate memory for position image!");
 		};
 	
-		vkBindImageMemory(device, textures.color.image, textures.color.imageMemory, 0);
+		vkBindImageMemory(device, textures.position.image, textures.position.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.color.image,
+			.image = textures.position.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_R16G16B16A16_SFLOAT
 		};			
@@ -677,69 +607,9 @@ class BloomTest : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.color.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.position.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
-		};
-	};	
-
-	void setupResolved()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VulkanConfig::msaaSamples,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.resolved.image))
-		{
-			throw std::runtime_error("failed to create resolved image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.resolved.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
-		};
-
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.resolved.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for resolved image!");
-		};
-	
-		vkBindImageMemory(device, textures.resolved.image, textures.resolved.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.resolved.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.resolved.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create resolved image view!");
 		};
 	};	
 
@@ -752,7 +622,7 @@ class BloomTest : public IVulkanApp
 			.format = VK_FORMAT_D32_SFLOAT_S8_UINT,
 			.mipLevels = 1,
 			.arrayLayers = 1,
-			.samples = VulkanConfig::msaaSamples,
+			.samples = VK_SAMPLE_COUNT_1_BIT, 
 			.tiling = VK_IMAGE_TILING_OPTIMAL,
 			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,		 
 			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -1061,12 +931,12 @@ class BloomTest : public IVulkanApp
 		
 		std::array<VkDescriptorPoolSize, 1> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames * LIGHT_COUNT) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(frames) * 2,
+			.maxSets = static_cast<uint32_t>(frames * LIGHT_COUNT) * 2,
 			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
 			.pPoolSizes = poolSizes.data()
 		};	
@@ -1076,26 +946,31 @@ class BloomTest : public IVulkanApp
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 		
-		std::array<VkDescriptorSetLayout, 1> layouts{};
-		layouts.fill(descriptorSetLayouts.light);	
-		
-		VkDescriptorSetAllocateInfo allocInfo
+		descriptorSets[0].light.resize(LIGHT_COUNT);
+		descriptorSets[1].light.resize(LIGHT_COUNT);
+
+		for (size_t j = 0; j < LIGHT_COUNT; j++)
 		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = layouts.size(),
-			.pSetLayouts = layouts.data()
-		};
-		
-		for (size_t i = 0; i < frames; i++)
-		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].light) != VK_SUCCESS)
+			std::array<VkDescriptorSetLayout, 1> layouts{};
+			layouts.fill(descriptorSetLayouts.light);	
+			
+			VkDescriptorSetAllocateInfo allocInfo
+			{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+				.descriptorPool = descriptorPool,
+				.descriptorSetCount = layouts.size(),
+				.pSetLayouts = layouts.data()
+			};
+
+			for (size_t i = 0; i < frames; i++)
+			{
+				if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].light[j]) != VK_SUCCESS)
 				{
 					throw std::runtime_error("failed to allocate descriptor sets!");
 				};
 				
 				VkDescriptorBufferInfo bufferInfo{
-					.buffer = uniformBuffers[i].light,
+					.buffer = uniformBuffers[i].light[j],
 					.offset = 0,
 					.range = sizeof(LightUniform)
 				};
@@ -1103,7 +978,7 @@ class BloomTest : public IVulkanApp
 				std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 				
 				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrites[0].dstSet = descriptorSets[i].light;
+				descriptorWrites[0].dstSet = descriptorSets[i].light[j];
 				descriptorWrites[0].dstBinding = 0;
 				descriptorWrites[0].dstArrayElement = 0;
 				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1112,219 +987,6 @@ class BloomTest : public IVulkanApp
 
 				vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 			};
-	}	
-/*
-	void setupPingPongQuadFB2DescriptorSets()
-	{
-		VkDescriptorPool descriptorPool;
-
-		VkDescriptorSetLayoutBinding fragmentLayoutBinding
-		{
-			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding horizontalLayoutBinding
-		{
-			.binding = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{fragmentLayoutBinding, horizontalLayoutBinding};
-		
-		VkDescriptorSetLayoutCreateInfo layoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
-			.pBindings = setLayoutBindings.data()
-		};
-	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.pingPongQuad))
-		{
-			throw std::runtime_error("Failed to create descriptor set layout!");
-		};	
-		
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		VkDescriptorPoolCreateInfo poolInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(frames) * 2,
-			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-			.pPoolSizes = poolSizes.data()
-		};	
-		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create descriptor pool!");		
-		}
-		
-		std::array<VkDescriptorSetLayout, 2> layouts{};
-		layouts.fill(descriptorSetLayouts.pingPongQuad);	
-		VkDescriptorSetAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = layouts.size(),
-			.pSetLayouts = layouts.data()
-		};
-		
-		for (size_t i = 0; i < frames; i++)
-		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].pingPongQuadFB2) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to allocate descriptor sets!");
-			};
-
-			VkDescriptorBufferInfo bufferInfo{
-				.buffer = uniformBuffers[i].pingPong,
-				.offset = 0,
-				.range = sizeof(PingPongUniform)
-			};
-
-			VkDescriptorImageInfo imageInfo
-			{
-				.sampler = sampler,
-				.imageView = textures.pingPong.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-			
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i].pingPongQuadFB2;
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pImageInfo = &imageInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i].pingPongQuadFB2;
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pBufferInfo = &bufferInfo;
-
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
-		};
-	}	
-*/
-	void setupPingPongQuadFB1DescriptorSets()
-	{
-		VkDescriptorPool descriptorPool;
-
-		VkDescriptorSetLayoutBinding fragmentLayoutBinding
-		{
-			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding horizontalLayoutBinding
-		{
-			.binding = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{fragmentLayoutBinding, horizontalLayoutBinding};
-		
-		VkDescriptorSetLayoutCreateInfo layoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
-			.pBindings = setLayoutBindings.data()
-		};
-	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.pingPongQuad))
-		{
-			throw std::runtime_error("Failed to create descriptor set layout!");
-		};	
-		
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		VkDescriptorPoolCreateInfo poolInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(frames) * 2,
-			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-			.pPoolSizes = poolSizes.data()
-		};	
-		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create descriptor pool!");		
-		}
-		
-		std::array<VkDescriptorSetLayout, 1> layouts{};
-		layouts.fill(descriptorSetLayouts.pingPongQuad);	
-		VkDescriptorSetAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = layouts.size(),
-			.pSetLayouts = layouts.data()
-		};
-		
-		for (size_t i = 0; i < frames; i++)
-		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].pingPongQuadFB1) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to allocate descriptor sets!");
-			};
-
-			VkDescriptorBufferInfo bufferInfo{
-				.buffer = uniformBuffers[i].pingPong,
-				.offset = 0,
-				.range = sizeof(PingPongUniform)
-			};
-
-			VkDescriptorImageInfo imageInfo
-			{
-				.sampler = sampler,
-				.imageView = textures.bloomResolve.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-			
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i].pingPongQuadFB1;
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pImageInfo = &imageInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i].pingPongQuadFB1;
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pBufferInfo = &bufferInfo;
-
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
 
@@ -1332,7 +994,8 @@ class BloomTest : public IVulkanApp
 	{
 		VkDescriptorPool descriptorPool;
 
-		VkDescriptorSetLayoutBinding fragmentLayoutBinding{
+		VkDescriptorSetLayoutBinding fragmentLayoutBinding
+		{
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			.descriptorCount = 1,
@@ -1340,7 +1003,16 @@ class BloomTest : public IVulkanApp
 			.pImmutableSamplers = nullptr
 		};
 
-		std::array<VkDescriptorSetLayoutBinding, 1> setLayoutBindings{fragmentLayoutBinding};
+		VkDescriptorSetLayoutBinding sceneLayoutBinding
+		{
+			.binding = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{fragmentLayoutBinding, sceneLayoutBinding};
 		
 		VkDescriptorSetLayoutCreateInfo layoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -1353,10 +1025,14 @@ class BloomTest : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 1> poolSizes{};
+		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -1388,15 +1064,25 @@ class BloomTest : public IVulkanApp
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
+
+			const std::string quadDSName{"descriptorSets[" + std::to_string(i) + "].quad"};
+			setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSets[i].quad, quadDSName.c_str());
+
+			VkDescriptorImageInfo sceneInfo
+			{
+				.sampler = sampler,
+				.imageView = textures.position.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
 					
 			VkDescriptorImageInfo imageInfo
 			{
 				.sampler = sampler,
-				.imageView = textures.color.imageView,
+				.imageView = textures.normal.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 			
-			std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i].quad;
 			descriptorWrites[0].dstBinding = 0;
@@ -1404,6 +1090,13 @@ class BloomTest : public IVulkanApp
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[0].descriptorCount = 1;
 			descriptorWrites[0].pImageInfo = &imageInfo;
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = descriptorSets[i].quad;
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &sceneInfo;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
@@ -1462,7 +1155,7 @@ class BloomTest : public IVulkanApp
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 		
-		std::array<VkDescriptorSetLayout, 2> layouts{};
+		std::array<VkDescriptorSetLayout, 1> layouts{};
 		layouts.fill(descriptorSetLayouts.cube);	
 		
 		VkDescriptorSetAllocateInfo allocInfo
@@ -1547,22 +1240,6 @@ class BloomTest : public IVulkanApp
 		};
 	};
 
-	void setupPingPongQuadPipelineLayout()
-	{
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.setLayoutCount = 1,
-			.pSetLayouts = &descriptorSetLayouts.pingPongQuad,
-			.pushConstantRangeCount = 0,
-			.pPushConstantRanges = nullptr
-		};
-	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.pingPongQuad) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create pipeline layout!");
-		};
-	};
-
 	void setupQuadPipelineLayout()
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
@@ -1600,174 +1277,8 @@ class BloomTest : public IVulkanApp
 		setupLightPipelineLayout();
 		
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/bloom/pointLight/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/bloom/pointLight/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
-	
-		VkVertexInputBindingDescription bindingDescription{
-			.binding = 0,
-			.stride = sizeof(Vertex),
-			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-		};		
-		
-		std::array<VkVertexInputBindingDescription, 1> bindingDescriptions{bindingDescription};
-		
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
-		
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, normal);
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
-		
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),	
-			.pVertexBindingDescriptions = bindingDescriptions.data(),
-			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-			.pVertexAttributeDescriptions = attributeDescriptions.data()
-		};
-		
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.primitiveRestartEnable = VK_FALSE
-		};
-
-		VkViewport viewport{
-			.x = 0.f,
-			.y = 0.f,
-			.width = (float)VulkanConfig::swapChainExtent.width,
-			.height = (float)VulkanConfig::swapChainExtent.height,
-			.minDepth = 0.f,
-			.maxDepth = 1.f};
-
-		VkPipelineViewportStateCreateInfo viewportState{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 1,
-			.scissorCount = 1};
-
-		// stencil info
-		VkStencilOpState stencilOpState {
-			.failOp = VK_STENCIL_OP_KEEP,
-			.passOp = VK_STENCIL_OP_REPLACE,
-			.depthFailOp = VK_STENCIL_OP_KEEP,
-			.compareOp = VK_COMPARE_OP_ALWAYS,
-			.compareMask = 0xFF,
-			.writeMask = 0xFF,
-			.reference = 1 
-		};
-
-		VkPipelineDepthStencilStateCreateInfo depthStencil {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-			.depthTestEnable = VK_TRUE,
-			.depthWriteEnable = VK_TRUE,
-			.depthCompareOp = VK_COMPARE_OP_LESS,
-			.depthBoundsTestEnable = VK_FALSE,
-			.stencilTestEnable = VK_FALSE,
-			//.front = stencilOpState,
-			//.back = stencilOpState,
-			.minDepthBounds = 0.f,
-			.maxDepthBounds = 1.f
-		};
-
-		std::vector<VkDynamicState> dynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-			.pDynamicStates = dynamicStates.data()
-		};
-
-		VkPipelineRasterizationStateCreateInfo rasterizer{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-			.depthClampEnable = VK_FALSE,
-			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_NONE,
-			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.depthBiasEnable = VK_FALSE,
-			.depthBiasConstantFactor = 0.f,
-			.depthBiasClamp = 0.f,
-			.depthBiasSlopeFactor = 0.f,
-			.lineWidth = 1.f
-		};
-
-		VkPipelineMultisampleStateCreateInfo multisampling{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			.rasterizationSamples = VulkanConfig::msaaSamples,
-			.minSampleShading = 0.2f,
-			.pSampleMask = nullptr,
-			.alphaToCoverageEnable = VK_FALSE,
-			.alphaToOneEnable = VK_FALSE
-		};
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = VK_TRUE,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.colorBlendOp = VK_BLEND_OP_ADD,
-			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-			.alphaBlendOp = VK_BLEND_OP_ADD,
-			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-		};
-
-		std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
-
-		VkPipelineColorBlendStateCreateInfo colorBlending{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-			.logicOpEnable = VK_FALSE,
-			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 2,
-			.pAttachments = colorBlendAttachments.data(),
-			.blendConstants = {0.f, 0.f, 0.f, 0.f}
-		};
-
-		VkGraphicsPipelineCreateInfo pipelineInfo{
-			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			.stageCount = static_cast<uint32_t>(shaderStages.size()),
-			.pStages = shaderStages.data(),
-			.pVertexInputState = &vertexInputInfo,
-			.pInputAssemblyState = &inputAssembly,
-			.pViewportState = &viewportState,
-			.pRasterizationState = &rasterizer,
-			.pMultisampleState = &multisampling,
-			.pDepthStencilState = &depthStencil,
-			.pColorBlendState = &colorBlending,
-			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.light,
-			.renderPass = renderPasses.offscreenPass,
-			.subpass = 0,
-			.basePipelineHandle = VK_NULL_HANDLE
-		};
-
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create primitive graphics pipeline!");
-		}
-	};
-
-	void setupPingPongQuadPipeline()
-	{
-		setupPingPongQuadPipelineLayout();
-
-		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/bloom/pingPong/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/bloom/pingPong/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/pointLight/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/pointLight/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
@@ -1892,12 +1403,14 @@ class BloomTest : public IVulkanApp
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
+		std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+
 		VkPipelineColorBlendStateCreateInfo colorBlending{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.logicOpEnable = VK_FALSE,
 			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 1,
-			.pAttachments = &colorBlendAttachment,
+			.attachmentCount = 4,
+			.pAttachments = colorBlendAttachments.data(),
 			.blendConstants = {0.f, 0.f, 0.f, 0.f}
 		};
 
@@ -1913,13 +1426,13 @@ class BloomTest : public IVulkanApp
 			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.pingPongQuad,
-			.renderPass = renderPasses.pingPongPass,
+			.layout = pipelineLayouts.light,
+			.renderPass = renderPasses.offscreenPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.pingPongQuad) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1930,8 +1443,8 @@ class BloomTest : public IVulkanApp
 		setupQuadPipelineLayout();
 
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/bloom/postProcessing/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/bloom/postProcessing/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/postProcessing/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/postProcessing/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
@@ -2093,8 +1606,8 @@ class BloomTest : public IVulkanApp
 	{
 		setupCubePipelineLayout();
 
-		addShader(SHADER_DIRECTORY + "/bloom/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/bloom/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription
 		{
@@ -2202,7 +1715,7 @@ class BloomTest : public IVulkanApp
 
 		VkPipelineMultisampleStateCreateInfo multisampling{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			.rasterizationSamples = VulkanConfig::msaaSamples,
+			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
 			.minSampleShading = 0.2f,
 			.pSampleMask = nullptr,
 			.alphaToCoverageEnable = VK_FALSE,
@@ -2220,13 +1733,13 @@ class BloomTest : public IVulkanApp
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
-		std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment};
+		std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.logicOpEnable = VK_FALSE,
 			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 2,
+			.attachmentCount = 4,
 			.pAttachments = colorBlendAttachments.data(),
 			.blendConstants = {0.f, 0.f, 0.f, 0.f}
 		};
@@ -2254,27 +1767,22 @@ class BloomTest : public IVulkanApp
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
 	};
-	
-	void updatePingPongUniformBuffer()
-	{
-		PingPongUniform ppUniform;
-		ppUniform.horizontal = horizontal;
-		
-		memcpy(uniformBuffersMapped[!horizontal].pingPong, &ppUniform, sizeof(ppUniform));
-	};	
 
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		// Light	
-		LightUniform lightUniform;
-		lightUniform.model = glm::translate(glm::mat4(1.), glm::vec3(0.));
-		lightUniform.model = glm::scale(lightUniform.model, glm::vec3(.5));
-		lightUniform.view = camera.getViewMatrix();
-		lightUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
-		lightUniform.proj[1][1] *= -1.;
-		lightUniform.lightColor = glm::vec3(200.);
+		for (size_t i = 0; i < LIGHT_COUNT; i++)
+		{
+			LightUniform lightUniform;
+			lightUniform.model = glm::translate(glm::mat4(1.), lightPositions[i]);
+			lightUniform.model = glm::scale(lightUniform.model, glm::vec3(.5));
+			lightUniform.view = camera.getViewMatrix();
+			lightUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+			lightUniform.proj[1][1] *= -1.;
+			lightUniform.lightColor = lightColors[i];
 
-		memcpy(uniformBuffersMapped[currentImage].light, &lightUniform, sizeof(lightUniform));
+			memcpy(uniformBuffersMapped[currentImage].light[i], &lightUniform, sizeof(lightUniform));
+		};
 
 		ObjectUniform objectUniform;
 		objectUniform.model = glm::translate(glm::mat4(1.), glm::vec3(0., 0., 25.));		
@@ -2283,8 +1791,11 @@ class BloomTest : public IVulkanApp
 		objectUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 		objectUniform.cameraPos = camera.cameraPos;
 
-		objectUniform.lightPos[0] = glm::vec3(0.); 
-		objectUniform.lightColor[0] = glm::vec3(1.); 
+		for (size_t i = 0; i < LIGHT_COUNT; i++)
+		{
+			objectUniform.lightPos[i] = lightPositions[i]; 
+			objectUniform.lightColor[i] = lightColors[i]; 
+		};
 
 		objectUniform.proj[1][1] *= -1.;
 		
@@ -2325,10 +1836,12 @@ class BloomTest : public IVulkanApp
 		renderPassInfo.renderArea.offset = { 0,0 };
 		renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
 
-		std::array<VkClearValue, 3> clearValues{};
-		clearValues[0].color = {{.0f, .0f, .0f, 1.f}};
+		std::array<VkClearValue, 5> clearValues{};
+		clearValues[0].depthStencil = {1.f, 0};
 		clearValues[1].color = {{1.0f, .0f, .0f, 1.f}};
-		clearValues[2].depthStencil = {1.f, 0};
+		clearValues[2].color = {{1.0f, .0f, .0f, 1.f}};
+		clearValues[3].color = {{1.0f, .0f, .0f, 1.f}};
+		clearValues[4].color = {{1.0f, .0f, .0f, 1.f}};
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
@@ -2362,41 +1875,19 @@ class BloomTest : public IVulkanApp
 		
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(BloomTest::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(DeferredRendering::cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.light);	
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.light, 0, 1, &descriptorSets[currentFrame].light, 0, nullptr);
+		for (size_t i = 0; i < LIGHT_COUNT; i++)
+		{
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.light, 0, 1, &descriptorSets[currentFrame].light[i], 0, nullptr);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(BloomTest::cubeIndices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(DeferredRendering::cubeIndices.size()), 1, 0, 0, 0);
+		};
 
 		vkCmdEndRenderPass(commandBuffer);
-/*		
-		for (int i = 0 ; i < 10; i++)
-		{	
-			renderPassInfo.renderPass = renderPasses.pingPongPass;
-			renderPassInfo.framebuffer = pingPongFramebuffers[horizontal];
-			
-			vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			updatePingPongUniformBuffer();	
-
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.pingPongQuad);	
-
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.pingPongQuad, 0, 1, first_iteration ? &descriptorSets[currentFrame].pingPongQuadFB1 : &descriptorSets[currentFrame].pingPongQuadFB2, 0, nullptr);
-
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-		
-			vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
-
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(BloomTest::cubeIndices.size()), 1, 0, 0, 0);
-			
-			horizontal = !horizontal;
-			first_iteration = false;
-
-			vkCmdEndRenderPass(commandBuffer);
-		};
-*/
 		renderPassInfo.renderPass = renderPasses.renderPass;
 		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 
@@ -2410,9 +1901,9 @@ class BloomTest : public IVulkanApp
 		
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
 
-		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(BloomTest::quadIndices.size()), 1, 0, 0, 0);
+		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(DeferredRendering::quadIndices.size()), 1, 0, 0, 0);
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(BloomTest::cubeIndices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(DeferredRendering::cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -2434,13 +1925,6 @@ class BloomTest : public IVulkanApp
 		setupLightPipeline();
 	};
 
-	void setupPingPongQuadResources()
-	{
-		setupPingPongQuadFB1DescriptorSets();	
-		//setupPingPongQuadFB2DescriptorSets();	
-		setupPingPongQuadPipeline();
-	};
-
 	void setupQuadResources()
 	{
 		setupQuadDescriptorSets();	
@@ -2451,25 +1935,48 @@ class BloomTest : public IVulkanApp
 	{
 		IVulkanApp::init(window);	
 		setupOffscreenPass();
-		setupPingPongPass();
 		setupRenderPass();
 		setupSamplers();
 		loadTexture();
-		setupPingPongTexture();
-		setupColor();
-		setupBloomTest();
-		setupBloomTestResolve();
-		setupResolved();
+		setupPosition();
+		setupNormal();
+		setupAlbedo();
+		setupSpecular();
 		setupDepth();
 		setupImageViews();
 		setupUniformBuffers();
 		setupCubeResources();
 		setupLightResources();
 		setupQuadResources();
-		setupPingPongQuadResources();
 		createSwapChainFramebuffers();
-		createPingPongFramebuffers();
 		createOffscreenFramebuffers();
+		setupDebugObjectNames();
+	};
+
+	void setupDebugObjectNames()	
+	{
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.wood.image, "textures.wood.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.position.image, "textures.position.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.normal.image, "textures.normal.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.albedo.image, "textures.albedo.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.specular.image, "textures.specular.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.depth.image, "textures.depth.image");
+
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.wood.imageView, "textures.wood.imageView");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.position.imageView, "textures.position.imageView");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.normal.imageView, "textures.normal.imageView");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.albedo.imageView, "textures.albedo.imageView");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.specular.imageView, "textures.specular.imageView");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.depth.imageView, "textures.depth.imageView");
+
+		for (size_t i = 0; i < swapChainImageViews.size(); i++)
+		{
+			const std::string offscreenFramebufferName{"offscreenFramebuffers[" + std::to_string(i) + "]"};
+			const std::string swapChainFramebufferName{"swapChainFramebufferName[" + std::to_string(i) + "]"};
+
+			setupDebugObjectName(VK_OBJECT_TYPE_FRAMEBUFFER, offscreenFramebuffers[i], offscreenFramebufferName.c_str());
+			setupDebugObjectName(VK_OBJECT_TYPE_FRAMEBUFFER, swapChainFramebuffers[i], swapChainFramebufferName.c_str());
+		};
 	};
 
 	void cleanup(GLFWwindow * window)
@@ -2531,19 +2038,15 @@ class BloomTest : public IVulkanApp
 
 		createSwapChain(window);
 		createImageViews();
-		setupPingPongTexture();
-		setupColor();
-		setupBloomTest();
-		setupBloomTestResolve();
-		setupResolved();
+		setupPosition();
+		setupNormal();
+		setupAlbedo();
+		setupSpecular();
 		setupDepth();
 		
 		setupQuadDescriptorSets();
-		setupPingPongQuadFB1DescriptorSets();
-		//setupPingPongQuadFB2DescriptorSets();
 
 		createOffscreenFramebuffers();
-		createPingPongFramebuffers();
 		createSwapChainFramebuffers();
 	}
 

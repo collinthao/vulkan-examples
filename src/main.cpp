@@ -14,8 +14,7 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
-#include <algorithm>
-#include <vector>
+#include <algorithm> #include <vector>
 #include <cstdlib>
 #include <cstdint>
 #include <limits>
@@ -40,11 +39,11 @@
 #include "./examples/parallaxMapping/parallaxMapping.h"
 #include "./examples/hdr/hdr.h"
 #include "./examples/bloom/bloom.h"
-#include "./examples/bloom_test/bloom.h"
+#include "./examples/deferredRendering/deferredRendering.h"
 
 int main()
 {
-	Engine<Bloom, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<DeferredRendering, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

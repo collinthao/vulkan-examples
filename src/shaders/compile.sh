@@ -50,3 +50,11 @@ $GLSL_PATH bloom/object/shader.vert -o bloom/object/vert.spv
 $GLSL_PATH bloom/object/shader.frag -o bloom/object/frag.spv
 $GLSL_PATH bloom/pingPong/shader.vert -o bloom/pingPong/vert.spv
 $GLSL_PATH bloom/pingPong/shader.frag -o bloom/pingPong/frag.spv
+$GLSL_PATH deferred/postProcessing/shader.vert -o deferred/postProcessing/vert.spv
+$GLSL_PATH deferred/postProcessing/shader.frag -o deferred/postProcessing/frag.spv
+$GLSL_PATH deferred/pointLight/shader.vert -o deferred/pointLight/vert.spv
+$GLSL_PATH deferred/pointLight/shader.frag -o deferred/pointLight/frag.spv
+$GLSL_PATH deferred/object/shader.vert -o deferred/object/vert.spv
+$GLSL_PATH deferred/object/shader.frag -o deferred/object/frag.spv
+$GLSL_PATH deferred/pingPong/shader.vert -o deferred/pingPong/vert.spv
+$GLSL_PATH deferred/pingPong/shader.frag -o bloom/pingPong/frag.spv
