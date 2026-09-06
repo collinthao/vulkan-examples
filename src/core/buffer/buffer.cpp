@@ -2,6 +2,8 @@
 #include "../image/image.h"
 #include <stdexcept>
 #include <iostream>
+#include "../../config/vulkanConfig.h"
+#include "../../core/commandBuffer/commandBuffer.h"
 
 void Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage , VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice device, VkPhysicalDevice physicalDevice)
 {
@@ -31,3 +33,17 @@ void Buffer::create(VkDeviceSize size, VkBufferUsageFlags usage , VkMemoryProper
 
 	vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
+
+void Buffer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
+	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);
+
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+};
+

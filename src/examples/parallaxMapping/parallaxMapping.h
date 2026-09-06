@@ -250,7 +250,7 @@ class ParallaxMapping : public IVulkanApp
 				.pDependencies = &dependency
 		};
 
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		};
@@ -277,7 +277,7 @@ class ParallaxMapping : public IVulkanApp
 			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
 			framebufferInfo.layers = 1;
 
-			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+			if (vkCreateFramebuffer(VulkanConfig::device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to create framebuffer!");
 			};
@@ -291,22 +291,22 @@ class ParallaxMapping : public IVulkanApp
 
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, device, physicalDevice);
+			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, VulkanConfig::device, VulkanConfig::physicalDevice);
 			
-			vkMapMemory(device, uniformBuffersMemory[i].cube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cube);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].cube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cube);
 			
 			//Light
-			Buffer::create(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light, uniformBuffersMemory[i].light, device, physicalDevice);
+			Buffer::create(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light, uniformBuffersMemory[i].light, VulkanConfig::device, VulkanConfig::physicalDevice);
 			
-			vkMapMemory(device, uniformBuffersMemory[i].light, 0, lightBufferSize, 0, &uniformBuffersMapped[i].light);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].light, 0, lightBufferSize, 0, &uniformBuffersMapped[i].light);
 
 		};
 	}
 
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice& physicalDevice)
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 	{
 		VkPhysicalDeviceMemoryProperties memProperties;
-		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+		vkGetPhysicalDeviceMemoryProperties(VulkanConfig::physicalDevice, &memProperties);
 
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		{
@@ -339,27 +339,27 @@ class ParallaxMapping : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.resolved.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &texture.resolved.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.resolved.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, texture.resolved.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.resolved.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &texture.resolved.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for resolved image!");
 		};
 	
-		vkBindImageMemory(device, texture.resolved.image, texture.resolved.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, texture.resolved.image, texture.resolved.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = texture.resolved.image,
@@ -373,7 +373,7 @@ class ParallaxMapping : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.resolved.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &texture.resolved.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create resolved image view!");
 		};
@@ -399,29 +399,29 @@ class ParallaxMapping : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.depth.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &texture.depth.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.depth.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, texture.depth.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.depth.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &texture.depth.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for depth image!");
 		};
 	
-		vkBindImageMemory(device, texture.depth.image, texture.depth.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, texture.depth.image, texture.depth.imageMemory, 0);
 	
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -451,7 +451,7 @@ class ParallaxMapping : public IVulkanApp
 			0, nullptr,
 			1, &barrier);	
 
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 	
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -466,7 +466,7 @@ class ParallaxMapping : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.depth.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &texture.depth.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create depth image view!");
 		};
@@ -489,13 +489,13 @@ class ParallaxMapping : public IVulkanApp
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
 		
-		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);		
 		
 		void * data;
-		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
 		
 		memcpy(data, pixels, static_cast<size_t>(imageSize));	
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 		
 		stbi_image_free(pixels);
 		
@@ -516,28 +516,28 @@ class ParallaxMapping : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.brickDisp.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &texture.brickDisp.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.brickDisp.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, texture.brickDisp.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 		
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.brickDisp.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &texture.brickDisp.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(device, texture.brickDisp.image, texture.brickDisp.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, texture.brickDisp.image, texture.brickDisp.imageMemory, 0);
 		
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -572,9 +572,9 @@ class ParallaxMapping : public IVulkanApp
 			0, nullptr,
 			1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		
 		VkBufferImageCopy region{
 			.bufferOffset = 0,
@@ -597,9 +597,9 @@ class ParallaxMapping : public IVulkanApp
 			1,
 			&region);	
 	
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -616,10 +616,10 @@ class ParallaxMapping : public IVulkanApp
 		0, nullptr,
 		1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	}
 
 	void loadBrickNormalTexture()
@@ -639,13 +639,13 @@ class ParallaxMapping : public IVulkanApp
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
 		
-		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);		
 		
 		void * data;
-		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
 		
 		memcpy(data, pixels, static_cast<size_t>(imageSize));	
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 		
 		stbi_image_free(pixels);
 		
@@ -666,28 +666,28 @@ class ParallaxMapping : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.brickNormal.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &texture.brickNormal.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.brickNormal.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, texture.brickNormal.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 		
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.brickNormal.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &texture.brickNormal.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(device, texture.brickNormal.image, texture.brickNormal.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, texture.brickNormal.image, texture.brickNormal.imageMemory, 0);
 		
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -722,9 +722,9 @@ class ParallaxMapping : public IVulkanApp
 			0, nullptr,
 			1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		
 		VkBufferImageCopy region{
 			.bufferOffset = 0,
@@ -747,9 +747,9 @@ class ParallaxMapping : public IVulkanApp
 			1,
 			&region);	
 	
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -766,10 +766,10 @@ class ParallaxMapping : public IVulkanApp
 		0, nullptr,
 		1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	}
 
 	void loadBrickTexture()
@@ -789,13 +789,13 @@ class ParallaxMapping : public IVulkanApp
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
 		
-		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);		
 		
 		void * data;
-		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
 		
 		memcpy(data, pixels, static_cast<size_t>(imageSize));	
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 		
 		stbi_image_free(pixels);
 		
@@ -816,28 +816,28 @@ class ParallaxMapping : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &texture.brick.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &texture.brick.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, texture.brick.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, texture.brick.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 		
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.brick.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &texture.brick.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(device, texture.brick.image, texture.brick.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, texture.brick.image, texture.brick.imageMemory, 0);
 		
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -872,9 +872,9 @@ class ParallaxMapping : public IVulkanApp
 			0, nullptr,
 			1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		
 		VkBufferImageCopy region{
 			.bufferOffset = 0,
@@ -897,9 +897,9 @@ class ParallaxMapping : public IVulkanApp
 			1,
 			&region);	
 	
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -916,10 +916,10 @@ class ParallaxMapping : public IVulkanApp
 		0, nullptr,
 		1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	}	
 
 	void setupBrickDispImageView()
@@ -937,7 +937,7 @@ class ParallaxMapping : public IVulkanApp
 			viewInfo.subresourceRange.layerCount = 1;
 
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.brickDisp.imageView))
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &texture.brickDisp.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -958,7 +958,7 @@ class ParallaxMapping : public IVulkanApp
 			viewInfo.subresourceRange.layerCount = 1;
 
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.brickNormal.imageView))
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &texture.brickNormal.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -979,7 +979,7 @@ class ParallaxMapping : public IVulkanApp
 			viewInfo.subresourceRange.layerCount = 1;
 
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &texture.brick.imageView))
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &texture.brick.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -988,7 +988,7 @@ class ParallaxMapping : public IVulkanApp
 	void setupSamplers()
 	{
 		VkPhysicalDeviceProperties properties{};
-		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+		vkGetPhysicalDeviceProperties(VulkanConfig::physicalDevice, &properties);
 		
 		VkSamplerCreateInfo samplerInfo{
 			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -1009,7 +1009,7 @@ class ParallaxMapping : public IVulkanApp
 			.unnormalizedCoordinates = VK_FALSE
 		};		
 		
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler))
+		if (vkCreateSampler(VulkanConfig::device, &samplerInfo, nullptr, &sampler))
 		{
 			throw std::runtime_error("failed to create sampler!");	
 		};
@@ -1034,7 +1034,7 @@ class ParallaxMapping : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.light))
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.light))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -1051,7 +1051,7 @@ class ParallaxMapping : public IVulkanApp
 			.pPoolSizes = poolSizes.data()
 		};	
 		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
@@ -1069,7 +1069,7 @@ class ParallaxMapping : public IVulkanApp
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].light) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].light) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
@@ -1090,7 +1090,7 @@ class ParallaxMapping : public IVulkanApp
 			descriptorWrites[0].descriptorCount = 1;
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
 
@@ -1137,7 +1137,7 @@ class ParallaxMapping : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.cube))
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.cube))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -1168,7 +1168,7 @@ class ParallaxMapping : public IVulkanApp
 			.pPoolSizes = poolSizes.data()
 		};	
 		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
@@ -1186,7 +1186,7 @@ class ParallaxMapping : public IVulkanApp
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].cube) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].cube) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
@@ -1251,7 +1251,7 @@ class ParallaxMapping : public IVulkanApp
 			descriptorWrites[3].descriptorCount = 1;
 			descriptorWrites[3].pImageInfo = &imageDispInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
 
@@ -1261,25 +1261,25 @@ class ParallaxMapping : public IVulkanApp
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, bufferSize, 0, &data);
 		memcpy(data, quadIndices.data(), (size_t)bufferSize);
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers.quadIndex.buffer, indexBuffers.quadIndex.memory, device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffers.quadIndex.buffer, indexBuffers.quadIndex.memory, VulkanConfig::device, VulkanConfig::physicalDevice);
 		copyBuffer(stagingBuffer, indexBuffers.quadIndex.buffer, bufferSize);
 		
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	}	 
 
 	void addShader(const std::string&& path, VkShaderStageFlagBits stage)
 	{
 		auto shaderCode = FileContext::readFile(path);
 
-		VkShaderModule shaderModule = createShaderModule(shaderCode, device);
+		VkShaderModule shaderModule = createShaderModule(shaderCode, VulkanConfig::device);
 		VkPipelineShaderStageCreateInfo shaderStageInfo{};
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.stage = stage;
@@ -1301,7 +1301,7 @@ class ParallaxMapping : public IVulkanApp
 			.pPushConstantRanges = nullptr
 		};
 	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.light) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.light) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
@@ -1317,7 +1317,7 @@ class ParallaxMapping : public IVulkanApp
 			.pPushConstantRanges = nullptr
 		};
 	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.cube) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.cube) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
@@ -1481,7 +1481,7 @@ class ParallaxMapping : public IVulkanApp
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1653,7 +1653,7 @@ class ParallaxMapping : public IVulkanApp
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cube) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cube) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1823,27 +1823,27 @@ class ParallaxMapping : public IVulkanApp
 
 		for (size_t i = 0; i < frames; i++)
 		{
-			vkDestroyBuffer(device, uniformBuffers[i].cube, nullptr);
-			vkFreeMemory(device, uniformBuffersMemory[i].cube, nullptr);
+			vkDestroyBuffer(VulkanConfig::device, uniformBuffers[i].cube, nullptr);
+			vkFreeMemory(VulkanConfig::device, uniformBuffersMemory[i].cube, nullptr);
 		}		
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.cube, nullptr);
+		vkDestroyDescriptorSetLayout(VulkanConfig::device, descriptorSetLayouts.cube, nullptr);
 
-		vkDestroyBuffer(device, indexBuffer, nullptr);
-		vkFreeMemory(device, indexBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, indexBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, indexBufferMemory, nullptr);
 		
-		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
-		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
-		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, vertexCubeBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, vertexCubeBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, vertexCubeBuffer, nullptr);
 
-		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
+		vkFreeMemory(VulkanConfig::device, vertexCubeBufferMemory, nullptr);
 
-		vkDestroyImage(device, texture.brick.image, nullptr);
-		vkFreeMemory(device, texture.brick.imageMemory, nullptr);
+		vkDestroyImage(VulkanConfig::device, texture.brick.image, nullptr);
+		vkFreeMemory(VulkanConfig::device, texture.brick.imageMemory, nullptr);
 
-		vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
+		vkDestroyRenderPass(VulkanConfig::device, renderPasses.renderPass, nullptr);
 
-		vkDestroyDevice(device, nullptr);
+		vkDestroyDevice(VulkanConfig::device, nullptr);
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		
@@ -1865,7 +1865,7 @@ class ParallaxMapping : public IVulkanApp
 			glfwWaitEvents();
 		}
 
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(VulkanConfig::device);
 
 		cleanupSwapChain();
 

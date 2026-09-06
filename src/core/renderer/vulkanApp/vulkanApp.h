@@ -40,6 +40,7 @@
 #include "../../../core/commandBuffer/commandBuffer.h"
 #include "../../../core/buffer/buffer.h"
 #include "../../../core/windowContext/glfwWindowContext.h"
+#include "../../../config/vulkanConfig.h"
 
 namespace fs = std::filesystem;
 
@@ -172,9 +173,7 @@ class IVulkanApp
 	public:
 	VkSurfaceKHR surface;
 	VkInstance instance;
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDebugUtilsMessengerEXT debugMessenger;
-	VkQueue graphicsAndComputeQueue;
 	VkQueue presentQueue;
 	VkSwapchainKHR swapChain;
 	VkFormat swapChainImageFormat;
@@ -222,8 +221,8 @@ class IVulkanApp
 		const std::string ROOT_DIR = PROJECT_ROOT_DIR;
 	#endif
 
-	const std::string MODEL_PATH = ROOT_DIR + "/resource/models/Sponza-master/sponza.obj";
-	const std::string MODEL_TEXTURE_DIRECTORY = ROOT_DIR + "/resource/models/Sponza-master/";
+	const std::string MODEL_PATH = ROOT_DIR + "/resource/models/backpack/backpack.obj";
+	const std::string MODEL_TEXTURE_DIRECTORY = ROOT_DIR + "/resource/models/backpack/textures/";
 	const std::string TEXTURE_PATH = ROOT_DIR + "/resource/textures/container.png";
 	const std::string CUBEMAP_PATH = ROOT_DIR + "/resource/textures/skybox/";
 	const std::string GRASS_BLOCK_PATH = ROOT_DIR + "/resource/textures/grassBlock/";
@@ -279,8 +278,6 @@ class IVulkanApp
 	virtual void cleanup(GLFWwindow * window) = 0;
 	VkShaderModule createShaderModule(const std::vector<char>& code, VkDevice& device);
 
-	VkDevice device;
-
 	void addShader(const std::string&& path, VkShaderStageFlagBits stage);
 	void setupPipelineLayout();
 
@@ -291,19 +288,19 @@ class IVulkanApp
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, bufferSize, 0, &data);
 		memcpy(data, vertices.data(), (size_t)bufferSize);
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 		copyBuffer(stagingBuffer, buffer, bufferSize);
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 
 	};	
 

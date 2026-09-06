@@ -84,7 +84,7 @@ class BasicApp : public IVulkanApp
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		}
@@ -97,9 +97,9 @@ class BasicApp : public IVulkanApp
 		for (size_t i = 0; i < frames; i++)
 		{
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i].scene, uniformBuffersMemory[i].scene, device, physicalDevice);
+			uniformBuffers[i].scene, uniformBuffersMemory[i].scene, VulkanConfig::device, VulkanConfig::physicalDevice);
 
-			vkMapMemory(device, uniformBuffersMemory[i].scene, 0, bufferSize, 0, &uniformBuffersMapped[i].scene);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].scene, 0, bufferSize, 0, &uniformBuffersMapped[i].scene);
 		
 		}	
 	}
@@ -121,7 +121,7 @@ class BasicApp : public IVulkanApp
 		layoutInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
 		layoutInfo.pBindings = setLayoutBindings.data();
 
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		}
@@ -136,7 +136,7 @@ class BasicApp : public IVulkanApp
 			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
 			.pPoolSizes = poolSizes.data()};
 		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");
 		}
@@ -152,7 +152,7 @@ class BasicApp : public IVulkanApp
 			
 		for (size_t i = 0; i < frames; i++)
 		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].cube) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].cube) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to create descriptor sets!");
 			};
@@ -172,7 +172,7 @@ class BasicApp : public IVulkanApp
 			descriptorWrites[0].descriptorCount = 1;
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}	
 	};
 
@@ -185,7 +185,7 @@ class BasicApp : public IVulkanApp
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 		{
 			std::cout << "Failed to create pipeline layout!\n";
 			throw std::runtime_error("failed to create pipeline layout!");
@@ -196,7 +196,7 @@ class BasicApp : public IVulkanApp
 	{
 		auto shaderCode = FileContext::readFile(path);
 
-		VkShaderModule shaderModule = createShaderModule(shaderCode, device);
+		VkShaderModule shaderModule = createShaderModule(shaderCode, VulkanConfig::device);
 		VkPipelineShaderStageCreateInfo shaderStageInfo{};
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.stage = stage;
@@ -368,7 +368,7 @@ class BasicApp : public IVulkanApp
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cubePipeline) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cubePipeline) != VK_SUCCESS)
 		{
 			std::cout << "failed to create pipeline!\n";
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
@@ -394,7 +394,7 @@ class BasicApp : public IVulkanApp
 			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
 			framebufferInfo.layers = 1;
 
-			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+			if (vkCreateFramebuffer(VulkanConfig::device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to create framebuffer!");
 			};
@@ -519,24 +519,24 @@ class BasicApp : public IVulkanApp
 
 		for (size_t i = 0; i < frames; i++)
 		{
-			vkDestroyBuffer(device, uniformBuffers[i].scene, nullptr);
-			vkFreeMemory(device, uniformBuffersMemory[i].scene, nullptr);
+			vkDestroyBuffer(VulkanConfig::device, uniformBuffers[i].scene, nullptr);
+			vkFreeMemory(VulkanConfig::device, uniformBuffersMemory[i].scene, nullptr);
 		}		
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(VulkanConfig::device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, indexBuffer, nullptr);
-		vkFreeMemory(device, indexBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, indexBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, indexBufferMemory, nullptr);
 		
-		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
-		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
-		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, vertexCubeBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, vertexCubeBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, vertexCubeBuffer, nullptr);
 
-		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
+		vkFreeMemory(VulkanConfig::device, vertexCubeBufferMemory, nullptr);
 
-		vkDestroyRenderPass(device, renderPasses.renderPass, nullptr);
+		vkDestroyRenderPass(VulkanConfig::device, renderPasses.renderPass, nullptr);
 
-		vkDestroyDevice(device, nullptr);
+		vkDestroyDevice(VulkanConfig::device, nullptr);
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		

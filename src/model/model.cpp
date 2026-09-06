@@ -1,6 +1,6 @@
 #include "model.h"
-#include <thread>
-
+#include "../core/commandBuffer/commandBuffer.h"
+#include <stb_image.h>
 
 unsigned int TextureFromFile(const char * path, const std::string & directory, bool gamma)
 {
@@ -14,11 +14,16 @@ unsigned int TextureFromFile(const char * path, const std::string & directory, b
 
 Model::Model(){};
 
-Model::Model(std::string path)
+Model::Model(std::string path, std::string texturePath, const VkDevice& device, const VkPhysicalDevice& physicalDevice, const VkQueue& queue)
+	:
+      texturePath(this->ROOT_DIR + texturePath),
+      modelPath(this->ROOT_DIR + path),
+      device(device),
+      physicalDevice(physicalDevice), 
+      queue(queue)
 {
 	Assimp::Importer importer;
-
-	const aiScene* scene = importer.ReadFile(path,
+	const aiScene* scene = importer.ReadFile(ROOT_DIR + path,
 		aiProcess_CalcTangentSpace |
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
@@ -30,7 +35,254 @@ Model::Model(std::string path)
 	}
 
 	processNode(scene->mRootNode, scene);
+	setupModelData();	
 }
+
+void Model::setupIndexBuffers(const Mesh& mesh, const int& index) 
+{
+		VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();				
+		
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+		
+		void * data;
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);	
+
+		memcpy(data, mesh.indices.data(), (size_t)bufferSize);
+
+		vkUnmapMemory(device, stagingBufferMemory);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer.index[index], buffer.indexMemory[index], device, physicalDevice);
+		
+		Buffer::copyBuffer(stagingBuffer, buffer.index[index], bufferSize);
+		
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+};
+
+void Model::setupBuffers(const Mesh& mesh, const int& index)
+{
+	VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();				
+		
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+	
+	void * data;
+	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);	
+
+	memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
+	vkUnmapMemory(device, stagingBufferMemory);
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer.buffers[index], buffer.memory[index], device, physicalDevice);
+	
+	Buffer::copyBuffer(stagingBuffer, buffer.buffers[index], bufferSize);
+	
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+};
+
+void Model::setupImages(const int& index)
+{
+	stbi_uc* pixels;
+	int texWidth, texHeight, texChannels;
+	if (meshes[index].textures.empty())
+	{
+		const std::string path = texturePath + meshes[0].textures[0].path;
+		pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+	}	
+	else
+	{
+		const std::string path = texturePath + meshes[index].textures[0].path;
+		pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+	};
+
+	if (!pixels)
+	{
+		throw std::runtime_error("failed to load texture image!" + texturePath + meshes[0].textures[0].path);	
+	};
+	
+	VkDeviceSize imageSize = texWidth * texHeight * 4;
+	int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	
+	Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+	
+	void * data;
+	vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+	
+	memcpy(data, pixels, static_cast<size_t>(imageSize));	
+	vkUnmapMemory(device, stagingBufferMemory);
+	
+	stbi_image_free(pixels);
+	
+	VkImageCreateInfo imageInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.flags = 0,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.mipLevels = static_cast<uint32_t>(mipLevels),
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+
+	imageInfo.extent.width = static_cast<uint32_t>(texWidth);
+	imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+	imageInfo.extent.depth = 1;
+
+	if(vkCreateImage(device, &imageInfo, nullptr, &texture.image[index]))
+	{
+		throw std::runtime_error("failed to create image!");
+	};	
+	
+	VkMemoryRequirements memRequirements;
+	vkGetImageMemoryRequirements(device, texture.image[index], &memRequirements);
+	
+	VkMemoryAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.allocationSize = memRequirements.size,
+		.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+	};
+	
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &texture.imageMemory[index]) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to allocate image memory!");	
+	};
+	
+	vkBindImageMemory(device, texture.image[index], texture.imageMemory[index], 0);
+	
+	VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+	
+	VkImageMemoryBarrier barrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.srcAccessMask = 0,
+		.dstAccessMask = 0,
+		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.image = texture.image[index]};
+
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.levelCount = 1;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+
+	VkPipelineStageFlags srcStage;
+	VkPipelineStageFlags dstStage;
+	
+	barrier.srcAccessMask = 0;
+	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+	srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;		
+	vkCmdPipelineBarrier(
+		commandBuffer,
+		srcStage, dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier);	
+	
+	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);		
+
+	commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+	
+	VkBufferImageCopy region{
+		.bufferOffset = 0,
+		.bufferRowLength = 0,
+		.bufferImageHeight = 0,
+		.imageOffset = {0,0,0},
+		.imageExtent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1}
+	};	
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	vkCmdCopyBufferToImage(
+		commandBuffer,
+		stagingBuffer,
+		texture.image[index],
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&region);	
+
+	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);
+
+	commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	
+	srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;	
+	dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	
+	vkCmdPipelineBarrier(
+	commandBuffer,
+	srcStage, dstStage,
+	0,
+	0, nullptr,
+	0, nullptr,
+	1, &barrier);	
+	
+	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);		
+
+	vkDestroyBuffer(device, stagingBuffer, nullptr);
+	vkFreeMemory(device, stagingBufferMemory, nullptr);
+};
+
+void Model::setupImageViews(const int& index)
+{
+	VkImageViewCreateInfo viewInfo{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = texture.image[index],
+		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_SRGB};		
+
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+	if (vkCreateImageView(device, &viewInfo, nullptr, &texture.imageView[index]))
+	{
+		throw std::runtime_error("failed to create image view!");	
+	};
+};
+
+void Model::setupModelData()
+{
+	const size_t meshCount = meshes.size();
+
+	buffer.index.resize(meshCount);
+	buffer.indexMemory.resize(meshCount);
+	buffer.buffers.resize(meshCount);	
+	buffer.memory.resize(meshCount);	
+
+	texture.imageView.resize(meshCount);		
+	texture.imageMemory.resize(meshCount);		
+	texture.image.resize(meshCount);		
+
+	for (size_t i = 0; i < meshCount; i++)
+	{			
+		const Mesh mesh = meshes[i];
+		setupIndexBuffers(mesh, i);
+		setupBuffers(mesh, i);
+		setupImages(i);
+		setupImageViews(i);
+	};
+};
 
 void Model::processNode(aiNode *node, const aiScene *scene)
 {
@@ -147,3 +399,18 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial * mat, aiTextureType
 	return textures;
 }
 
+uint32_t Model::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+
+	throw std::runtime_error("failed to find a suitable memory type!");
+}

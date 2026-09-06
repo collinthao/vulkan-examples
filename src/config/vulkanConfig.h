@@ -10,7 +10,10 @@ namespace VulkanConfig
 	extern const uint32_t MAX_POINT_LIGHTS;
 	extern const uint32_t OBJECT_COUNT;
 	extern VkSampleCountFlagBits msaaSamples;
+	extern VkDevice device;
+	extern VkPhysicalDevice physicalDevice;
 	extern size_t MESH_COUNT;
+	extern VkQueue graphicsAndComputeQueue;
 };
 
 #endif

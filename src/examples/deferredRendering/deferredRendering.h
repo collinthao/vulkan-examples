@@ -8,9 +8,8 @@ class DeferredRendering : public IVulkanApp
 	DeferredRendering() = default;
 	constexpr static int frames = 2;
 	constexpr static int LIGHT_COUNT = 5;
-	bool first_iteration = true;
-	bool horizontal = true;
-	
+	Model * model;
+
 	std::array<glm::vec3, LIGHT_COUNT> lightColors
 	{
 		glm::vec3(200., 0., 0.),
@@ -61,6 +60,7 @@ class DeferredRendering : public IVulkanApp
 		VkPipelineLayout cube;		
 		VkPipelineLayout quad;		
 		VkPipelineLayout light;		
+		VkPipelineLayout model;		
 	} pipelineLayouts;
 	
 	struct
@@ -68,6 +68,7 @@ class DeferredRendering : public IVulkanApp
 		VkPipeline cube;
 		VkPipeline quad;
 		VkPipeline light;
+		VkPipeline model;
 	} pipelines;	
 
 	struct
@@ -75,11 +76,13 @@ class DeferredRendering : public IVulkanApp
 		VkDescriptorSetLayout cube;
 		VkDescriptorSetLayout quad;
 		VkDescriptorSetLayout light;
+		VkDescriptorSetLayout model;
 	} descriptorSetLayouts;
 
 	struct DescriptorSets
 	{
 		std::vector<VkDescriptorSet> light;
+		std::vector<VkDescriptorSet> model;
 		VkDescriptorSet cube;
 		VkDescriptorSet quad;
 	};
@@ -124,7 +127,125 @@ class DeferredRendering : public IVulkanApp
 		Texture specular;
 		Texture depth;
 	} textures;
+
+	void setupModelDescriptorSets()
+	{
+		VkDescriptorPool descriptorPool;
+		VkDescriptorSetLayoutBinding vertexLayoutBinding{
+			.binding = 0,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		VkDescriptorSetLayoutBinding fragmentLayoutBinding{
+			.binding = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{vertexLayoutBinding, fragmentLayoutBinding};
 		
+		VkDescriptorSetLayoutCreateInfo layoutInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
+			.pBindings = setLayoutBindings.data()
+		};
+	
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.model))
+		{
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		};	
+		
+		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(model->meshes.size()* frames) * 2;
+
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(model->meshes.size() * frames) * 2;
+
+		VkDescriptorPoolCreateInfo poolInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = static_cast<uint32_t>(model->meshes.size() * frames) * 2,
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data()
+		};	
+		
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create descriptor pool!");		
+		}
+			
+		descriptorSets[0].model.resize(model->meshes.size());
+		descriptorSets[1].model.resize(model->meshes.size());
+
+		std::array<VkDescriptorSetLayout, 1> layouts{};
+		layouts.fill(descriptorSetLayouts.model);	
+	
+		VkDescriptorSetAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
+			.pSetLayouts = layouts.data()
+		};	  
+
+		for (size_t i = 0; i < model->meshes.size(); i++)
+		{
+			for (size_t j = 0; j < frames; j++)
+			{
+				if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[j].model[i]) != VK_SUCCESS)
+				{
+					throw std::runtime_error("failed to allocate descriptor sets!");
+				};
+
+				VkDescriptorBufferInfo bufferInfo{
+					.buffer = model->uniforms[j].buffer[i],
+					.offset = 0,
+					.range = sizeof(ObjectUniform)
+				};
+				
+				VkDescriptorImageInfo imageInfo
+				{
+					.sampler = sampler,
+					.imageView = model->texture.imageView[i],
+					.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+				};
+				
+				std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+				
+				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[0].dstSet = descriptorSets[j].model[i];
+				descriptorWrites[0].dstBinding = 0;
+				descriptorWrites[0].dstArrayElement = 0;
+				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorWrites[0].descriptorCount = 1;
+				descriptorWrites[0].pBufferInfo = &bufferInfo;
+				
+				descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[1].dstSet = descriptorSets[j].model[i];
+				descriptorWrites[1].dstBinding = 1;
+				descriptorWrites[1].dstArrayElement = 0;
+				descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorWrites[1].descriptorCount = 1;
+				descriptorWrites[1].pImageInfo = &imageInfo;
+				
+				vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+			};
+		};
+	}	
+
+	void loadModel()
+	{
+		model = new Model("/resource/models/backpack/backpack.obj", "/resource/models/backpack/textures/", VulkanConfig::device, VulkanConfig::physicalDevice, VulkanConfig::graphicsAndComputeQueue);
+		model->setupUniforms<ObjectUniform>();
+	}
+
 	void setupRenderPass()
 	{
 		VkAttachmentDescription colorAttachmentResolve{
@@ -168,7 +289,7 @@ class DeferredRendering : public IVulkanApp
 			.pDependencies = &dependency
 		};
 		
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.renderPass))
+		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.renderPass))
 		{
 			throw std::runtime_error("Failed to create render pass!");
 		};
@@ -264,7 +385,7 @@ class DeferredRendering : public IVulkanApp
 			.pDependencies = dependency.data()
 		};
 		
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPasses.offscreenPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.offscreenPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		};
@@ -289,7 +410,7 @@ class DeferredRendering : public IVulkanApp
 			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
 			framebufferInfo.layers = 1;
 
-			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+			if (vkCreateFramebuffer(VulkanConfig::device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to create framebuffer!");
 			};
@@ -319,7 +440,7 @@ class DeferredRendering : public IVulkanApp
 			framebufferInfo.height = VulkanConfig::swapChainExtent.height;
 			framebufferInfo.layers = 1;
 
-			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &offscreenFramebuffers[i]) != VK_SUCCESS)
+			if (vkCreateFramebuffer(VulkanConfig::device, &framebufferInfo, nullptr, &offscreenFramebuffers[i]) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to create framebuffer!");
 			};
@@ -330,12 +451,12 @@ class DeferredRendering : public IVulkanApp
 	{
 		VkDeviceSize objectBufferSize = sizeof(ObjectUniform);	
 		VkDeviceSize lightBufferSize = sizeof(LightUniform);	
-		
+
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, device, physicalDevice);
+			Buffer::create(objectBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].cube, uniformBuffersMemory[i].cube, VulkanConfig::device, VulkanConfig::physicalDevice);
 			
-			vkMapMemory(device, uniformBuffersMemory[i].cube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cube);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].cube, 0, objectBufferSize, 0, &uniformBuffersMapped[i].cube);
 		};
 		
 		//Light
@@ -350,17 +471,17 @@ class DeferredRendering : public IVulkanApp
 		{
 			for (size_t i = 0; i < frames; i++)
 			{
-				Buffer::create(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light[j], uniformBuffersMemory[i].light[j], device, physicalDevice);
+				Buffer::create(lightBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].light[j], uniformBuffersMemory[i].light[j], VulkanConfig::device, VulkanConfig::physicalDevice);
 				
-				vkMapMemory(device, uniformBuffersMemory[i].light[j], 0, lightBufferSize, 0, &uniformBuffersMapped[i].light[j]);
+				vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].light[j], 0, lightBufferSize, 0, &uniformBuffersMapped[i].light[j]);
 			};
 		};
 	}
 
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice& physicalDevice)
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 	{
 		VkPhysicalDeviceMemoryProperties memProperties;
-		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+		vkGetPhysicalDeviceMemoryProperties(VulkanConfig::physicalDevice, &memProperties);
 
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 		{
@@ -393,27 +514,27 @@ class DeferredRendering : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.albedo.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.albedo.image))
 		{
 			throw std::runtime_error("failed to create albedo image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.albedo.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.albedo.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.albedo.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.albedo.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for albedo image!");
 		};
 	
-		vkBindImageMemory(device, textures.albedo.image, textures.albedo.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.albedo.image, textures.albedo.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = textures.albedo.image,
@@ -427,7 +548,7 @@ class DeferredRendering : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.albedo.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.albedo.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
@@ -453,27 +574,27 @@ class DeferredRendering : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.specular.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.specular.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.specular.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.specular.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.specular.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.specular.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for specular image!");
 		};
 	
-		vkBindImageMemory(device, textures.specular.image, textures.specular.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.specular.image, textures.specular.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = textures.specular.image,
@@ -487,7 +608,7 @@ class DeferredRendering : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.specular.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.specular.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
@@ -513,27 +634,27 @@ class DeferredRendering : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.normal.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.normal.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.normal.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.normal.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.normal.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.normal.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for normal image!");
 		};
 	
-		vkBindImageMemory(device, textures.normal.image, textures.normal.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.normal.image, textures.normal.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = textures.normal.image,
@@ -547,7 +668,7 @@ class DeferredRendering : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.normal.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.normal.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
@@ -573,27 +694,27 @@ class DeferredRendering : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.position.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.position.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.position.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.position.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.position.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.position.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for position image!");
 		};
 	
-		vkBindImageMemory(device, textures.position.image, textures.position.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.position.image, textures.position.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = textures.position.image,
@@ -607,7 +728,7 @@ class DeferredRendering : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.position.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.position.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
@@ -633,29 +754,29 @@ class DeferredRendering : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.depth.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.depth.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.depth.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.depth.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.depth.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.depth.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for depth image!");
 		};
 	
-		vkBindImageMemory(device, textures.depth.image, textures.depth.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.depth.image, textures.depth.imageMemory, 0);
 	
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -685,7 +806,7 @@ class DeferredRendering : public IVulkanApp
 			0, nullptr,
 			1, &barrier);	
 
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 	
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -700,7 +821,7 @@ class DeferredRendering : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.depth.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.depth.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create depth image view!");
 		};
@@ -714,7 +835,7 @@ class DeferredRendering : public IVulkanApp
 		
 		if (!pixels)
 		{
-			throw std::runtime_error("failed to load texture image!");	
+			throw std::runtime_error("failed to load texture image! Path: " + path);	
 		};
 		
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -723,13 +844,13 @@ class DeferredRendering : public IVulkanApp
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
 		
-		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);		
 		
 		void * data;
-		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
 		
 		memcpy(data, pixels, static_cast<size_t>(imageSize));	
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 		
 		stbi_image_free(pixels);
 		
@@ -750,28 +871,28 @@ class DeferredRendering : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(device, &imageInfo, nullptr, &textures.wood.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.wood.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(device, textures.wood.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.wood.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
 			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, physicalDevice)
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 		
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &textures.wood.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.wood.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(device, textures.wood.image, textures.wood.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.wood.image, textures.wood.imageMemory, 0);
 		
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(device);		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -805,9 +926,9 @@ class DeferredRendering : public IVulkanApp
 			0, nullptr,
 			1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		
 		VkBufferImageCopy region{
 			.bufferOffset = 0,
@@ -830,9 +951,9 @@ class DeferredRendering : public IVulkanApp
 			1,
 			&region);	
 	
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -849,10 +970,10 @@ class DeferredRendering : public IVulkanApp
 		0, nullptr,
 		1, &barrier);	
 		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, graphicsAndComputeQueue, device);		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
 
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	}	
 
 	void setupImageViews()
@@ -869,7 +990,7 @@ class DeferredRendering : public IVulkanApp
 			viewInfo.subresourceRange.layerCount = 1;
 
 		
-		if (vkCreateImageView(device, &viewInfo, nullptr, &textures.wood.imageView))
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.wood.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -878,7 +999,7 @@ class DeferredRendering : public IVulkanApp
 	void setupSamplers()
 	{
 		VkPhysicalDeviceProperties properties{};
-		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+		vkGetPhysicalDeviceProperties(VulkanConfig::physicalDevice, &properties);
 		
 		VkSamplerCreateInfo samplerInfo{
 			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -899,7 +1020,7 @@ class DeferredRendering : public IVulkanApp
 			.unnormalizedCoordinates = VK_FALSE
 		};		
 		
-		if (vkCreateSampler(device, &samplerInfo, nullptr, &sampler))
+		if (vkCreateSampler(VulkanConfig::device, &samplerInfo, nullptr, &sampler))
 		{
 			throw std::runtime_error("failed to create sampler!");	
 		};
@@ -924,7 +1045,7 @@ class DeferredRendering : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.light))
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.light))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -941,7 +1062,7 @@ class DeferredRendering : public IVulkanApp
 			.pPoolSizes = poolSizes.data()
 		};	
 		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
@@ -964,7 +1085,7 @@ class DeferredRendering : public IVulkanApp
 
 			for (size_t i = 0; i < frames; i++)
 			{
-				if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].light[j]) != VK_SUCCESS)
+				if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].light[j]) != VK_SUCCESS)
 				{
 					throw std::runtime_error("failed to allocate descriptor sets!");
 				};
@@ -985,7 +1106,7 @@ class DeferredRendering : public IVulkanApp
 				descriptorWrites[0].descriptorCount = 1;
 				descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-				vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+				vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 			};
 		};
 	}	
@@ -1020,7 +1141,7 @@ class DeferredRendering : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.quad))
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.quad))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -1042,7 +1163,7 @@ class DeferredRendering : public IVulkanApp
 			.pPoolSizes = poolSizes.data()
 		};	
 		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
@@ -1060,7 +1181,7 @@ class DeferredRendering : public IVulkanApp
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].quad) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].quad) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
@@ -1098,7 +1219,7 @@ class DeferredRendering : public IVulkanApp
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &sceneInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
 
@@ -1129,7 +1250,7 @@ class DeferredRendering : public IVulkanApp
 			.pBindings = setLayoutBindings.data()
 		};
 	
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayouts.cube))
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.cube))
 		{
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
@@ -1150,7 +1271,7 @@ class DeferredRendering : public IVulkanApp
 			.pPoolSizes = poolSizes.data()
 		};	
 		
-		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
@@ -1168,7 +1289,7 @@ class DeferredRendering : public IVulkanApp
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			if (vkAllocateDescriptorSets(device, &allocInfo, &descriptorSets[i].cube) != VK_SUCCESS)
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].cube) != VK_SUCCESS)
 			{
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
@@ -1204,7 +1325,7 @@ class DeferredRendering : public IVulkanApp
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
 
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
 
@@ -1212,7 +1333,7 @@ class DeferredRendering : public IVulkanApp
 	{
 		auto shaderCode = FileContext::readFile(path);
 
-		VkShaderModule shaderModule = createShaderModule(shaderCode, device);
+		VkShaderModule shaderModule = createShaderModule(shaderCode, VulkanConfig::device);
 		VkPipelineShaderStageCreateInfo shaderStageInfo{};
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.stage = stage;
@@ -1234,7 +1355,7 @@ class DeferredRendering : public IVulkanApp
 			.pPushConstantRanges = nullptr
 		};
 	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.light) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.light) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
@@ -1250,7 +1371,23 @@ class DeferredRendering : public IVulkanApp
 			.pPushConstantRanges = nullptr
 		};
 	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.quad) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.quad) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create pipeline layout!");
+		};
+	};
+
+	void setupModelPipelineLayout()
+	{
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.setLayoutCount = 1,
+			.pSetLayouts = &descriptorSetLayouts.model,
+			.pushConstantRangeCount = 0,
+			.pPushConstantRanges = nullptr
+		};
+	
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.model) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
@@ -1266,7 +1403,7 @@ class DeferredRendering : public IVulkanApp
 			.pPushConstantRanges = nullptr
 		};
 	
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.cube) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.cube) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
@@ -1432,7 +1569,7 @@ class DeferredRendering : public IVulkanApp
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.light) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1596,7 +1733,174 @@ class DeferredRendering : public IVulkanApp
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.quad) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.quad) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create primitive graphics pipeline!");
+		}
+	};
+
+	void setupModelPipeline()
+	{
+		setupModelPipelineLayout();
+
+		shaderStages.clear();
+		addShader(SHADER_DIRECTORY + "/deferred/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/deferred/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+	
+		VkVertexInputBindingDescription bindingDescription
+		{
+			.binding = 0,
+			.stride = sizeof(Vertex),
+			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+		};		
+		
+		std::array<VkVertexInputBindingDescription, 1> bindingDescriptions{bindingDescription};
+		
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
+		
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, normal);
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+		
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),	
+			.pVertexBindingDescriptions = bindingDescriptions.data(),
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+			.pVertexAttributeDescriptions = attributeDescriptions.data()
+		};
+		
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.primitiveRestartEnable = VK_FALSE
+		};
+
+		VkViewport viewport{
+			.x = 0.f,
+			.y = 0.f,
+			.width = (float)VulkanConfig::swapChainExtent.width,
+			.height = (float)VulkanConfig::swapChainExtent.height,
+			.minDepth = 0.f,
+			.maxDepth = 1.f};
+
+		VkPipelineViewportStateCreateInfo viewportState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			.viewportCount = 1,
+			.scissorCount = 1};
+
+		// stencil info
+		VkStencilOpState stencilOpState {
+			.failOp = VK_STENCIL_OP_KEEP,
+			.passOp = VK_STENCIL_OP_REPLACE,
+			.depthFailOp = VK_STENCIL_OP_KEEP,
+			.compareOp = VK_COMPARE_OP_ALWAYS,
+			.compareMask = 0xFF,
+			.writeMask = 0xFF,
+			.reference = 1 
+		};
+
+		VkPipelineDepthStencilStateCreateInfo depthStencil {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
+			.depthCompareOp = VK_COMPARE_OP_LESS,
+			.depthBoundsTestEnable = VK_FALSE,
+			.stencilTestEnable = VK_FALSE,
+			//.front = stencilOpState,
+			//.back = stencilOpState,
+			.minDepthBounds = 0.f,
+			.maxDepthBounds = 1.f
+		};
+
+		std::vector<VkDynamicState> dynamicStates = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR,
+		};
+
+		VkPipelineDynamicStateCreateInfo dynamicState {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+			.pDynamicStates = dynamicStates.data()
+		};
+
+		VkPipelineRasterizationStateCreateInfo rasterizer{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			.depthClampEnable = VK_FALSE,
+			.rasterizerDiscardEnable = VK_FALSE,
+			.polygonMode = VK_POLYGON_MODE_FILL,
+			.cullMode = VK_CULL_MODE_NONE,
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.depthBiasEnable = VK_FALSE,
+			.depthBiasConstantFactor = 0.f,
+			.depthBiasClamp = 0.f,
+			.depthBiasSlopeFactor = 0.f,
+			.lineWidth = 1.f
+		};
+
+		VkPipelineMultisampleStateCreateInfo multisampling{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+			.minSampleShading = 0.2f,
+			.pSampleMask = nullptr,
+			.alphaToCoverageEnable = VK_FALSE,
+			.alphaToOneEnable = VK_FALSE
+		};
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{
+			.blendEnable = VK_TRUE,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.colorBlendOp = VK_BLEND_OP_ADD,
+			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+			.alphaBlendOp = VK_BLEND_OP_ADD,
+			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+
+		VkPipelineColorBlendStateCreateInfo colorBlending{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			.logicOpEnable = VK_FALSE,
+			.logicOp = VK_LOGIC_OP_COPY,
+			.attachmentCount = 4,
+			.pAttachments = colorBlendAttachments.data(),
+			.blendConstants = {0.f, 0.f, 0.f, 0.f}
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineInfo{
+			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.stageCount = static_cast<uint32_t>(shaderStages.size()),
+			.pStages = shaderStages.data(),
+			.pVertexInputState = &vertexInputInfo,
+			.pInputAssemblyState = &inputAssembly,
+			.pViewportState = &viewportState,
+			.pRasterizationState = &rasterizer,
+			.pMultisampleState = &multisampling,
+			.pDepthStencilState = &depthStencil,
+			.pColorBlendState = &colorBlending,
+			.pDynamicState = &dynamicState,
+			.layout = pipelineLayouts.model,
+			.renderPass = renderPasses.offscreenPass,
+			.subpass = 0,
+			.basePipelineHandle = VK_NULL_HANDLE
+		};
+
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.model) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1762,7 +2066,7 @@ class DeferredRendering : public IVulkanApp
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cube) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.cube) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1770,6 +2074,15 @@ class DeferredRendering : public IVulkanApp
 
 	void updateUniformBuffer(uint32_t currentImage)
 	{
+		ObjectUniform uniformData;
+		
+		uniformData.model = glm::mat4(1.);		
+		uniformData.view = camera.getViewMatrix();
+		uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		uniformData.proj[1][1] *= -1.;
+		
+		model->bind<ObjectUniform>(uniformData, currentImage);
+
 		// Light	
 		for (size_t i = 0; i < LIGHT_COUNT; i++)
 		{
@@ -1866,16 +2179,24 @@ class DeferredRendering : public IVulkanApp
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
+
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.model);	
 		
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cube);	
-		
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.cube, 0, 1, &descriptorSets[currentFrame].cube, 0, nullptr);
-		
+		for (size_t i = 0; i < model->meshes.size(); i++)
+		{
+			const Mesh mesh = model->meshes[i];
+
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.model, 0, 1, &descriptorSets[currentFrame].model[i], 0, nullptr);
+			
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->buffer.buffers[i], offsets);
+			vkCmdBindIndexBuffer(commandBuffer, model->buffer.index[i], 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+		};
+
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
 		
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(DeferredRendering::cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.light);	
 
@@ -1937,6 +2258,7 @@ class DeferredRendering : public IVulkanApp
 		setupOffscreenPass();
 		setupRenderPass();
 		setupSamplers();
+		loadModel(); //model
 		loadTexture();
 		setupPosition();
 		setupNormal();
@@ -1948,6 +2270,8 @@ class DeferredRendering : public IVulkanApp
 		setupCubeResources();
 		setupLightResources();
 		setupQuadResources();
+		setupModelDescriptorSets(); //model
+		setupModelPipeline();
 		createSwapChainFramebuffers();
 		createOffscreenFramebuffers();
 		setupDebugObjectNames();
@@ -1990,27 +2314,27 @@ class DeferredRendering : public IVulkanApp
 
 		for (size_t i = 0; i < frames; i++)
 		{
-			vkDestroyBuffer(device, uniformBuffers[i].cube, nullptr);
-			vkFreeMemory(device, uniformBuffersMemory[i].cube, nullptr);
+			vkDestroyBuffer(VulkanConfig::device, uniformBuffers[i].cube, nullptr);
+			vkFreeMemory(VulkanConfig::device, uniformBuffersMemory[i].cube, nullptr);
 		}		
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayouts.cube, nullptr);
+		vkDestroyDescriptorSetLayout(VulkanConfig::device, descriptorSetLayouts.cube, nullptr);
 
-		vkDestroyBuffer(device, indexBuffer, nullptr);
-		vkFreeMemory(device, indexBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, indexBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, indexBufferMemory, nullptr);
 		
-		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
-		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
-		vkDestroyBuffer(device, vertexCubeBuffer, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, vertexCubeBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, vertexCubeBufferMemory, nullptr);
+		vkDestroyBuffer(VulkanConfig::device, vertexCubeBuffer, nullptr);
 
-		vkFreeMemory(device, vertexCubeBufferMemory, nullptr);
+		vkFreeMemory(VulkanConfig::device, vertexCubeBufferMemory, nullptr);
 
-		vkDestroyImage(device, textures.wood.image, nullptr);
-		vkFreeMemory(device, textures.wood.imageMemory, nullptr);
+		vkDestroyImage(VulkanConfig::device, textures.wood.image, nullptr);
+		vkFreeMemory(VulkanConfig::device, textures.wood.imageMemory, nullptr);
 
-		vkDestroyRenderPass(device, renderPasses.offscreenPass, nullptr);
+		vkDestroyRenderPass(VulkanConfig::device, renderPasses.offscreenPass, nullptr);
 
-		vkDestroyDevice(device, nullptr);
+		vkDestroyDevice(VulkanConfig::device, nullptr);
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		
@@ -2032,7 +2356,7 @@ class DeferredRendering : public IVulkanApp
 			glfwWaitEvents();
 		}
 
-		vkDeviceWaitIdle(device);
+		vkDeviceWaitIdle(VulkanConfig::device);
 
 		cleanupSwapChain();
 
