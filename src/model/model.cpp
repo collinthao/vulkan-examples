@@ -1,6 +1,5 @@
 #include "model.h"
 #include "../core/commandBuffer/commandBuffer.h"
-#include <stb_image.h>
 
 unsigned int TextureFromFile(const char * path, const std::string & directory, bool gamma)
 {
@@ -87,20 +86,47 @@ void Model::setupImages(const int& index)
 {
 	stbi_uc* pixels;
 	int texWidth, texHeight, texChannels;
+	
 	if (meshes[index].textures.empty())
 	{
 		const std::string path = texturePath + meshes[0].textures[0].path;
-		pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+		if (textures_mapped[path].mapped)
+		{
+			pixels = textures_mapped[path].pixels;
+			texWidth = textures_mapped[path].texWidth;
+			texHeight = textures_mapped[path].texHeight;
+			texChannels = textures_mapped[path].texChannels;
+			int size = (size_t)(texWidth * texHeight * texChannels);
+		}
+		else 
+		{
+			pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+			
+			textures_mapped[path] = {pixels, texWidth, texHeight, texChannels, true};
+		};
 	}	
 	else
 	{
 		const std::string path = texturePath + meshes[index].textures[0].path;
-		pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+		if (textures_mapped[path].mapped)
+		{
+			pixels = textures_mapped[path].pixels;
+			texWidth = textures_mapped[path].texWidth;
+			texHeight = textures_mapped[path].texHeight;
+			texChannels = textures_mapped[path].texChannels;
+			int size = (size_t)(texWidth * texHeight * texChannels);
+		}
+		else 
+		{
+			pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+			textures_mapped[path] = {pixels, texWidth, texHeight, texChannels, true};
+		};
 	};
+
 
 	if (!pixels)
 	{
-		throw std::runtime_error("failed to load texture image!" + texturePath + meshes[0].textures[0].path);	
+		throw std::runtime_error("failed to load texture image dude!" + texturePath + meshes[0].textures[0].path);	
 	};
 	
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -117,7 +143,7 @@ void Model::setupImages(const int& index)
 	memcpy(data, pixels, static_cast<size_t>(imageSize));	
 	vkUnmapMemory(device, stagingBufferMemory);
 	
-	stbi_image_free(pixels);
+//	stbi_image_free(pixels);
 	
 	VkImageCreateInfo imageInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -191,9 +217,9 @@ void Model::setupImages(const int& index)
 		0, nullptr,
 		1, &barrier);	
 	
-	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);		
+//	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);		
 
-	commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+//	commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
 	
 	VkBufferImageCopy region{
 		.bufferOffset = 0,
@@ -216,9 +242,9 @@ void Model::setupImages(const int& index)
 		1,
 		&region);	
 
-	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);
+//	CommandBuffer::endSingleTimeCommands(commandBuffer, queue, device);
 
-	commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
+//	commandBuffer = CommandBuffer::beginSingleTimeCommands(device);	
 	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -274,14 +300,17 @@ void Model::setupModelData()
 	texture.imageMemory.resize(meshCount);		
 	texture.image.resize(meshCount);		
 
+	double overall = glfwGetTime();
 	for (size_t i = 0; i < meshCount; i++)
 	{			
-		const Mesh mesh = meshes[i];
+		double time = glfwGetTime();
+		const Mesh& mesh = meshes[i];
 		setupIndexBuffers(mesh, i);
 		setupBuffers(mesh, i);
 		setupImages(i);
 		setupImageViews(i);
 	};
+	std::cout << "Overall time: " << glfwGetTime() - overall << " seconds \n";
 };
 
 void Model::processNode(aiNode *node, const aiScene *scene)
@@ -295,9 +324,7 @@ void Model::processNode(aiNode *node, const aiScene *scene)
 
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		std::jthread t1([&](){
-			processNode(node->mChildren[i], scene);
-		});
+		processNode(node->mChildren[i], scene);
 	}
 };
 

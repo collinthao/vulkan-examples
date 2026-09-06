@@ -5,11 +5,20 @@
 #include <assimp/postprocess.h>
 #include "mesh.h"
 #include <vector>
+#include <map>
 #include <iostream>
 #include <string_view>
 #include <thread>
 #include "../config/vulkanConfig.h"
 #include "../core/buffer/buffer.h"
+#include <stb_image.h>
+
+struct TextureInfo
+{
+	stbi_uc * pixels;
+	int texWidth, texHeight, texChannels;
+	bool mapped = false;
+};
 
 struct Uniform
 {
@@ -27,6 +36,7 @@ public:
 	std::array<Uniform, 2> uniforms; 
 	std::vector<Mesh> meshes;
 	std::vector<Texture> textures_loaded;
+	std::unordered_map<std::string, TextureInfo> textures_mapped;
 	std::string directory;
 	bool gammaCorrection;
 	uint32_t nodeIndex = 0;

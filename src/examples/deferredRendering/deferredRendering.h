@@ -243,6 +243,7 @@ class DeferredRendering : public IVulkanApp
 	void loadModel()
 	{
 		model = new Model("/resource/models/backpack/backpack.obj", "/resource/models/backpack/textures/", VulkanConfig::device, VulkanConfig::physicalDevice, VulkanConfig::graphicsAndComputeQueue);
+//		model = new Model("/resource/models/Sponza-master/sponza.obj", "/resource/models/Sponza-master/", VulkanConfig::device, VulkanConfig::physicalDevice, VulkanConfig::graphicsAndComputeQueue);
 		model->setupUniforms<ObjectUniform>();
 	}
 

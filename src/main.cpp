@@ -4,6 +4,7 @@
 #include <assimp/postprocess.h>
 #include "./core/engine/engine.h"
 #define STB_IMAGE_IMPLEMENTATION
+#define STBI_NO_THREAD_LOCALS
 #include <stb_image.h>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <chrono>
