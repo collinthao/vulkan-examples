@@ -76,13 +76,11 @@ class DeferredRendering : public IVulkanApp
 		VkDescriptorSetLayout cube;
 		VkDescriptorSetLayout quad;
 		VkDescriptorSetLayout light;
-		VkDescriptorSetLayout model;
 	} descriptorSetLayouts;
 
 	struct DescriptorSets
 	{
 		std::vector<VkDescriptorSet> light;
-		std::vector<VkDescriptorSet> model;
 		VkDescriptorSet cube;
 		VkDescriptorSet quad;
 	};
@@ -130,114 +128,7 @@ class DeferredRendering : public IVulkanApp
 
 	void setupModelDescriptorSets()
 	{
-		VkDescriptorPool descriptorPool;
-		VkDescriptorSetLayoutBinding vertexLayoutBinding{
-			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding fragmentLayoutBinding{
-			.binding = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{vertexLayoutBinding, fragmentLayoutBinding};
-		
-		VkDescriptorSetLayoutCreateInfo layoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
-			.pBindings = setLayoutBindings.data()
-		};
-	
-		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.model))
-		{
-			throw std::runtime_error("Failed to create descriptor set layout!");
-		};	
-		
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(model->meshes.size()* frames) * 2;
-
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(model->meshes.size() * frames) * 2;
-
-		VkDescriptorPoolCreateInfo poolInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(model->meshes.size() * frames) * 2,
-			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-			.pPoolSizes = poolSizes.data()
-		};	
-		
-		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create descriptor pool!");		
-		}
-			
-		descriptorSets[0].model.resize(model->meshes.size());
-		descriptorSets[1].model.resize(model->meshes.size());
-
-		std::array<VkDescriptorSetLayout, 1> layouts{};
-		layouts.fill(descriptorSetLayouts.model);	
-	
-		VkDescriptorSetAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
-			.pSetLayouts = layouts.data()
-		};	  
-
-		for (size_t i = 0; i < model->meshes.size(); i++)
-		{
-			for (size_t j = 0; j < frames; j++)
-			{
-				if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[j].model[i]) != VK_SUCCESS)
-				{
-					throw std::runtime_error("failed to allocate descriptor sets!");
-				};
-
-				VkDescriptorBufferInfo bufferInfo{
-					.buffer = model->uniforms[j].buffer[i],
-					.offset = 0,
-					.range = sizeof(ObjectUniform)
-				};
-				
-				VkDescriptorImageInfo imageInfo
-				{
-					.sampler = sampler,
-					.imageView = model->texture.imageView[i],
-					.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-				};
-				
-				std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-				
-				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrites[0].dstSet = descriptorSets[j].model[i];
-				descriptorWrites[0].dstBinding = 0;
-				descriptorWrites[0].dstArrayElement = 0;
-				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptorWrites[0].descriptorCount = 1;
-				descriptorWrites[0].pBufferInfo = &bufferInfo;
-				
-				descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrites[1].dstSet = descriptorSets[j].model[i];
-				descriptorWrites[1].dstBinding = 1;
-				descriptorWrites[1].dstArrayElement = 0;
-				descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descriptorWrites[1].descriptorCount = 1;
-				descriptorWrites[1].pImageInfo = &imageInfo;
-				
-				vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
-			};
-		};
+		model->setupDescriptorSets<ObjectUniform>();	
 	}	
 
 	void loadModel()
@@ -1383,7 +1274,7 @@ class DeferredRendering : public IVulkanApp
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.setLayoutCount = 1,
-			.pSetLayouts = &descriptorSetLayouts.model,
+			.pSetLayouts = &model->layout,
 			.pushConstantRangeCount = 0,
 			.pPushConstantRanges = nullptr
 		};
@@ -2077,13 +1968,17 @@ class DeferredRendering : public IVulkanApp
 	{
 		ObjectUniform uniformData;
 		
-		uniformData.model = glm::mat4(1.);		
-		uniformData.view = camera.getViewMatrix();
-		uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
-		uniformData.proj[1][1] *= -1.;
-		
-		model->bind<ObjectUniform>(uniformData, currentImage);
+		for (int i = 0; i < 9; i++)
+		{
+			uniformData.model = glm::mat4(1.);		
+			uniformData.model = glm::translate(uniformData.model, glm::vec3(0. + i, 0., 0.));
+			uniformData.view = camera.getViewMatrix();
+			uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+			uniformData.proj[1][1] *= -1.;
+			
+			model->bind<ObjectUniform>(uniformData, currentImage, i);
 
+		};
 		// Light	
 		for (size_t i = 0; i < LIGHT_COUNT; i++)
 		{
@@ -2183,16 +2078,19 @@ class DeferredRendering : public IVulkanApp
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.model);	
 		
-		for (size_t i = 0; i < model->meshes.size(); i++)
+		for (uint32_t j = 0; j < 9; j++)
 		{
-			const Mesh mesh = model->meshes[i];
+			for (size_t i = 0; i < model->meshes.size(); i++)
+			{
+				const Mesh mesh = model->meshes[i];
 
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.model, 0, 1, &descriptorSets[currentFrame].model[i], 0, nullptr);
-			
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->buffer.buffers[i], offsets);
-			vkCmdBindIndexBuffer(commandBuffer, model->buffer.index[i], 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.model, 0, 1, &model->descriptors[currentFrame].sets[j][i], 0, nullptr);
+				
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->buffer.buffers[i], offsets);
+				vkCmdBindIndexBuffer(commandBuffer, model->buffer.index[i], 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+			};
 		};
 
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
