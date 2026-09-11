@@ -13,7 +13,6 @@ unsigned int TextureFromFile(const char * path, const std::string & directory, b
 
 Model::Model(){};
 
-
 Model::Model(std::string path, const VkDevice& device, const VkPhysicalDevice& physicalDevice, const VkQueue& queue)
 	:
       modelPath(this->ROOT_DIR + path),
@@ -34,6 +33,7 @@ Model::Model(std::string path, const VkDevice& device, const VkPhysicalDevice& p
 	}
 
 	processNode(scene->mRootNode, scene);
+	
 	setupModelData();	
 }
 
@@ -326,7 +326,7 @@ void Model::setupImages(const int& index)
 	
 	if (meshes[index].textures.empty())
 	{
-		const std::string path = "/" + meshes[0].textures[0].path;
+		const std::string path = ROOT_DIR + meshes[0].textures[0].path;
 		if (textures_mapped[path].mapped)
 		{
 			pixels = textures_mapped[path].pixels;
@@ -539,8 +539,6 @@ void Model::setupModelData()
 	{
 		stbi_image_free(value.pixels);
 	};
-
-	std::cout << "Overall time: " << glfwGetTime() - overall << " seconds \n";
 };
 
 void Model::processNode(aiNode *node, const aiScene *scene)
@@ -619,7 +617,6 @@ Mesh Model::processMesh(aiMesh*mesh, const aiScene * scene)
 			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 		}	
 	}
-	
 	return Mesh(vertices, indices, textures);
 };
 
@@ -629,8 +626,14 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial * mat, aiTextureType
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 	{
 		aiString str;
-		
-		mat->GetTexture(type, i, &str);
+		if (mat->GetTexture(type, i, &str) == AI_FAILURE)
+		{
+			throw std::runtime_error("failed to find texture!");
+		}
+		else
+		{
+			std::cout << str.C_Str() << '\n';
+		};
 		
 		const aiTexture * s_texture = scene->GetEmbeddedTexture(str.C_Str());
 

@@ -10,17 +10,11 @@ layout(binding = 0) uniform ObjectUniform
 	mat4 model;
 	mat4 view;
 	mat4 proj;
-	vec3 cameraPos;
-	vec3 lightColor[5];
-	vec3 lightPos[5];
 } ud;
 
 layout(location = 0) out vec2 texCoords;
 layout(location = 1) out vec3 FragPos;
 layout(location = 2) out vec3 Normal;
-layout(location = 3) out vec3 CameraPos;
-layout(location = 4) out vec3 LightPos[5];
-layout(location = 9) out vec3 LightColor[5];
 
 void main()
 {
@@ -28,7 +22,4 @@ void main()
 	texCoords = inTexCoord;
 	FragPos = vec3(ud.model * vec4(inPosition, 1.));
 	Normal = mat3(transpose(inverse(ud.model))) * inNormal;
-	CameraPos = ud.cameraPos;
-	LightPos = ud.lightPos;
-	LightColor = ud.lightColor;
 }

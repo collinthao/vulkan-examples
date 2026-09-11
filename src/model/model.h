@@ -38,8 +38,8 @@ public:
 	Model();
 	Model(std::string path, const VkDevice& device, const VkPhysicalDevice& physicalDevice, const VkQueue& queue);
 	VkDescriptorSetLayout layout;
-	std::array<Uniform, 2> uniforms; 
-	std::array<DescriptorInfo, 2> descriptors; 
+	std::array<Uniform, 9> uniforms; 
+	std::array<DescriptorInfo, 9> descriptors; 
 	std::vector<Mesh> meshes;
 	std::vector<Texture> textures_loaded;
 	std::unordered_map<std::string, TextureInfo> textures_mapped;
@@ -93,12 +93,12 @@ public:
 		VkDeviceSize objectBufferSize = sizeof(UniformStruct);	
 		for (size_t j = 0; j < VulkanConfig::MAX_FRAMES_IN_FLIGHT; j++)
 		{
-			uniforms[j].buffer.resize(2);
-			uniforms[j].mapped.resize(2);
-			uniforms[j].memory.resize(2);
+			uniforms[j].buffer.resize(9);
+			uniforms[j].mapped.resize(9);
+			uniforms[j].memory.resize(9);
 
 			// magic number for now
-			for (size_t k = 0; k < 2; k++)
+			for (size_t k = 0; k < 9; k++)
 			{
 				uniforms[j].buffer[k].resize(meshes.size());
 				uniforms[j].mapped[k].resize(meshes.size());
@@ -148,16 +148,16 @@ public:
 		
 		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(this->meshes.size()* VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2 * 2;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(this->meshes.size()* VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2 * 9;
 
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(this->meshes.size() * VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2 * 2;
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(this->meshes.size() * VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2 * 9;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(meshes.size() * VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2 * 2,
+			.maxSets = static_cast<uint32_t>(meshes.size() * VulkanConfig::MAX_FRAMES_IN_FLIGHT) * 2 * 9,
 			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
 			.pPoolSizes = poolSizes.data()
 		};	
@@ -167,8 +167,8 @@ public:
 			throw std::runtime_error("failed to create descriptor pool!");		
 		}
 			
-		descriptors[0].sets.resize(2);
-		descriptors[1].sets.resize(2);
+		descriptors[0].sets.resize(9);
+		descriptors[1].sets.resize(9);
 
 		std::array<VkDescriptorSetLayout, 1> layouts{};
 		layouts.fill(layout);	
@@ -183,7 +183,7 @@ public:
 
 		for (size_t j = 0; j < VulkanConfig::MAX_FRAMES_IN_FLIGHT; j++)
 		{
-			for (size_t k = 0; k < 2; k++)
+			for (size_t k = 0; k < 9; k++)
 			{
 				descriptors[0].sets[k].resize(this->meshes.size());
 				descriptors[1].sets[k].resize(this->meshes.size());
