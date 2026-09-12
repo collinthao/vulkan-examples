@@ -10,6 +10,7 @@ layout (binding = 3) readonly buffer DeferredUniform
 {
 	vec4 lightColor[5];
 	vec4 lightPos[5];
+	float radius[5];
 	vec4 cameraPos;
 } du;
 
@@ -26,9 +27,13 @@ void main()
 
 	for (int i = 0; i < 5; i++)
 	{
-		vec3 lightDir = normalize(du.lightPos[i].xyz - FragPos);
-		vec3 diffuse = max(dot(Normal,lightDir), 0.0) * Albedo * du.lightColor[i].xyz;
-		lighting += diffuse;
+		float distance = length(du.lightPos[i].xyz - FragPos);
+		if (distance < du.radius[i])
+		{
+			vec3 lightDir = normalize(du.lightPos[i].xyz - FragPos);
+			vec3 diffuse = max(dot(Normal,lightDir), 0.0) * Albedo * du.lightColor[i].xyz;
+			lighting += diffuse;
+		};
 	};
 
 	fragColor = vec4(lighting, 1.);

@@ -13,10 +13,10 @@ class DeferredRendering : public IVulkanApp
 	std::array<glm::vec3, LIGHT_COUNT> lightColors
 	{
 		glm::vec3(1., 0., 0.),
-		glm::vec3(1., 0., 0.),
-		glm::vec3(1., 0., 0.),
-		glm::vec3(1., 0., 0.),
-		glm::vec3(1., 0., 0.)
+		glm::vec3(1., 1., 0.),
+		glm::vec3(1., 0.26, 0.48),
+		glm::vec3(1., 0., 1.),
+		glm::vec3(0., 0., 1.)
 	};
 
 	glm::vec3 lightPositions[LIGHT_COUNT] =
@@ -35,6 +35,7 @@ class DeferredRendering : public IVulkanApp
 	{
 		alignas(64) glm::vec4 lightColor[LIGHT_COUNT];
 		alignas(64) glm::vec4 lightPos[LIGHT_COUNT];
+		alignas(64) float radius[LIGHT_COUNT];
 		alignas(64) glm::vec4 cameraPos;
 	};
 
@@ -2054,11 +2055,19 @@ class DeferredRendering : public IVulkanApp
 			memcpy(uniformBuffersMapped[currentImage].light[i], &lightUniform, sizeof(lightUniform));
 		};
 
+		float constant = 1.;
+		float linear = .7;
+		float quadratic = 1.8;
+
 		for (size_t i = 0; i < LIGHT_COUNT; i++)
 		{
 			// Post Processing Uniform
 			deferredUniform.lightColor[i] = glm::vec4(lightColors[i].x, lightColors[i].y, lightColors[i].z, 1.);
 			deferredUniform.lightPos[i] = glm::vec4(lightPositions[i].x, lightPositions[i].y, lightPositions[i].z, 1.);
+			
+			float lightMax = std::fmaxf(std::fmaxf(lightColors[i].x, lightColors[i].y), lightColors[i].z);
+			float radius = (-linear + std::sqrtf(linear*linear-4*quadratic*(constant-(256./5) * lightMax)))/(2*quadratic);
+			deferredUniform.radius[i] = radius;
 		};
 		deferredUniform.cameraPos = glm::vec4(camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z, 1.);
 
