@@ -12,11 +12,11 @@ class DeferredRendering : public IVulkanApp
 
 	std::array<glm::vec3, LIGHT_COUNT> lightColors
 	{
-		glm::vec3(1.),
 		glm::vec3(1., 0., 0.),
-		glm::vec3(0.,1., 0.),
-		glm::vec3(0., 0., 1.),
-		glm::vec3(1., 1., 0.)
+		glm::vec3(1., 0., 0.),
+		glm::vec3(1., 0., 0.),
+		glm::vec3(1., 0., 0.),
+		glm::vec3(1., 0., 0.)
 	};
 
 	glm::vec3 lightPositions[LIGHT_COUNT] =
@@ -33,9 +33,9 @@ class DeferredRendering : public IVulkanApp
 
 	struct DeferredUniform 
 	{
-		alignas(16) glm::vec3 lightColor[LIGHT_COUNT];
-		alignas(16) glm::vec3 lightPos[LIGHT_COUNT];
-		alignas(16) glm::vec3 cameraPos;
+		alignas(64) glm::vec4 lightColor[LIGHT_COUNT];
+		alignas(64) glm::vec4 lightPos[LIGHT_COUNT];
+		alignas(64) glm::vec4 cameraPos;
 	};
 
 	struct LightUniform
@@ -159,7 +159,7 @@ class DeferredRendering : public IVulkanApp
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
 
 		VkAttachmentReference depthAttachmentRef{
@@ -177,13 +177,20 @@ class DeferredRendering : public IVulkanApp
 			.pDepthStencilAttachment = &depthAttachmentRef,
 		};	
 
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		std::array<VkSubpassDependency, 2> dependencies{};
+		dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[0].dstSubpass = 0;
+		dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+
+		dependencies[1].srcSubpass = 0;
+		dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependencies[1].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 		std::array<VkAttachmentDescription, 2> attachments = {depthAttachment, colorAttachmentResolve};
 
@@ -194,7 +201,7 @@ class DeferredRendering : public IVulkanApp
 			.subpassCount = 1,
 			.pSubpasses = &subpass,
 			.dependencyCount = 1,
-			.pDependencies = &dependency
+			.pDependencies = dependencies.data()
 		};
 		
 		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.renderPass))
@@ -366,9 +373,11 @@ class DeferredRendering : public IVulkanApp
 		uniformBuffersMapped[1].light.resize(LIGHT_COUNT);
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(deferredBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].deferred, uniformBuffersMemory[i].deferred, VulkanConfig::device, VulkanConfig::physicalDevice);
+			const std::string name{"uniformBuffers[" + std::string{i} + "].deferred"};
+			Buffer::create(deferredBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].deferred, uniformBuffersMemory[i].deferred, VulkanConfig::device, VulkanConfig::physicalDevice);
 			
 			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].deferred, 0, deferredBufferSize, 0, &uniformBuffersMapped[i].deferred);
+			setupDebugObjectName(VK_OBJECT_TYPE_BUFFER, uniformBuffers[i].deferred, name.c_str());
 		};
 
 		for (size_t j = 0; j < LIGHT_COUNT; j++)
@@ -1149,7 +1158,7 @@ class DeferredRendering : public IVulkanApp
 		VkDescriptorSetLayoutBinding deferredLayoutBinding
 		{
 			.binding = 3,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 			.descriptorCount = 1,
 			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 			.pImmutableSamplers = nullptr
@@ -1170,16 +1179,15 @@ class DeferredRendering : public IVulkanApp
 		
 		std::array<VkDescriptorPoolSize, 4> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
 		poolSizes[2].descriptorCount = static_cast<uint32_t>(frames) * 2;
-		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 
@@ -1253,6 +1261,7 @@ class DeferredRendering : public IVulkanApp
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[0].descriptorCount = 1;
 			descriptorWrites[0].pImageInfo = &positionInfo;
+
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[1].dstSet = descriptorSets[i].quad;
 			descriptorWrites[1].dstBinding = 1;
@@ -1268,11 +1277,12 @@ class DeferredRendering : public IVulkanApp
 			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[2].descriptorCount = 1;
 			descriptorWrites[2].pImageInfo = &albedoInfo;
+
 			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[3].dstSet = descriptorSets[i].quad;
 			descriptorWrites[3].dstBinding = 3;
 			descriptorWrites[3].dstArrayElement = 0;
-			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			descriptorWrites[3].descriptorCount = 1;
 			descriptorWrites[3].pBufferInfo = &deferredInfo;
 
@@ -1945,7 +1955,7 @@ class DeferredRendering : public IVulkanApp
 			.depthClampEnable = VK_FALSE,
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_NONE,
+			.cullMode = VK_CULL_MODE_BACK_BIT,
 			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 			.depthBiasEnable = VK_FALSE,
 			.depthBiasConstantFactor = 0.f,
@@ -2042,14 +2052,17 @@ class DeferredRendering : public IVulkanApp
 			lightUniform.proj[1][1] *= -1.;
 			lightUniform.lightColor = lightColors[i];
 			memcpy(uniformBuffersMapped[currentImage].light[i], &lightUniform, sizeof(lightUniform));
-
-			// Post Processing Uniform
-			deferredUniform.lightColor[i] = lightColors[i];
-			deferredUniform.lightPos[i] = lightPositions[i];
 		};
 
+		for (size_t i = 0; i < LIGHT_COUNT; i++)
+		{
+			// Post Processing Uniform
+			deferredUniform.lightColor[i] = glm::vec4(lightColors[i].x, lightColors[i].y, lightColors[i].z, 1.);
+			deferredUniform.lightPos[i] = glm::vec4(lightPositions[i].x, lightPositions[i].y, lightPositions[i].z, 1.);
+		};
+		deferredUniform.cameraPos = glm::vec4(camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z, 1.);
+
 		// Post Processing Uniform
-		deferredUniform.cameraPos = camera.cameraPos;
 		memcpy(uniformBuffersMapped[currentImage].deferred, &deferredUniform, sizeof(deferredUniform));
 	};
 

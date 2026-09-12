@@ -6,11 +6,11 @@ layout (location = 0) in vec2 texCoords ;
 layout (binding = 0) uniform sampler2D position;
 layout (binding = 1) uniform sampler2D normal;
 layout (binding = 2) uniform sampler2D albedo;
-layout (binding = 3) uniform DeferredUniform
+layout (binding = 3) readonly buffer DeferredUniform
 {
-	vec3 lightColor[5];
-	vec3 lightPos[5];
-	vec3 cameraPos;
+	vec4 lightColor[5];
+	vec4 lightPos[5];
+	vec4 cameraPos;
 } du;
 
 void main()
@@ -22,15 +22,14 @@ void main()
 	float power = 24.;
 
 	vec3 lighting = Albedo * 0.1;	
-	vec3 viewDir = normalize(du.cameraPos - FragPos);
+	vec3 viewDir = normalize(du.cameraPos.xyz - FragPos);
 
 	for (int i = 0; i < 5; i++)
 	{
-		vec3 lightDir = normalize(du.lightPos[i] - FragPos);
-		vec3 diffuse = max(dot(Normal,lightDir), 0.0) * Albedo * du.lightColor[i];
+		vec3 lightDir = normalize(du.lightPos[i].xyz - FragPos);
+		vec3 diffuse = max(dot(Normal,lightDir), 0.0) * Albedo * du.lightColor[i].xyz;
 		lighting += diffuse;
 	};
 
 	fragColor = vec4(lighting, 1.);
-	//fragColor = vec4(1.);
 }

@@ -512,6 +512,7 @@ bool IVulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
 	for (const auto& extension : availableExtensions)
 	{
+		std::cout << "Extension: " << extension.extensionName << '\n';
 		requiredExtensions.erase(extension.extensionName);
 	}
 
@@ -541,11 +542,12 @@ void IVulkanApp::createLogicalDevice()
 	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
 	extendedDynamicStateFeatures.pNext = nullptr;
 
-	VkDeviceCreateInfo createInfo{};
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 	deviceFeatures.geometryShader = VK_TRUE;
+
+	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());

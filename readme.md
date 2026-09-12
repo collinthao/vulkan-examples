@@ -20,6 +20,7 @@ cmake --build .
 - Use glfwGetCursorPos to allow dependency injection for switching mouse movement function per vulkan App
 - Fix shadow mapping scene and grass scene to align with work done in vulkanApp header file
 
-**MINECRAFT TODO**
-- add dirtblocks and water
+**Deferred Renderer**
+- Fix issue with deferred buffer memory alignment. There are values that should not be there and are incorrect
+
 XDG_SESSION_TYPE=x11
