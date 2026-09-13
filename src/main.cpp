@@ -41,10 +41,11 @@
 #include "./examples/hdr/hdr.h"
 #include "./examples/bloom/bloom.h"
 #include "./examples/deferredRendering/deferredRendering.h"
+#include "./examples/projectionMatrix/projectionMatrix.h"
 
 int main()
 {
-	Engine<DeferredRendering, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<ProjectionMatrix, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

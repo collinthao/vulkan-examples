@@ -301,7 +301,6 @@ class IVulkanApp
 
 		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
 		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
-
 	};	
 
 	static VkResult CreateDebugUtilsObjectNameEXT(
