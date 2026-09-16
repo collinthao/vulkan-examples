@@ -512,7 +512,6 @@ bool IVulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
 	for (const auto& extension : availableExtensions)
 	{
-		std::cout << "Extension: " << extension.extensionName << '\n';
 		requiredExtensions.erase(extension.extensionName);
 	}
 

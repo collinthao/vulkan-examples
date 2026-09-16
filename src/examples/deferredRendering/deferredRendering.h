@@ -1191,7 +1191,6 @@ class DeferredRendering : public IVulkanApp
 		poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
-
 		VkDescriptorPoolCreateInfo poolInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,

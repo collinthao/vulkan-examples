@@ -59,5 +59,8 @@ $GLSL_PATH deferred/object/shader.frag -o deferred/object/frag.spv
 $GLSL_PATH deferred/pingPong/shader.vert -o deferred/pingPong/vert.spv
 $GLSL_PATH deferred/pingPong/shader.frag -o bloom/pingPong/frag.spv
 $GLSL_PATH projectionMatrix/cube/shader.vert -o projectionMatrix/cube/vert.spv
-$GLSL_PATH projectionMatrix/cube/shader.geom -o projectionMatrix/cube/geom.spv
 $GLSL_PATH projectionMatrix/cube/shader.frag -o projectionMatrix/cube/frag.spv
+$GLSL_PATH projectionMatrix/projection/shader.vert -o projectionMatrix/projection/vert.spv
+$GLSL_PATH projectionMatrix/projection/shader.frag -o projectionMatrix/projection/frag.spv
+$GLSL_PATH projectionMatrix/quad/shader.vert -o projectionMatrix/quad/vert.spv
+$GLSL_PATH projectionMatrix/quad/shader.frag -o projectionMatrix/quad/frag.spv
