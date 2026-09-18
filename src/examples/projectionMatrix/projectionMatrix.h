@@ -161,7 +161,7 @@ class ProjectionMatrix : public IVulkanApp
 		
 		for (size_t i = 0; i < cubeVertices.size(); i++)
 		{
-			glm::vec4 transformedPos = glm::vec4(cubeVertices[i].pos.x, cubeVertices[i].pos.y, cubeVertices[i].pos.z - 10.f, 1.0) * perspective;
+			glm::vec4 transformedPos = glm::vec4(cubeVertices[i].pos.x, cubeVertices[i].pos.y, cubeVertices[i].pos.z + 5.f, 1.0) * perspective;
 			if (cubeVertices[i].pos.z > 0.f)
 			{
 				projectionVertices.push_back(Vertex{
@@ -1758,7 +1758,8 @@ class ProjectionMatrix : public IVulkanApp
 		uniformData.proj[1][1] *= -1.;
 		memcpy(uniformBuffersMapped[currentImage].projectionCube, &uniformData, sizeof(uniformData));
 
-		uniformData.model = glm::translate(glm::mat4(1.), glm::vec3(0., 0., 0. + projectionX));		
+		uniformData.model = mainCamera.getViewMatrix();		
+		uniformData.model = glm::rotate(uniformData.model, glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));		
 		memcpy(uniformBuffersMapped[currentImage].projection, &uniformData, sizeof(uniformData));
 	};
 
@@ -1769,17 +1770,19 @@ class ProjectionMatrix : public IVulkanApp
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
 			mainCamera.move(FORWARD);
-			projectionX += renderCamera.cameraSpeed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		{
 			mainCamera.move(BACKWARD);
-			projectionX -= renderCamera.cameraSpeed;
 		};
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		{
 			mainCamera.move(LEFT);
+		};
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		{
 			mainCamera.move(RIGHT);
+		};
 	};
 
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
