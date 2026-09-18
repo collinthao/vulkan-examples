@@ -11,8 +11,10 @@ class ProjectionMatrix : public IVulkanApp
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 	std::vector<Vertex> projectionVertices{};
 	std::vector<VkFramebuffer> offscreenFramebuffers;
+	float projectionX = 0.0;
 
-	Camera mainCamera{glm::vec3(0.,0.,3.), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f)};
+	Camera mainCamera{glm::vec3(0.,0.,3.), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f)};
+	Camera renderCamera{glm::vec3(6.,7.,14.), glm::vec3(-1.f, -1.f, -1.f), glm::vec3(0.f, 1.f, 0.f)};
 
 	const std::vector<uint32_t> projectionIndices=
 	{
@@ -62,6 +64,7 @@ class ProjectionMatrix : public IVulkanApp
 	{
 		VkPipeline cubePipeline{VK_NULL_HANDLE};
 		VkPipeline projection{VK_NULL_HANDLE};
+		VkPipeline projectionCube{VK_NULL_HANDLE};
 		VkPipeline quad{VK_NULL_HANDLE};
 	} pipelines;
 
@@ -75,6 +78,8 @@ class ProjectionMatrix : public IVulkanApp
 	{
 		VkDescriptorSet cube;		
 		VkDescriptorSet quad;		
+		VkDescriptorSet projection;		
+		VkDescriptorSet projectionCube;		
 	}; 
 
 	std::array<DescriptorSets, frames> descriptorSets;
@@ -83,18 +88,24 @@ class ProjectionMatrix : public IVulkanApp
 	{
 		VkBuffer scene;
 		VkBuffer quad;
+		VkBuffer projection;
+		VkBuffer projectionCube;
 	};
 
 	struct UniformBuffersMapped
 	{
 		void * scene;
 		void * quad;
+		void * projection;
+		void * projectionCube;
 	};
 
 	struct UniformBuffersMemory
 	{
 		VkDeviceMemory scene;
 		VkDeviceMemory quad;
+		VkDeviceMemory projection;
+		VkDeviceMemory projectionCube;
 	};
 
 	struct
@@ -117,6 +128,7 @@ class ProjectionMatrix : public IVulkanApp
 	{
 		Texture depth;
 		Texture color;
+		Texture projectionDepth;
 	} textures;
 
 	std::array<UniformBuffers, frames> uniformBuffers;
@@ -145,7 +157,7 @@ class ProjectionMatrix : public IVulkanApp
 
 	void setupProjectionVertices()
 	{
-		glm::mat4 perspective = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 10.f);
+		glm::mat4 perspective = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 5.f);
 		
 		for (size_t i = 0; i < cubeVertices.size(); i++)
 		{
@@ -247,6 +259,101 @@ class ProjectionMatrix : public IVulkanApp
 		};
 	};	
 
+	void setupProjectionDepth()
+	{
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_D32_SFLOAT,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT, 
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
+		};
+		
+		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
+		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.projectionDepth.image))
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.projectionDepth.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.projectionDepth.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate memory for depth image!");
+		};
+	
+		vkBindImageMemory(VulkanConfig::device, textures.projectionDepth.image, textures.projectionDepth.imageMemory, 0);
+	
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+		
+		VkImageMemoryBarrier barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = textures.projectionDepth.image	
+		};
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;	
+		barrier.subresourceRange.baseMipLevel = 0;	
+		barrier.subresourceRange.levelCount = 1;	
+		barrier.subresourceRange.baseArrayLayer  = 0;	
+		barrier.subresourceRange.layerCount = 1;	
+
+		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;	
+		VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;		
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);	
+
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+	
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.projectionDepth.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_D32_SFLOAT,
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.projectionDepth.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create depth image view!");
+		};
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.projectionDepth.image, "textures.projectionDepth.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.projectionDepth.imageView, "textures.projectionDepth.imageView");
+	};
+
 	void setupDepth()
 	{
 		VkImageCreateInfo imageInfo{
@@ -306,7 +413,7 @@ class ProjectionMatrix : public IVulkanApp
 		barrier.subresourceRange.baseMipLevel = 0;	
 		barrier.subresourceRange.levelCount = 1;	
 		barrier.subresourceRange.baseArrayLayer  = 0;	
-		barrier.subresourceRange.layerCount = 1;	
+		barrier.subresourceRange.layerCount = 1;
 
 		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;	
 		VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;		
@@ -441,6 +548,7 @@ class ProjectionMatrix : public IVulkanApp
 		{
 			throw std::runtime_error("failed to create render pass!");
 		};
+		setupDebugObjectName(VK_OBJECT_TYPE_RENDER_PASS, renderPasses.offscreenPass, "renderPasses.offscreenPass");
 	};
 
 	void setupRenderPass()
@@ -456,26 +564,53 @@ class ProjectionMatrix : public IVulkanApp
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 0;
+		colorAttachmentRef.attachment = 1;
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentDescription depthAttachment{
+			.format = VK_FORMAT_D32_SFLOAT,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
+		VkAttachmentReference depthAttachmentRef{
+			.attachment = 0,
+			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
 
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-		std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		std::array<VkAttachmentDescription, 2> attachments = {depthAttachment, colorAttachment};
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		renderPassInfo.pAttachments = attachments.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
 
 		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.renderPass) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create render pass!");
 		}
+		setupDebugObjectName(VK_OBJECT_TYPE_RENDER_PASS, renderPasses.renderPass, "renderPasses.renderPass");
 	}
 
 	void setupUniformBuffers()
@@ -484,10 +619,13 @@ class ProjectionMatrix : public IVulkanApp
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-			uniformBuffers[i].scene, uniformBuffersMemory[i].scene, VulkanConfig::device, VulkanConfig::physicalDevice);
+			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].scene, uniformBuffersMemory[i].scene, VulkanConfig::device, VulkanConfig::physicalDevice);
+			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].projection, uniformBuffersMemory[i].projection, VulkanConfig::device, VulkanConfig::physicalDevice);
+			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].projectionCube, uniformBuffersMemory[i].projectionCube, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].scene, 0, bufferSize, 0, &uniformBuffersMapped[i].scene);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].projection, 0, bufferSize, 0, &uniformBuffersMapped[i].projection);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].projectionCube, 0, bufferSize, 0, &uniformBuffersMapped[i].projectionCube);
 		}	
 	}
 
@@ -597,6 +735,156 @@ class ProjectionMatrix : public IVulkanApp
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[0].descriptorCount = 1;
 			descriptorWrites[0].pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+		}	
+	};
+
+	void setupProjectionDescriptorSets()
+	{
+		VkDescriptorPool descriptorPool;
+		VkDescriptorSetLayoutBinding vertexLayoutBinding{
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_ALL,
+			.pImmutableSamplers = nullptr};
+
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{vertexLayoutBinding};		
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+		layoutInfo.pBindings = setLayoutBindings.data();
+
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		}
+		
+		setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayout, "descriptorSetLayout");
+
+		std::array<VkDescriptorPoolSize, 1> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		VkDescriptorPoolCreateInfo poolInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = static_cast<uint32_t>(frames) * 2,
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data()};
+		
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create descriptor pool!");
+		}
+
+		std::array<VkDescriptorSetLayout, 1> layouts{};	
+		layouts.fill(descriptorSetLayout);
+		
+		VkDescriptorSetAllocateInfo allocInfo {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = layouts.size(),
+			.pSetLayouts = layouts.data()
+		};
+			
+		for (size_t i = 0; i < frames; i++)
+		{
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].projection) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create descriptor sets!");
+			};
+
+			setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSets[i].projection, std::string{"descriptorSets.projection" + i}.c_str());
+
+			VkDescriptorBufferInfo bufferInfo{
+				.buffer = uniformBuffers[i].projection,
+				.offset = 0,
+				.range = sizeof(UniformData)
+			};	
+
+			std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = descriptorSets[i].projection;
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+		}	
+	};
+
+	void setupProjectionCubeDescriptorSets()
+	{
+		VkDescriptorPool descriptorPool;
+		VkDescriptorSetLayoutBinding vertexLayoutBinding{
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_ALL,
+			.pImmutableSamplers = nullptr};
+
+		std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{vertexLayoutBinding};		
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+		layoutInfo.pBindings = setLayoutBindings.data();
+
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		}
+		
+		std::array<VkDescriptorPoolSize, 1> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		VkDescriptorPoolCreateInfo poolInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = static_cast<uint32_t>(frames) * 2,
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data()};
+		
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create descriptor pool!");
+		}
+
+		std::array<VkDescriptorSetLayout, 1> layouts{};	
+		layouts.fill(descriptorSetLayout);
+		
+		VkDescriptorSetAllocateInfo allocInfo {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = layouts.size(),
+			.pSetLayouts = layouts.data()
+		};
+			
+		for (size_t i = 0; i < frames; i++)
+		{
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].projectionCube) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create descriptor sets!");
+			};
+
+			setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSets[i].projectionCube, std::string{"descriptorSets.projectionCube" + i}.c_str());
+
+			VkDescriptorBufferInfo bufferInfo{
+				.buffer = uniformBuffers[i].projectionCube,
+				.offset = 0,
+				.range = sizeof(UniformData)
+			};	
+
+			std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = descriptorSets[i].projectionCube;
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
 
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}	
@@ -893,11 +1181,13 @@ class ProjectionMatrix : public IVulkanApp
 			std::cout << "failed to create pipeline!\n";
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
+		setupDebugObjectName(VK_OBJECT_TYPE_PIPELINE, pipelines.quad, "pipelines.quad");
 	};
 
-	void setupCubePipeline()
+	void setupProjectionCubePipeline()
 	{
 		setupPipelineLayout();
+		shaderStages.clear();
 		addShader(SHADER_DIRECTORY + "/projectionMatrix/cube/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
 		addShader(SHADER_DIRECTORY + "/projectionMatrix/cube/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 
@@ -971,8 +1261,176 @@ class ProjectionMatrix : public IVulkanApp
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-			.depthTestEnable = VK_FALSE,
-			.depthWriteEnable = VK_FALSE,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
+			.depthCompareOp = VK_COMPARE_OP_LESS,
+			.depthBoundsTestEnable = VK_FALSE,
+			.stencilTestEnable = VK_FALSE,
+			.front = stencilOpState,
+			.back = stencilOpState,
+			.minDepthBounds = 0.f,
+			.maxDepthBounds = 1.f
+		};
+
+		std::vector<VkDynamicState> dynamicStates = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR,
+		};
+
+		VkPipelineDynamicStateCreateInfo dynamicState {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+			.pDynamicStates = dynamicStates.data()
+		};
+
+		VkPipelineRasterizationStateCreateInfo rasterizer{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			.depthClampEnable = VK_FALSE,
+			.rasterizerDiscardEnable = VK_FALSE,
+			.polygonMode = VK_POLYGON_MODE_FILL,
+			.cullMode = VK_CULL_MODE_NONE,
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.depthBiasEnable = VK_FALSE,
+			.depthBiasConstantFactor = 0.f,
+			.depthBiasClamp = 0.f,
+			.depthBiasSlopeFactor = 0.f,
+			.lineWidth = 1.f
+		};
+
+		VkPipelineMultisampleStateCreateInfo multisampling {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+			.minSampleShading = 0.2f,
+			.pSampleMask = nullptr,
+			.alphaToCoverageEnable = VK_FALSE,
+			.alphaToOneEnable = VK_FALSE
+		};
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{
+			.blendEnable = VK_TRUE,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.colorBlendOp = VK_BLEND_OP_ADD,
+			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+			.alphaBlendOp = VK_BLEND_OP_ADD,
+			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		VkPipelineColorBlendStateCreateInfo colorBlending{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			.logicOpEnable = VK_FALSE,
+			.logicOp = VK_LOGIC_OP_COPY,
+			.attachmentCount = 1,
+			.pAttachments = &colorBlendAttachment,
+			.blendConstants = {0.f, 0.f, 0.f, 0.f}
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineInfo{
+			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.stageCount = static_cast<uint32_t>(shaderStages.size()),
+			.pStages = shaderStages.data(),
+			.pVertexInputState = &vertexInputInfo,
+			.pInputAssemblyState = &inputAssembly,
+			.pViewportState = &viewportState,
+			.pRasterizationState = &rasterizer,
+			.pMultisampleState = &multisampling,
+			.pDepthStencilState = &depthStencil,
+			.pColorBlendState = &colorBlending,
+			.pDynamicState = &dynamicState,
+			.layout = pipelineLayout,
+			.renderPass = renderPasses.renderPass,
+			.subpass = 0,
+			.basePipelineHandle = VK_NULL_HANDLE
+		};
+
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.projectionCube) != VK_SUCCESS)
+		{
+			std::cout << "failed to create pipeline!\n";
+			throw std::runtime_error("failed to create primitive graphics pipeline!");
+		}
+		setupDebugObjectName(VK_OBJECT_TYPE_PIPELINE, pipelines.projectionCube, "pipelines.projectionCube");
+	};
+
+	void setupCubePipeline()
+	{
+		setupPipelineLayout();
+		shaderStages.clear();
+		addShader(SHADER_DIRECTORY + "/projectionMatrix/cube/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/projectionMatrix/cube/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+
+		VkVertexInputBindingDescription bindingDescription{};
+    
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		std::vector<VkVertexInputBindingDescription> bindingDescriptions{bindingDescription};
+		
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
+		attributeDescriptions.resize(4);		
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, normal);
+
+
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),
+			.pVertexBindingDescriptions = bindingDescriptions.data(),
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+			.pVertexAttributeDescriptions = attributeDescriptions.data()};
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.primitiveRestartEnable = VK_FALSE};
+
+		VkViewport viewport{
+			.x = 0.f,
+			.y = 0.f,
+			.width = (float)VulkanConfig::swapChainExtent.width,
+			.height = (float)VulkanConfig::swapChainExtent.height,
+			.minDepth = 0.f,
+			.maxDepth = 1.f};
+
+		VkPipelineViewportStateCreateInfo viewportState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			.viewportCount = 1,
+			.scissorCount = 1};
+
+		// stencil info
+		VkStencilOpState stencilOpState {
+			.failOp = VK_STENCIL_OP_KEEP,
+			.passOp = VK_STENCIL_OP_REPLACE,
+			.depthFailOp = VK_STENCIL_OP_KEEP,
+			.compareOp = VK_COMPARE_OP_ALWAYS,
+			.compareMask = 0xFF,
+			.writeMask = 0xFF,
+			.reference = 1 
+		};
+
+		VkPipelineDepthStencilStateCreateInfo depthStencil {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
 			.depthCompareOp = VK_COMPARE_OP_LESS,
 			.depthBoundsTestEnable = VK_FALSE,
 			.stencilTestEnable = VK_FALSE,
@@ -1059,6 +1517,7 @@ class ProjectionMatrix : public IVulkanApp
 			std::cout << "failed to create pipeline!\n";
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
+		setupDebugObjectName(VK_OBJECT_TYPE_PIPELINE, pipelines.cubePipeline, "pipelines.cubePipeline");
 	};
 
 	void setupProjectionPipeline()
@@ -1138,8 +1597,8 @@ class ProjectionMatrix : public IVulkanApp
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-			.depthTestEnable = VK_FALSE,
-			.depthWriteEnable = VK_FALSE,
+			.depthTestEnable = VK_TRUE,
+			.depthWriteEnable = VK_TRUE,
 			.depthCompareOp = VK_COMPARE_OP_LESS,
 			.depthBoundsTestEnable = VK_FALSE,
 			.stencilTestEnable = VK_FALSE,
@@ -1226,6 +1685,7 @@ class ProjectionMatrix : public IVulkanApp
 			std::cout << "failed to create pipeline!\n";
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
+		setupDebugObjectName(VK_OBJECT_TYPE_PIPELINE, pipelines.projection, "pipelines.projection");
 	};
 
 	void createSwapChainFramebuffers()
@@ -1234,13 +1694,14 @@ class ProjectionMatrix : public IVulkanApp
 
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
 		{
-			std::array<VkImageView, 1> attachments = { 
+			std::array<VkImageView, 2> attachments = { 
+				textures.projectionDepth.imageView,
 				swapChainImageViews[i], 
 			};
 			
 			VkFramebufferCreateInfo framebufferInfo{};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = basicRenderPasses.renderPass;
+			framebufferInfo.renderPass = renderPasses.renderPass;
 			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = VulkanConfig::swapChainExtent.width;
@@ -1265,11 +1726,15 @@ class ProjectionMatrix : public IVulkanApp
 		setupSampler();
 		setupColor();
 		setupDepth();
+		setupProjectionDepth();
 		setupUniformBuffers();
 		setupQuadDescriptorSets();
+		setupProjectionDescriptorSets();
+		setupProjectionCubeDescriptorSets();
 		setupDescriptorSets();
 		setupCubePipeline();
 		setupProjectionPipeline();
+		setupProjectionCubePipeline();
 		setupQuadPipeline();
 		createOffscreenFramebuffers();
 		createSwapChainFramebuffers();
@@ -1277,26 +1742,40 @@ class ProjectionMatrix : public IVulkanApp
 
 	void updateUniformBuffer(uint32_t currentImage)
 	{
+		glm::vec3 cubePosition{0., 0., 5.};
 		UniformData uniformData;
 		
-		uniformData.model = glm::mat4(1.);		
+		uniformData.model = glm::translate(glm::mat4(1.), cubePosition);		
 		uniformData.view = mainCamera.getViewMatrix();
-		uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, 5.f);
 		uniformData.proj[1][1] *= -1.;
 		
 		memcpy(uniformBuffersMapped[currentImage].scene, &uniformData, sizeof(uniformData));
+	
+		// Begin RenderPass Camera
+		uniformData.view = renderCamera.getViewMatrix();
+		uniformData.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+		uniformData.proj[1][1] *= -1.;
+		memcpy(uniformBuffersMapped[currentImage].projectionCube, &uniformData, sizeof(uniformData));
+
+		uniformData.model = glm::translate(glm::mat4(1.), glm::vec3(0., 0., 0. + projectionX));		
+		memcpy(uniformBuffersMapped[currentImage].projection, &uniformData, sizeof(uniformData));
 	};
 
 	void processInput(GLFWwindow * window)
 	{
-		camera.cameraSpeed = 10.f * lastFrameTime;
+		renderCamera.cameraSpeed = 10.f * lastFrameTime;
 		mainCamera.cameraSpeed = 10.f * lastFrameTime;
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
 			mainCamera.move(FORWARD);
+			projectionX += renderCamera.cameraSpeed;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		{
 			mainCamera.move(BACKWARD);
+			projectionX -= renderCamera.cameraSpeed;
+		};
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 			mainCamera.move(LEFT);
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
@@ -1323,8 +1802,8 @@ class ProjectionMatrix : public IVulkanApp
 		renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
 
 		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = {{0.f, 0.f, 0.f, 1.f}};
-		clearValues[1].depthStencil = {.0f, 0};
+		clearValues[0].depthStencil = {1.0f, 0};
+		clearValues[1].color = {{0.f, 0.f, 0.f, 1.f}};
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
@@ -1334,8 +1813,9 @@ class ProjectionMatrix : public IVulkanApp
 		VkViewport viewport{};
 		viewport.x = 0.f;
 		viewport.y = 0.f;
-		viewport.width = 1048;
-		viewport.height = 1048;
+		viewport.width = static_cast<float>(VulkanConfig::swapChainExtent.width);
+		viewport.height = static_cast<float>(VulkanConfig::swapChainExtent.height);
+
 		viewport.minDepth = 0.f;
 		viewport.maxDepth = 1.f;
 
@@ -1370,13 +1850,23 @@ class ProjectionMatrix : public IVulkanApp
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.projectionCube);	
+		
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame].projectionCube, 0, nullptr);
+
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
+
+		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
+
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.projection);	
 		
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame].cube, 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame].projection, 0, nullptr);
 		
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexProjectionBuffers, offsets);
 	 	vkCmdBindIndexBuffer(commandBuffer, projection.indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(projectionIndices.size()), 1, 0, 0, 0);
+
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.quad);	
 
@@ -1387,15 +1877,6 @@ class ProjectionMatrix : public IVulkanApp
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(DeferredRendering::cubeIndices.size()), 1, 0, 0, 0);
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.cubePipeline);	
-		
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame].cube, 0, nullptr);
-		
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
@@ -1463,6 +1944,7 @@ class ProjectionMatrix : public IVulkanApp
 		createImageViews();
 		setupColor();
 		setupDepth();
+		setupProjectionDepth();
 		setupQuadDescriptorSets();
 
 		createOffscreenFramebuffers();
@@ -1471,8 +1953,8 @@ class ProjectionMatrix : public IVulkanApp
 
 	void drawFrame(GLFWwindow * window)
 	{
-		camera.update();
 		mainCamera.update();
+		renderCamera.update();
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 

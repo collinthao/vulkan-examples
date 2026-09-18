@@ -1693,8 +1693,6 @@ class PostProcessing : public IVulkanApp
 		
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
 
-		//vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(PostProcessing::quadIndices.size()), 1, 0, 0, 0);
-
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(PostProcessing::cubeIndices.size()), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);

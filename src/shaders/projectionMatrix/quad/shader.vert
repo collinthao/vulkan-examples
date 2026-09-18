@@ -8,6 +8,6 @@ layout(location = 0) out vec2 texCoords;
 
 void main()
 {
-	gl_Position =  vec4(vec3(inPosition.x - 0.75, inPosition.y-0.75, inPosition.z), 1.);
+	gl_Position =  vec4(vec3(inPosition.x * 0.25 - 0.75, inPosition.y * 0.25 - 0.75, inPosition.z), 1.);
 	texCoords = inTexCoord;
 }
