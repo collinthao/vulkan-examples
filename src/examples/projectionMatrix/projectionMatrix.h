@@ -1759,7 +1759,11 @@ class ProjectionMatrix : public IVulkanApp
 		memcpy(uniformBuffersMapped[currentImage].projectionCube, &uniformData, sizeof(uniformData));
 
 		uniformData.model = mainCamera.getViewMatrix();		
-		uniformData.model = glm::rotate(uniformData.model, glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f));		
+		uniformData.model[3][0] = mainCamera.cameraPos.x;
+		uniformData.model[3][1] = mainCamera.cameraPos.y;
+		uniformData.model[3][2] = mainCamera.cameraPos.z;
+
+		uniformData.model = glm::rotate(uniformData.model, glm::radians(270.f), glm::vec3(0.f, 0.f, 1.f));		
 		memcpy(uniformBuffersMapped[currentImage].projection, &uniformData, sizeof(uniformData));
 	};
 

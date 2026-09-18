@@ -7,6 +7,6 @@ layout (binding = 0) uniform sampler2D texture_sampler;
 
 void main()
 {
-    vec4 tex = texture(texture_sampler, texCoords);
+    vec4 tex = texture(texture_sampler, vec2(texCoords.x, -texCoords.y));
     fragColor = vec4(tex.rgb, 1.); 
 }
