@@ -42,10 +42,11 @@
 #include "./examples/bloom/bloom.h"
 #include "./examples/deferredRendering/deferredRendering.h"
 #include "./examples/projectionMatrix/projectionMatrix.h"
+#include "./examples/ssao/ssao.h"
 
 int main()
 {
-	Engine<ProjectionMatrix, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<SSAO, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

@@ -64,3 +64,14 @@ $GLSL_PATH projectionMatrix/projection/shader.vert -o projectionMatrix/projectio
 $GLSL_PATH projectionMatrix/projection/shader.frag -o projectionMatrix/projection/frag.spv
 $GLSL_PATH projectionMatrix/quad/shader.vert -o projectionMatrix/quad/vert.spv
 $GLSL_PATH projectionMatrix/quad/shader.frag -o projectionMatrix/quad/frag.spv
+$GLSL_PATH ssao/postProcessing/shader.vert -o ssao/postProcessing/vert.spv
+$GLSL_PATH ssao/postProcessing/shader.frag -o ssao/postProcessing/frag.spv
+$GLSL_PATH ssao/pointLight/shader.vert -o ssao/pointLight/vert.spv
+$GLSL_PATH ssao/pointLight/shader.frag -o ssao/pointLight/frag.spv
+$GLSL_PATH ssao/object/shader.vert -o ssao/object/vert.spv
+$GLSL_PATH ssao/object/shader.frag -o ssao/object/frag.spv
+$GLSL_PATH ssao/cube/shader.vert -o ssao/cube/vert.spv
+$GLSL_PATH ssao/cube/shader.frag -o ssao/cube/frag.spv
+$GLSL_PATH ssao/pingPong/shader.vert -o ssao/pingPong/vert.spv
+$GLSL_PATH ssao/pingPong/shader.frag -o ssao/pingPong/frag.spv
+
