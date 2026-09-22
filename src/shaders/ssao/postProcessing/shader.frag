@@ -16,9 +16,10 @@ layout (binding = 4) readonly buffer DeferredUniform
 
 void main()
 {
-	vec3 FragPos = texture(position, texCoords).rgb;
-	vec3 Normal = texture(normal, texCoords).rgb;	
-	vec3 randomVec = texture(randomNoise, texCoords * vec2(du.extent.x/4.0, du.extent.y/4.0)).rgb;	
+	vec2 TexCoords = texCoords;
+	vec3 FragPos = texture(position, TexCoords).rgb;
+	vec3 Normal = texture(normal, TexCoords).rgb;	
+	vec3 randomVec = texture(randomNoise, TexCoords * vec2(du.extent.x/4.0, du.extent.y/4.0)).rgb;	
 
 	vec3 tangent   = normalize(randomVec - Normal * dot(randomVec, Normal));
 	vec3 bitangent = cross(Normal, tangent);

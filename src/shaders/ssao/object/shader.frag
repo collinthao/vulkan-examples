@@ -14,9 +14,9 @@ void main()
 {
 	vec3 fragPos = FragPos;
 	vec3 normal = normalize(Normal);
-	vec3 color = vec3(texture(texSampler, vec2(texCoords.x , -texCoords.y)));
+	vec3 color = vec3(texture(texSampler, vec2(texCoords.x , texCoords.y)));
 
 	PositionColor = vec4(fragPos, 1.);
 	NormalColor = vec4(normal, 1.);
-	AlbedoColor = vec4(color, 1.);
+	AlbedoColor = vec4(95.);
 }

@@ -21,5 +21,5 @@ void main()
 	gl_Position = ud.proj * ud.view * ud.model * vec4(inPosition, 1.);
 	texCoords = inTexCoord;
 	FragPos = vec3(ud.view * ud.model * vec4(inPosition, 1.));
-	Normal = mat3(transpose(inverse(ud.view * ud.model))) * inNormal;
+	Normal = mat3(transpose(inverse(ud.view * ud.model))) * -inNormal;
 }
