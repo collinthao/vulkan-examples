@@ -6,33 +6,43 @@ layout (location = 0) in vec2 texCoords ;
 layout (binding = 0) uniform sampler2D position;
 layout (binding = 1) uniform sampler2D normal;
 layout (binding = 2) uniform sampler2D albedo;
-layout (binding = 3) readonly buffer DeferredUniform
+layout (binding = 3) uniform sampler2D randomNoise;
+layout (binding = 4) readonly buffer DeferredUniform
 {
 	vec4 kernelSamples[64];	
-	vec4 cameraPos;
+	mat4 proj;
+	vec4 extent;
 } du;
 
 void main()
 {
-	vec3 FragPos = texture(position, texCoords).rgb;	
+	vec3 FragPos = texture(position, texCoords).rgb;
 	vec3 Normal = texture(normal, texCoords).rgb;	
-	vec3 Albedo = texture(albedo, texCoords).rgb;	
-	float Specular = 0.117;
-	float power = 24.;
+	vec3 randomVec = texture(randomNoise, texCoords * vec2(du.extent.x/4.0, du.extent.y/4.0)).rgb;	
 
-	vec3 lighting = Albedo * 0.1;	
-	vec3 viewDir = normalize(du.cameraPos.xyz - FragPos);
+	vec3 tangent   = normalize(randomVec - Normal * dot(randomVec, Normal));
+	vec3 bitangent = cross(Normal, tangent);
+	mat3 TBN       = mat3(tangent, bitangent, Normal);  
 
-	for (int i = 0; i < 5; i++)
+	float occlusion = 0.;
+	for (int i = 0; i < 64; i++)
 	{
-		float distance = length(du.lightPos[i].xyz - FragPos);
-		if (distance < du.radius[i])
-		{
-			vec3 lightDir = normalize(du.lightPos[i].xyz - FragPos);
-			vec3 diffuse = max(dot(Normal,lightDir), 0.0) * Albedo * du.lightColor[i].xyz;
-			lighting += diffuse;
-		};
-	};
+		vec3 samplePos = TBN * vec3(du.kernelSamples[i]); 	
+		samplePos = FragPos + samplePos * 0.5;
+		
+		vec4 offset = vec4(samplePos, 1.0);
+		offset = du.proj * offset;
+		offset.xyz /= offset.w;
+		offset.xyz /= offset.xyz * 0.5 + 0.5;
+		
+		float sampleDepth = texture(position, offset.xy).z;	
+		
+		float rangeCheck = smoothstep(0.0, 1.0, 0.5/abs(FragPos.z - sampleDepth));
 
-	fragColor = vec4(lighting, 1.);
+		occlusion += (sampleDepth >= samplePos.z + 0.025 ? 1.0 : 0.0) * rangeCheck;
+	}	
+	
+	occlusion = 1.0 - (occlusion / 64);
+
+	fragColor = vec4(vec3(occlusion), 1.);
 }
