@@ -43,10 +43,11 @@
 #include "./examples/deferredRendering/deferredRendering.h"
 #include "./examples/projectionMatrix/projectionMatrix.h"
 #include "./examples/ssao/ssao.h"
+#include "./examples/pbr/pbr.h"
 
 int main()
 {
-	Engine<SSAO, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<PBR, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
