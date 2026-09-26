@@ -10,12 +10,13 @@ layout(binding = 0) uniform ObjectUniform
 	mat4 model;
 	mat4 view;
 	mat4 proj;
-	vec3 sphereColor;
+	vec4 roughnessAndMetallic;
 } ud;
 
 layout(location = 0) out vec2 texCoords;
 layout(location = 1) out vec3 FragPos;
 layout(location = 2) out vec3 Normal;
+layout(location = 3) out vec4 outRoughnessAndMetallic;
 
 void main()
 {
@@ -23,4 +24,5 @@ void main()
 	texCoords = inTexCoord;
 	FragPos = vec3(ud.model * vec4(inPosition, 1.));
 	Normal = mat3(transpose(inverse(ud.model))) * inNormal;
+	outRoughnessAndMetallic = ud.roughnessAndMetallic;
 }

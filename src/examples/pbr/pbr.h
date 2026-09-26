@@ -7,7 +7,7 @@ class PBR : public IVulkanApp
 	public:
 	PBR() = default;
 	constexpr static int frames = 2;
-	constexpr static int SPHERE_COUNT = 9;
+	constexpr static int SPHERE_COUNT = 49;
 	Model * model;
 
 	std::vector<Vertex> sphereVertices{};
@@ -30,7 +30,7 @@ class PBR : public IVulkanApp
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
-		alignas(16) glm::vec3 sphereColor;
+		alignas(16) glm::vec4 roughnessMetallic;
 	};
 
 	struct ObjectUniform
@@ -107,6 +107,7 @@ class PBR : public IVulkanApp
 	struct
 	{
 		Texture wood;
+		Texture roughnessAndMetallic;
 		Texture position;
 		Texture normal;
 		Texture albedo;
@@ -247,11 +248,16 @@ class PBR : public IVulkanApp
 		.attachment = 3,
 		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
 
-		std::array<VkAttachmentReference, 3> colorAttachments{positionAttachmentRef, normalAttachmentRef, albedoAttachmentRef};	
+		VkAttachmentReference roughnessAndMetallicAttachmentRef{
+		.attachment = 4,
+		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+
+		std::array<VkAttachmentReference, 4> colorAttachments{positionAttachmentRef, normalAttachmentRef, albedoAttachmentRef, roughnessAndMetallicAttachmentRef};	
 
 		VkSubpassDescription subpass{
 			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-			.colorAttachmentCount = 3,
+			.colorAttachmentCount = 4,
 			.pColorAttachments = colorAttachments.data(),
 			.pDepthStencilAttachment = &depthAttachmentRef,
 };
@@ -272,7 +278,7 @@ class PBR : public IVulkanApp
 		dependency[1].dstStageMask =  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		dependency[1].dstAccessMask =  VK_ACCESS_SHADER_READ_BIT;
 
-		std::array<VkAttachmentDescription, 4> attachments{depthAttachment, highResAttachment, highResAttachment, lowResAttachment};
+		std::array<VkAttachmentDescription, 5> attachments{depthAttachment, highResAttachment, highResAttachment, lowResAttachment, lowResAttachment};
 		
 		VkRenderPassCreateInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -323,11 +329,12 @@ class PBR : public IVulkanApp
 
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
 		{
-			std::array<VkImageView, 4> attachments = { 
+			std::array<VkImageView, 5> attachments = { 
 				textures.depth.imageView,
 				textures.position.imageView,
 				textures.normal.imageView,
 				textures.albedo.imageView,
+				textures.roughnessAndMetallic.imageView,
 			};
 			
 			VkFramebufferCreateInfo framebufferInfo{};
@@ -393,6 +400,66 @@ class PBR : public IVulkanApp
 
 		throw std::runtime_error("failed to find a suitable memory type!");
 	}
+
+	void setupRoughnessAndMetallic()
+	{
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
+		};
+		
+		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
+		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.roughnessAndMetallic.image))
+		{
+			throw std::runtime_error("failed to create albedo image!");
+		};	
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.roughnessAndMetallic.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.roughnessAndMetallic.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate memory for albedo image!");
+		};
+	
+		vkBindImageMemory(VulkanConfig::device, textures.roughnessAndMetallic.image, textures.roughnessAndMetallic.imageMemory, 0);
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.roughnessAndMetallic.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.roughnessAndMetallic.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create color image view!");
+		};
+	};	
 
 	void setupAlbedo()
 	{
@@ -1151,7 +1218,16 @@ class PBR : public IVulkanApp
 			.pImmutableSamplers = nullptr
 		};
 
-		std::array<VkDescriptorSetLayoutBinding, 4> setLayoutBindings{fragmentLayoutBinding, sceneLayoutBinding, albedoLayoutBinding, deferredLayoutBinding};
+		VkDescriptorSetLayoutBinding roughnessAndMetallicLayoutBinding
+		{
+			.binding = 4,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 5> setLayoutBindings{fragmentLayoutBinding, sceneLayoutBinding, albedoLayoutBinding, deferredLayoutBinding, roughnessAndMetallicLayoutBinding};
 		
 		VkDescriptorSetLayoutCreateInfo layoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -1164,7 +1240,7 @@ class PBR : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 4> poolSizes{};
+		std::array<VkDescriptorPoolSize, 5> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
@@ -1176,6 +1252,9 @@ class PBR : public IVulkanApp
 
 		poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[4].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -1238,8 +1317,15 @@ class PBR : public IVulkanApp
 				.imageView = textures.albedo.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
-		
-			std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+
+			VkDescriptorImageInfo roughnessAndMetallicInfo
+			{
+				.sampler = sampler,
+				.imageView = textures.roughnessAndMetallic.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+
+			std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i].quad;
 			descriptorWrites[0].dstBinding = 0;
@@ -1271,6 +1357,15 @@ class PBR : public IVulkanApp
 			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 			descriptorWrites[3].descriptorCount = 1;
 			descriptorWrites[3].pBufferInfo = &deferredInfo;
+
+			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[4].dstSet = descriptorSets[i].quad;
+			descriptorWrites[4].dstBinding = 4;
+			descriptorWrites[4].dstArrayElement = 0;
+			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[4].descriptorCount = 1;
+			descriptorWrites[4].pImageInfo = &roughnessAndMetallicInfo;
+
 
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
@@ -1636,13 +1731,13 @@ class PBR : public IVulkanApp
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
-		std::array<VkPipelineColorBlendAttachmentState, 3> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+		std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.logicOpEnable = VK_FALSE,
 			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 3,
+			.attachmentCount = 4,
 			.pAttachments = colorBlendAttachments.data(),
 			.blendConstants = {0.f, 0.f, 0.f, 0.f}
 		};
@@ -1969,13 +2064,13 @@ class PBR : public IVulkanApp
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
-		std::array<VkPipelineColorBlendAttachmentState, 3> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+		std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.logicOpEnable = VK_FALSE,
 			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 3,
+			.attachmentCount = 4,
 			.pAttachments = colorBlendAttachments.data(),
 			.blendConstants = {0.f, 0.f, 0.f, 0.f}
 		};
@@ -2028,9 +2123,9 @@ class PBR : public IVulkanApp
 
 		// Sphere	
 		int sphereIndex = 0;
-		for (size_t x = 0; x < 3; x++)
+		for (size_t x = 0; x < 7; x++)
 		{
-			for (size_t y = 0; y < 3; y++)
+			for (size_t y = 0; y < 7; y++)
 			{
 				glm::vec3 spherePosition{x, y, 0.};
 				SphereUniform sphereUniform;
@@ -2039,7 +2134,9 @@ class PBR : public IVulkanApp
 				sphereUniform.view = camera.getViewMatrix();
 				sphereUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 				sphereUniform.proj[1][1] *= -1.;
-				sphereUniform.sphereColor = glm::vec3(1., 0., 0.);
+				
+				sphereUniform.roughnessMetallic = glm::vec4((sphereIndex*2.)/100.f, (sphereIndex*2.)/100.f, 0., 1.);
+
 				memcpy(uniformBuffersMapped[currentImage].sphere[sphereIndex], &sphereUniform, sizeof(sphereUniform));
 				sphereIndex++;	
 			};
@@ -2085,11 +2182,12 @@ class PBR : public IVulkanApp
 		renderPassInfo.renderArea.offset = { 0,0 };
 		renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
 
-		std::array<VkClearValue, 4> clearValues{};
+		std::array<VkClearValue, 5> clearValues{};
 		clearValues[0].depthStencil = {1.f, 0};
 		clearValues[1].color = {{.0f, .0f, .0f, 1.f}};
 		clearValues[2].color = {{.0f, .0f, .0f, 1.f}};
 		clearValues[3].color = {{.0f, .0f, .0f, 1.f}};
+		clearValues[4].color = {{.0f, .0f, .0f, 1.f}};
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
@@ -2200,6 +2298,7 @@ class PBR : public IVulkanApp
 		loadModel(); //model
 		loadTexture();
 		setupPosition();
+		setupRoughnessAndMetallic();
 		setupNormal();
 		setupAlbedo();
 		setupSpecular();
@@ -2373,6 +2472,7 @@ class PBR : public IVulkanApp
 
 		createSwapChain(window);
 		createImageViews();
+		setupRoughnessAndMetallic();
 		setupPosition();
 		setupNormal();
 		setupAlbedo();
