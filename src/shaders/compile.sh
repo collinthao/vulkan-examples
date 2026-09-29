@@ -83,3 +83,18 @@ $GLSL_PATH pbr/object/shader.vert -o pbr/object/vert.spv
 $GLSL_PATH pbr/object/shader.frag -o pbr/object/frag.spv
 $GLSL_PATH pbr/pingPong/shader.vert -o pbr/pingPong/vert.spv
 $GLSL_PATH pbr/pingPong/shader.frag -o pbr/pingPong/frag.spv
+
+$GLSL_PATH cubemap/shader.vert -o cubemap/vert.spv
+$GLSL_PATH cubemap/shader.frag -o cubemap/frag.spv
+
+$GLSL_PATH ibl/postProcessing/shader.vert -o ibl/postProcessing/vert.spv
+$GLSL_PATH ibl/postProcessing/shader.frag -o ibl/postProcessing/frag.spv
+$GLSL_PATH ibl/sphere/shader.vert -o ibl/sphere/vert.spv
+$GLSL_PATH ibl/sphere/shader.frag -o ibl/sphere/frag.spv
+$GLSL_PATH ibl/object/shader.vert -o ibl/object/vert.spv
+$GLSL_PATH ibl/object/shader.frag -o ibl/object/frag.spv
+$GLSL_PATH ibl/pingPong/shader.vert -o ibl/pingPong/vert.spv
+$GLSL_PATH ibl/pingPong/shader.frag -o ibl/pingPong/frag.spv
+$GLSL_PATH ibl/cubemap/shader.vert -o ibl/cubemap/vert.spv
+$GLSL_PATH ibl/cubemap/shader.frag -o ibl/cubemap/frag.spv
+

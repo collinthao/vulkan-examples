@@ -15,7 +15,8 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
-#include <algorithm> #include <vector>
+#include <algorithm> 
+#include <vector>
 #include <cstdlib>
 #include <cstdint>
 #include <limits>
@@ -33,6 +34,7 @@
 #include "./examples/modelLoading/modelLoading.h"
 #include "./examples/phong/phong.h"
 #include "./examples/directionalLight/directionalLight.h"
+#include "./examples/cubemap/cubemap.h"
 #include "./examples/postProcessing/postProcessing.h"
 #include "./examples/shadowMapping/shadowMapping.h"
 #include "./examples/omnidirectionalShadowMapping/omnidirectionalShadowMapping.h"
@@ -44,10 +46,11 @@
 #include "./examples/projectionMatrix/projectionMatrix.h"
 #include "./examples/ssao/ssao.h"
 #include "./examples/pbr/pbr.h"
+#include "./examples/ibl/ibl.h"
 
 int main()
 {
-	Engine<PBR, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<IBL, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
