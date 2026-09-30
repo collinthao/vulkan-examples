@@ -97,4 +97,7 @@ $GLSL_PATH ibl/pingPong/shader.vert -o ibl/pingPong/vert.spv
 $GLSL_PATH ibl/pingPong/shader.frag -o ibl/pingPong/frag.spv
 $GLSL_PATH ibl/cubemap/shader.vert -o ibl/cubemap/vert.spv
 $GLSL_PATH ibl/cubemap/shader.frag -o ibl/cubemap/frag.spv
+$GLSL_PATH ibl/hdr/shader.vert -o ibl/hdr/vert.spv
+$GLSL_PATH ibl/hdr/shader.geom -o ibl/hdr/geom.spv
+$GLSL_PATH ibl/hdr/shader.frag -o ibl/hdr/frag.spv
 

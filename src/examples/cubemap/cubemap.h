@@ -502,9 +502,6 @@ class Cubemap : public IVulkanApp
 			};
 		}
 		
-//		texWidth = 1000;	
-//		texHeight = 1000;	
-	
 		VkDeviceSize imageSize = texWidth * texHeight * 4 * 6;
 		VkDeviceSize layerSize =  imageSize / 6;
 
