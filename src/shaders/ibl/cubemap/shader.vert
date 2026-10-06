@@ -15,6 +15,5 @@ void main()
 {
 	outPosition = inPosition;	
 	vec4 pos = ud.proj * ud.view * vec4(inPosition, 1.);
-//	gl_Position = pos;
 	gl_Position = pos.xyww;
 }

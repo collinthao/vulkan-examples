@@ -249,6 +249,7 @@ void Image::generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidt
 		blit.dstSubresource.mipLevel = i;
 		blit.dstSubresource.baseArrayLayer = 0;
 		blit.dstSubresource.layerCount = 1;
+		std::cout << "Mipwidth: " << mipWidth << '\n';
 
 		vkCmdBlitImage(
 			commandBuffer,
