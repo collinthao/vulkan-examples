@@ -20,6 +20,7 @@ class IBL : public IVulkanApp
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	std::vector<VkFramebuffer> offscreenFramebuffers;
 	std::vector<VkFramebuffer> cubemapFramebuffers;
+	std::vector<VkFramebuffer> irradianceFramebuffers;
 
 	struct CubemapUniform
 	{
@@ -53,6 +54,7 @@ class IBL : public IVulkanApp
 		VkRenderPass renderPass;	
 		VkRenderPass offscreenPass;	
 		VkRenderPass cubemapPass;	
+		VkRenderPass irradiancePass;	
 	} renderPasses{};
 	
 	struct
@@ -60,6 +62,7 @@ class IBL : public IVulkanApp
 		VkPipelineLayout quad;		
 		VkPipelineLayout cubemap;		
 		VkPipelineLayout equirectangular;	
+		VkPipelineLayout irradiance;	
 		VkPipelineLayout sphere;		
 		VkPipelineLayout model;		
 	} pipelineLayouts;
@@ -72,6 +75,7 @@ class IBL : public IVulkanApp
 		VkPipeline model;
 		VkPipeline cubemap;
 		VkPipeline equirectangular;
+		VkPipeline irradiance;
 	} pipelines;	
 
 	struct
@@ -79,6 +83,7 @@ class IBL : public IVulkanApp
 		VkDescriptorSetLayout quad;
 		VkDescriptorSetLayout cubemap;
 		VkDescriptorSetLayout equirectangular;
+		VkDescriptorSetLayout irradiance;
 		VkDescriptorSetLayout sphere;
 	} descriptorSetLayouts;
 
@@ -88,6 +93,7 @@ class IBL : public IVulkanApp
 		VkDescriptorSet quad;
 		VkDescriptorSet cubemap;
 		VkDescriptorSet equirectangular;
+		VkDescriptorSet irradiance;
 	};
 
 	std::array<DescriptorSets, frames> descriptorSets;
@@ -110,6 +116,7 @@ class IBL : public IVulkanApp
 		VkBuffer deferred;
 		VkBuffer cubemap;
 		VkBuffer equirectangular;
+		VkBuffer irradiance;
 	};
 	
 	struct UniformBuffersMapped
@@ -118,6 +125,7 @@ class IBL : public IVulkanApp
 		void * deferred;
 		void * cubemap;
 		void * equirectangular;
+		void * irradiance;
 	};
 	
 	struct UniformBuffersMemory
@@ -126,6 +134,7 @@ class IBL : public IVulkanApp
 		VkDeviceMemory deferred;
 		VkDeviceMemory cubemap;
 		VkDeviceMemory equirectangular;
+		VkDeviceMemory irradiance;
 	};
 
 	std::array<UniformBuffers, frames> uniformBuffers;	
@@ -150,6 +159,7 @@ class IBL : public IVulkanApp
 		Texture depth;
 		Texture depthDeferred;
 		Texture cubemap;
+		Texture irradianceMap;
 		Texture cubemapRender;
 		Texture cubemapDepth;
 	} textures;
@@ -237,6 +247,68 @@ class IBL : public IVulkanApp
 		setupDebugObjectName(VK_OBJECT_TYPE_RENDER_PASS, renderPasses.renderPass, "renderPasses.renderPass");
 	};
 
+	void setupIrradiancePass()
+	{
+		VkAttachmentDescription highResAttachment{
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		};
+
+		VkAttachmentReference colorAttachmentRef{
+			.attachment = 0,
+			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+
+		std::array<VkAttachmentReference, 1> colorAttachments{colorAttachmentRef};	
+
+		VkSubpassDescription subpass{
+			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+			.colorAttachmentCount = 1,
+			.pColorAttachments = colorAttachments.data()
+};
+		
+		std::array<VkSubpassDependency, 2> dependency{};
+		
+		dependency[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency[0].dstSubpass = 0;
+		dependency[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		dependency[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		dependency[1].srcSubpass = 0;
+		dependency[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+		dependency[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency[1].dstStageMask =  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dependency[1].dstAccessMask =  VK_ACCESS_SHADER_READ_BIT;
+
+		std::array<VkAttachmentDescription, 1> attachments{highResAttachment};
+		
+		VkRenderPassCreateInfo renderPassInfo{
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+			.attachmentCount = static_cast<uint32_t>(attachments.size()),
+			.pAttachments = attachments.data(),
+			.subpassCount = 1,
+			.pSubpasses = &subpass,
+			.dependencyCount = 1,
+			.pDependencies = dependency.data()
+		};
+		
+		if (vkCreateRenderPass(VulkanConfig::device, &renderPassInfo, nullptr, &renderPasses.irradiancePass) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create render pass!");
+		};
+
+		setupDebugObjectName(VK_OBJECT_TYPE_RENDER_PASS, renderPasses.irradiancePass, "renderPasses.irradiancePass");
+	};
+
 	void setupCubemapPass()
 	{
 		VkAttachmentDescription highResAttachment{
@@ -268,6 +340,7 @@ class IBL : public IVulkanApp
 		VkAttachmentReference colorAttachmentRef{
 		.attachment = 1,
 		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
 
 		std::array<VkAttachmentReference, 1> colorAttachments{colorAttachmentRef};	
 
@@ -440,6 +513,34 @@ class IBL : public IVulkanApp
 		}
 	}
 
+	void createIrradianceFramebuffers()
+	{
+		irradianceFramebuffers.resize(swapChainImageViews.size());
+
+		for (size_t i = 0; i < swapChainImageViews.size(); i++)
+		{
+			std::array<VkImageView, 1> attachments = 
+			{ 
+				textures.irradianceMap.imageView,
+			};
+			
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = renderPasses.irradiancePass;
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+			framebufferInfo.pAttachments = attachments.data();
+			framebufferInfo.width = 32;
+			framebufferInfo.height = 32;
+			framebufferInfo.layers = 6;
+
+			if (vkCreateFramebuffer(VulkanConfig::device, &framebufferInfo, nullptr, &irradianceFramebuffers[i]) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create framebuffer!");
+			};
+		}
+	}
+
+
 	void createCubemapFramebuffers()
 	{
 		cubemapFramebuffers.resize(swapChainImageViews.size());
@@ -527,7 +628,10 @@ class IBL : public IVulkanApp
 			
 			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].equirectangular, 0, cubemapBufferSize, 0, &uniformBuffersMapped[i].equirectangular);
 	
-
+			Buffer::create(cubemapBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].irradiance, uniformBuffersMemory[i].irradiance, VulkanConfig::device, VulkanConfig::physicalDevice);
+			
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].irradiance, 0, cubemapBufferSize, 0, &uniformBuffersMapped[i].irradiance);
+	
 			setupDebugObjectName(VK_OBJECT_TYPE_BUFFER, uniformBuffers[i].deferred, name.c_str());
 		};
 
@@ -1328,7 +1432,7 @@ class IBL : public IVulkanApp
 			VkDescriptorImageInfo imageInfo
 			{
 				.sampler = sampler,
-				.imageView = textures.cubemapRender.imageView,
+				.imageView = textures.irradianceMap.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 			
@@ -1344,6 +1448,110 @@ class IBL : public IVulkanApp
 
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[1].dstSet = descriptorSets[i].cubemap;
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
+		};
+	}	
+
+	void setupIrradianceDescriptorSets()
+	{
+		VkDescriptorPool descriptorPool;
+		VkDescriptorSetLayoutBinding vertexLayoutBinding{
+			.binding = 0,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_ALL,
+			.pImmutableSamplers = nullptr
+		};
+
+		VkDescriptorSetLayoutBinding cubemapLayoutBinding{
+			.binding = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{vertexLayoutBinding, cubemapLayoutBinding};
+		
+		VkDescriptorSetLayoutCreateInfo layoutInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
+			.pBindings = setLayoutBindings.data()
+		};
+	
+		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.irradiance))
+		{
+			throw std::runtime_error("Failed to create descriptor set layout!");
+		};	
+		
+		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		VkDescriptorPoolCreateInfo poolInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = static_cast<uint32_t>(frames) * 2,
+			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+			.pPoolSizes = poolSizes.data()
+		};	
+		
+		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create descriptor pool!");		
+		}
+
+		std::array<VkDescriptorSetLayout, 1> layouts{};
+		layouts.fill(descriptorSetLayouts.irradiance);	
+		VkDescriptorSetAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = layouts.size(),
+			.pSetLayouts = layouts.data()
+		};
+
+		for (size_t i = 0; i < frames; i++)
+		{
+			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].irradiance) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to allocate descriptor sets!");
+			};
+			
+			VkDescriptorBufferInfo bufferInfo{
+				.buffer = uniformBuffers[i].irradiance,
+				.offset = 0,
+				.range = sizeof(CubemapUniform)
+			};
+			
+			VkDescriptorImageInfo imageInfo
+			{
+				.sampler = sampler,
+				.imageView = textures.cubemapRender.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+			
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+			
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = descriptorSets[i].irradiance;
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = descriptorSets[i].irradiance;
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -2295,6 +2503,22 @@ class IBL : public IVulkanApp
 		}
 	};
 
+	void setupIrradiancePipelineLayout()
+	{
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutInfo.setLayoutCount = 1;
+		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayouts.irradiance;
+		pipelineLayoutInfo.pushConstantRangeCount = 0;
+		pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+		if (vkCreatePipelineLayout(VulkanConfig::device, &pipelineLayoutInfo, nullptr, &pipelineLayouts.irradiance) != VK_SUCCESS)
+		{
+			std::cout << "Failed to create pipeline layout!\n";
+			throw std::runtime_error("failed to create pipeline layout!");
+		}
+	}	
+
 	void setupEquirectangularPipelineLayout()
 	{
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -2326,6 +2550,179 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
 	}	
+
+	void setupIrradiancePipeline()
+	{
+		setupIrradiancePipelineLayout();
+		shaderStages.clear();
+		addShader(SHADER_DIRECTORY + "/ibl/convoluted/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/ibl/convoluted/geom.spv", VK_SHADER_STAGE_GEOMETRY_BIT);	
+		addShader(SHADER_DIRECTORY + "/ibl/convoluted/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+
+		VkVertexInputBindingDescription bindingDescription{};
+    
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		std::vector<VkVertexInputBindingDescription> bindingDescriptions{bindingDescription};
+		
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+
+		attributeDescriptions.resize(4);		
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, normal);
+
+
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),
+			.pVertexBindingDescriptions = bindingDescriptions.data(),
+			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+			.pVertexAttributeDescriptions = attributeDescriptions.data()};
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+			.primitiveRestartEnable = VK_FALSE};
+
+		VkViewport viewport{
+			.x = 0.f,
+			.y = 0.f,
+			.width = (float)VulkanConfig::swapChainExtent.width,
+			.height = (float)VulkanConfig::swapChainExtent.height,
+			.minDepth = 0.f,
+			.maxDepth = 1.f};
+
+		VkPipelineViewportStateCreateInfo viewportState{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+			.viewportCount = 1,
+			.scissorCount = 1
+		};
+
+		// stencil info
+		VkStencilOpState stencilOpState 
+		{
+			.failOp = VK_STENCIL_OP_KEEP,
+			.passOp = VK_STENCIL_OP_REPLACE,
+			.depthFailOp = VK_STENCIL_OP_KEEP,
+			.compareOp = VK_COMPARE_OP_ALWAYS,
+			.compareMask = 0xFF,
+			.writeMask = 0xFF,
+			.reference = 1 
+		};
+
+		VkPipelineDepthStencilStateCreateInfo depthStencil 
+		{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+			.depthTestEnable = VK_FALSE,
+			.depthWriteEnable = VK_FALSE,
+			.depthCompareOp = VK_COMPARE_OP_LESS,
+			.depthBoundsTestEnable = VK_FALSE,
+			.stencilTestEnable = VK_FALSE,
+			.front = stencilOpState,
+			.back = stencilOpState,
+			.minDepthBounds = 0.f,
+			.maxDepthBounds = 1.f
+		};
+
+		std::vector<VkDynamicState> dynamicStates = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR,
+		};
+
+		VkPipelineDynamicStateCreateInfo dynamicState {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+			.pDynamicStates = dynamicStates.data()
+		};
+
+		VkPipelineRasterizationStateCreateInfo rasterizer{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+			.depthClampEnable = VK_FALSE,
+			.rasterizerDiscardEnable = VK_FALSE,
+			.polygonMode = VK_POLYGON_MODE_FILL,
+			.cullMode = VK_CULL_MODE_NONE,
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+			.depthBiasEnable = VK_FALSE,
+			.depthBiasConstantFactor = 0.f,
+			.depthBiasClamp = 0.f,
+			.depthBiasSlopeFactor = 0.f,
+			.lineWidth = 1.f
+		};
+
+		VkPipelineMultisampleStateCreateInfo multisampling {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+			.minSampleShading = 0.2f,
+			.pSampleMask = nullptr,
+			.alphaToCoverageEnable = VK_FALSE,
+			.alphaToOneEnable = VK_FALSE
+		};
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{
+			.blendEnable = VK_TRUE,
+			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			.colorBlendOp = VK_BLEND_OP_ADD,
+			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+			.alphaBlendOp = VK_BLEND_OP_ADD,
+			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+		};
+
+		std::array<VkPipelineColorBlendAttachmentState, 1> colorBlendAttachments{colorBlendAttachment};
+
+		VkPipelineColorBlendStateCreateInfo colorBlending{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+			.logicOpEnable = VK_FALSE,
+			.logicOp = VK_LOGIC_OP_COPY,
+			.attachmentCount = 1,
+			.pAttachments = colorBlendAttachments.data(),
+			.blendConstants = {0.f, 0.f, 0.f, 0.f}
+		};
+
+		VkGraphicsPipelineCreateInfo pipelineInfo{
+			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+			.stageCount = static_cast<uint32_t>(shaderStages.size()),
+			.pStages = shaderStages.data(),
+			.pVertexInputState = &vertexInputInfo,
+			.pInputAssemblyState = &inputAssembly,
+			.pViewportState = &viewportState,
+			.pRasterizationState = &rasterizer,
+			.pMultisampleState = &multisampling,
+			.pDepthStencilState = &depthStencil,
+			.pColorBlendState = &colorBlending,
+			.pDynamicState = &dynamicState,
+			.layout = pipelineLayouts.irradiance,
+			.renderPass = renderPasses.irradiancePass,
+			.subpass = 0,
+			.basePipelineHandle = VK_NULL_HANDLE
+		};
+
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.irradiance) != VK_SUCCESS)
+		{
+			std::cout << "failed to create pipeline!\n";
+			throw std::runtime_error("failed to create primitive graphics pipeline!");
+		}
+	};
 
 	void setupEquirectangularPipeline()
 	{
@@ -2839,6 +3236,92 @@ class IBL : public IVulkanApp
 		}
 	};
 
+	void setupIrradiancePassUniforms()
+	{
+		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		glm::mat4 captureViews[6] = 
+		{
+		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+		   glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+		};
+
+		CubemapUniform cubemapUniform;
+		for (size_t i = 0; i < 6; i++)
+		{
+			cubemapUniform.view[i] = captureViews[i];
+		};
+
+		cubemapUniform.model = glm::mat4(1.);
+		cubemapUniform.proj = captureProjection;
+		cubemapUniform.proj[1][1] *= -1.;
+
+		memcpy(uniformBuffersMapped[0].irradiance, &cubemapUniform, sizeof(cubemapUniform));
+		memcpy(uniformBuffersMapped[1].irradiance, &cubemapUniform, sizeof(cubemapUniform));
+
+		VkCommandBuffer cubemapCommandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+/*
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0;
+		beginInfo.pInheritanceInfo = nullptr;
+
+		if (vkBeginCommandBuffer(cubemapCommandBuffer, &beginInfo) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to begin recording command buffer!");
+		}
+*/
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
+		{
+
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = renderPasses.irradiancePass;
+			renderPassInfo.framebuffer = irradianceFramebuffers[i];
+			renderPassInfo.renderArea.offset = { 0,0 };
+			renderPassInfo.renderArea.extent = {32,32};
+
+			std::array<VkClearValue, 2> clearValues{};
+			clearValues[0].depthStencil = {1.f, 0};
+			clearValues[1].color = {{0.0f, .0f, .0f, 1.f}};
+
+			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			renderPassInfo.pClearValues = clearValues.data();
+
+			vkCmdBeginRenderPass(cubemapCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			VkDeviceSize offsets[] = { 0 };
+
+			VkViewport viewport{};
+			viewport.x = 0.f;
+			viewport.y = 0.f;
+			viewport.width = static_cast<float>(32);
+			viewport.height = static_cast<float>(322);
+			viewport.minDepth = 0.f;
+			viewport.maxDepth = 1.f;
+
+			VkRect2D scissor{};
+			scissor.offset = {0, 0};
+			scissor.extent = {32, 32};
+			vkCmdSetScissor(cubemapCommandBuffer, 0, 1, &scissor);
+			vkCmdSetViewport(cubemapCommandBuffer, 0, 1, &viewport);
+			VkBuffer vertexCubeBuffers[] = { vertexCubeBuffer };
+
+			vkCmdBindVertexBuffers(cubemapCommandBuffer, 0, 1, &buffers.cubemap.buffer, offsets);
+			vkCmdBindPipeline(cubemapCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.irradiance);
+
+			vkCmdBindDescriptorSets(cubemapCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.irradiance, 0, 1, &descriptorSets[i].irradiance, 0, nullptr);
+
+			vkCmdDraw(cubemapCommandBuffer, static_cast<uint32_t>(cubemapVertices.size()), 1, 0, 0);
+
+			vkCmdEndRenderPass(cubemapCommandBuffer);
+		};	
+		CommandBuffer::endSingleTimeCommands(cubemapCommandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+	};
+
 	void setupCubemapPassUniforms()
 	{
 		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -3136,14 +3619,23 @@ class IBL : public IVulkanApp
 		setupSamplers();
 		setupCubemap();
 		createVertexBuffer(cubemapVertices, buffers.cubemap.buffer, buffers.cubemap.memory);
-		setupEnvironmentMap();
-		setupCubemapDepth();
-		setupCubemapPass();
-		createCubemapFramebuffers();
-		setupEquirectangularDescriptorSets(); 
-		setupEquirectangularPipeline();
-		setupCubemapPassUniforms();	
-
+		{
+			setupEnvironmentMap();
+			setupCubemapDepth();
+			setupCubemapPass();
+			createCubemapFramebuffers();
+			setupEquirectangularDescriptorSets(); 
+			setupEquirectangularPipeline();
+			setupCubemapPassUniforms();	
+		}
+		{
+			setupIrradianceMap();
+			setupIrradiancePass();
+			createIrradianceFramebuffers();
+			setupIrradianceDescriptorSets(); 
+			setupIrradiancePipeline();
+			setupIrradiancePassUniforms();	
+		}
 		setupOffscreenPass();
 		setupCubemapDescriptorSets();
 		setupCubemapPipeline();
@@ -3502,6 +3994,64 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("failed to create texture.depth image view!");
 		};
 	};	
+
+	void setupIrradianceMap()
+	{
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = 1,
+			.arrayLayers = 6,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+		imageInfo.extent.width = static_cast<uint32_t>(32);
+		imageInfo.extent.height = static_cast<uint32_t>(32);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.irradianceMap.image))
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+	
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.irradianceMap.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+		
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.irradianceMap.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate image memory!");	
+		};
+		
+		vkBindImageMemory(VulkanConfig::device, textures.irradianceMap.image, textures.irradianceMap.imageMemory, 0);
+
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.irradianceMap.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_CUBE,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 6;
+		
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.irradianceMap.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create texture.depth image view!");
+		};
+	}	
 
 	void setupEnvironmentMap()
 	{

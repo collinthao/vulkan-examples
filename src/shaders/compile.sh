@@ -100,4 +100,7 @@ $GLSL_PATH ibl/cubemap/shader.frag -o ibl/cubemap/frag.spv
 $GLSL_PATH ibl/hdr/shader.vert -o ibl/hdr/vert.spv
 $GLSL_PATH ibl/hdr/shader.geom -o ibl/hdr/geom.spv
 $GLSL_PATH ibl/hdr/shader.frag -o ibl/hdr/frag.spv
+$GLSL_PATH ibl/convoluted/shader.vert -o ibl/convoluted/vert.spv
+$GLSL_PATH ibl/convoluted/shader.geom -o ibl/convoluted/geom.spv
+$GLSL_PATH ibl/convoluted/shader.frag -o ibl/convoluted/frag.spv
 
