@@ -13,14 +13,16 @@ layout (binding = 3) readonly buffer DeferredUniform
 
 layout (binding = 4) uniform sampler2D roughnessAndMetallic;
 
+layout (binding = 5) uniform samplerCube irradianceMap;
+
 const float PI = 3.14159265359;
 
 vec3 lightPositions[4] = 
 {
-	vec3(0., 0., 1.),
-	vec3(1., 5., 1.),
-	vec3(10., 10., 1.),
-	vec3(6., 0., 1.)
+        vec3(-10.0f,  10.0f, 10.0f),
+        vec3( 10.0f,  10.0f, 10.0f),
+        vec3(-10.0f, -10.0f, 10.0f),
+        vec3( 10.0f, -10.0f, 10.0f)
 };
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
@@ -75,7 +77,7 @@ void main()
 //	float roughness = 0.2;	
 //	float metallic = 1.;	
 
-	vec3 lightColor = vec3(150.);
+	vec3 lightColor = vec3(300.);
 	vec3 Lo = vec3(0.);	
 	vec3 V = normalize(du.cameraPos.xyz - FragPos);
 	vec3 F0 = vec3(0.04);
@@ -110,13 +112,19 @@ void main()
 		Lo += (kD * Albedo / PI + specular) * radiance * NdotL;	
 	};
 	
-	vec3 ambient = vec3(0.03) * Albedo * 1.0;
+	vec3 kS = fresnelSchlick(max(dot(N, V), 0.), F0);
+	vec3 kD = 1.0 - kS;
+	kD * 1.0 - metallic;
+	vec3 irradiance = texture(irradianceMap, N).rgb;
+	vec3 diffuse = irradiance * Albedo;
+	vec3 ambient = (kD * diffuse) * 1.0;
+	
 	vec3 color = ambient + Lo;
 
 	color = color/(color + vec3(1.));
 	color = pow(color, vec3(1./2.2));
 
-	vec3 result = (color * spec) + ((1. - spec) * FragPos);
+	vec3 result = (color * spec) + ((1. - spec) * N);
 
 	fragColor = vec4(result, 1.);
 }

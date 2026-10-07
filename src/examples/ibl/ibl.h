@@ -159,6 +159,7 @@ class IBL : public IVulkanApp
 		Texture depth;
 		Texture depthDeferred;
 		Texture cubemap;
+		Texture cubemapPassImage;
 		Texture irradianceMap;
 		Texture cubemapRender;
 		Texture cubemapDepth;
@@ -340,7 +341,6 @@ class IBL : public IVulkanApp
 		VkAttachmentReference colorAttachmentRef{
 		.attachment = 1,
 		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
 
 		std::array<VkAttachmentReference, 1> colorAttachments{colorAttachmentRef};	
 
@@ -1373,7 +1373,15 @@ class IBL : public IVulkanApp
 			.pImmutableSamplers = nullptr
 		};
 
-		std::array<VkDescriptorSetLayoutBinding, 2> setLayoutBindings{vertexLayoutBinding, cubemapLayoutBinding};
+		VkDescriptorSetLayoutBinding cubemapRenderLayoutBinding{
+			.binding = 2,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 3> setLayoutBindings{vertexLayoutBinding, cubemapLayoutBinding, cubemapRenderLayoutBinding};
 		
 		VkDescriptorSetLayoutCreateInfo layoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -1386,12 +1394,17 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayouts.cubemap, "descriptorSetLayouts.cubemap");
+
+		std::array<VkDescriptorPoolSize, 3> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -1407,7 +1420,7 @@ class IBL : public IVulkanApp
 		}
 
 		std::array<VkDescriptorSetLayout, 1> layouts{};
-		layouts.fill(descriptorSetLayouts.equirectangular);	
+		layouts.fill(descriptorSetLayouts.cubemap);	
 		VkDescriptorSetAllocateInfo allocInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -1435,8 +1448,15 @@ class IBL : public IVulkanApp
 				.imageView = textures.irradianceMap.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
-			
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+			VkDescriptorImageInfo cubemapInfo
+			{
+				.sampler = sampler,
+				.imageView = textures.cubemapRender.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+		
+			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 			
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i].cubemap;
@@ -1453,6 +1473,14 @@ class IBL : public IVulkanApp
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[2].dstSet = descriptorSets[i].cubemap;
+			descriptorWrites[2].dstBinding = 2;
+			descriptorWrites[2].dstArrayElement = 0;
+			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[2].descriptorCount = 1;
+			descriptorWrites[2].pImageInfo = &cubemapInfo;
 
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
@@ -1490,6 +1518,7 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
+		setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayouts.irradiance, "descriptorSetLayouts.irradiance");
 		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
@@ -1594,6 +1623,7 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
+		setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayouts.equirectangular, "descriptorSetLayouts.equirectangular");
 		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
@@ -1800,7 +1830,16 @@ class IBL : public IVulkanApp
 			.pImmutableSamplers = nullptr
 		};
 
-		std::array<VkDescriptorSetLayoutBinding, 5> setLayoutBindings{fragmentLayoutBinding, sceneLayoutBinding, albedoLayoutBinding, deferredLayoutBinding, roughnessAndMetallicLayoutBinding};
+		VkDescriptorSetLayoutBinding irradianceMapLayoutBinding
+		{
+			.binding = 5,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+			.pImmutableSamplers = nullptr
+		};
+
+		std::array<VkDescriptorSetLayoutBinding, 6> setLayoutBindings{fragmentLayoutBinding, sceneLayoutBinding, albedoLayoutBinding, deferredLayoutBinding, roughnessAndMetallicLayoutBinding, irradianceMapLayoutBinding};
 		
 		VkDescriptorSetLayoutCreateInfo layoutInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -1813,7 +1852,8 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 5> poolSizes{};
+		setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, descriptorSetLayouts.quad, "descriptorSetLayouts.quad");
+		std::array<VkDescriptorPoolSize, 6> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
@@ -1828,6 +1868,9 @@ class IBL : public IVulkanApp
 
 		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[4].descriptorCount = static_cast<uint32_t>(frames) * 2;
+
+		poolSizes[5].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[5].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -1898,7 +1941,14 @@ class IBL : public IVulkanApp
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 
-			std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
+			VkDescriptorImageInfo irradianceMapInfo
+			{
+				.sampler = sampler,
+				.imageView = textures.irradianceMap.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+
+			std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = descriptorSets[i].quad;
 			descriptorWrites[0].dstBinding = 0;
@@ -1939,6 +1989,13 @@ class IBL : public IVulkanApp
 			descriptorWrites[4].descriptorCount = 1;
 			descriptorWrites[4].pImageInfo = &roughnessAndMetallicInfo;
 
+			descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[5].dstSet = descriptorSets[i].quad;
+			descriptorWrites[5].dstBinding = 5;
+			descriptorWrites[5].dstArrayElement = 0;
+			descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[5].descriptorCount = 1;
+			descriptorWrites[5].pImageInfo = &irradianceMapInfo;
 
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
