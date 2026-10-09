@@ -13,7 +13,7 @@ layout(binding = 2) uniform samplerCube cubemapRender;
 void main()
 {
 	vec3 cubemapTexture = texture(cubemap, inPosition).rgb;
-	vec3 cubemapRenderTexture = texture(cubemapRender, inPosition).rgb;
+	vec3 cubemapRenderTexture = textureLod(cubemapRender, inPosition, .2).rgb;
 	PositionColor = vec4(cubemapTexture, 1.);
 	NormalColor = vec4(cubemapRenderTexture, 1.);
 	AlbedoColor = vec4(cubemapTexture,0.);

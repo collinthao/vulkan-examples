@@ -103,4 +103,8 @@ $GLSL_PATH ibl/hdr/shader.frag -o ibl/hdr/frag.spv
 $GLSL_PATH ibl/convoluted/shader.vert -o ibl/convoluted/vert.spv
 $GLSL_PATH ibl/convoluted/shader.geom -o ibl/convoluted/geom.spv
 $GLSL_PATH ibl/convoluted/shader.frag -o ibl/convoluted/frag.spv
+$GLSL_PATH ibl/prefilter/shader.vert -o ibl/prefilter/vert.spv
+$GLSL_PATH ibl/prefilter/shader.geom -o ibl/prefilter/geom.spv
+$GLSL_PATH ibl/prefilter/shader.frag -o ibl/prefilter/frag.spv
+
 
