@@ -22,6 +22,9 @@ class IBL : public IVulkanApp
 	std::vector<VkFramebuffer> cubemapFramebuffers;
 	std::vector<VkFramebuffer> irradianceFramebuffers;
 	std::vector<VkFramebuffer> prefilterFramebuffers;
+	VkSemaphore prefilterWaitSemaphore;
+	VkSemaphore prefilterSignalSemaphore;
+	VkFence prefilterFence;
 
 	struct PrefilterUniform
 	{
@@ -264,6 +267,35 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("Failed to create render pass!");
 		};
 		setupDebugObjectName(VK_OBJECT_TYPE_RENDER_PASS, renderPasses.renderPass, "renderPasses.renderPass");
+	};
+
+	void setupPrefilterSemaphores()
+	{
+		VkSemaphoreCreateInfo semaphoreInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		};
+
+		VkFenceCreateInfo fenceInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			.flags = VK_FENCE_CREATE_SIGNALED_BIT,
+		};
+		
+		for (size_t i = 0; i < VulkanConfig::MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			if (vkCreateSemaphore(VulkanConfig::device, &semaphoreInfo, nullptr, &prefilterWaitSemaphore) != VK_SUCCESS 
+
+			|| vkCreateSemaphore(VulkanConfig::device, &semaphoreInfo, nullptr, &prefilterSignalSemaphore) != VK_SUCCESS 
+			|| vkCreateFence(VulkanConfig::device, &fenceInfo, nullptr, &prefilterFence) != VK_SUCCESS)
+			{
+				throw std::runtime_error("failed to create semaphores!");
+			}
+		};
+		
+		setupDebugObjectName(VK_OBJECT_TYPE_SEMAPHORE, prefilterWaitSemaphore, "prefilterWaitSemaphore");
+		setupDebugObjectName(VK_OBJECT_TYPE_SEMAPHORE, prefilterSignalSemaphore, "prefilterSignalSemaphore");
+		setupDebugObjectName(VK_OBJECT_TYPE_FENCE, prefilterFence, "prefilterFence");
 	};
 
 	void setupPrefilterPass()
@@ -3818,6 +3850,7 @@ class IBL : public IVulkanApp
 		memcpy(uniformBuffersMapped[1].prefilter, &cubemapUniform, sizeof(cubemapUniform));
 
 		VkCommandBuffer cubemapCommandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+		setupDebugObjectName(VK_OBJECT_TYPE_COMMAND_BUFFER, cubemapCommandBuffer, "cubemapCommandBuffer");
 /*
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -3874,10 +3907,10 @@ class IBL : public IVulkanApp
 
 			vkCmdEndRenderPass(cubemapCommandBuffer);
 		};	
-		CommandBuffer::endSingleTimeCommands(cubemapCommandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 
+		vkEndCommandBuffer(cubemapCommandBuffer);
 		int mipLevels = 6;
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+		cubemapCommandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
 		VkImageMemoryBarrier barrier{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -3903,16 +3936,15 @@ class IBL : public IVulkanApp
 
 		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;	
-
 		vkCmdPipelineBarrier(
-			commandBuffer,
+			cubemapCommandBuffer,
 			srcStage, dstStage,
 			0,
 			0, nullptr,
 			0, nullptr,
 			1, &barrier);	
-		
-		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+
+		vkEndCommandBuffer(cubemapCommandBuffer);
 
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(VulkanConfig::physicalDevice, VK_FORMAT_R8G8B8A8_SRGB, &formatProperties);
@@ -3922,7 +3954,7 @@ class IBL : public IVulkanApp
 			throw std::runtime_error("texture image format does not support linear blitting!");
 		}
 
-		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);
+		cubemapCommandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);
 
 		barrier = {};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -3944,7 +3976,7 @@ class IBL : public IVulkanApp
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-			vkCmdPipelineBarrier(commandBuffer,
+			vkCmdPipelineBarrier(cubemapCommandBuffer,
 				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
 				0, nullptr,
 				0, nullptr,
@@ -3966,7 +3998,7 @@ class IBL : public IVulkanApp
 			std::cout << "Mipwidth: " << mipWidth << '\n';
 
 			vkCmdBlitImage(
-				commandBuffer,
+				cubemapCommandBuffer,
 				textures.prefilterMap.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				textures.prefilterMap.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1, &blit,
@@ -3977,7 +4009,7 @@ class IBL : public IVulkanApp
 			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			vkCmdPipelineBarrier(commandBuffer,
+			vkCmdPipelineBarrier(cubemapCommandBuffer,
 				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 				0, nullptr,
 				0, nullptr,
@@ -3993,14 +4025,15 @@ class IBL : public IVulkanApp
 		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-		vkCmdPipelineBarrier(commandBuffer,
+		vkCmdPipelineBarrier(cubemapCommandBuffer,
 			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
 			0, nullptr,
 			0, nullptr,
 			1, &barrier);
 
-		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+		vkEndCommandBuffer(cubemapCommandBuffer);
 
+		vkFreeCommandBuffers(VulkanConfig::device, CommandBuffer::commandPool, 1, &cubemapCommandBuffer);
 	};
 
 	void setupCubemapPassUniforms()
@@ -4321,6 +4354,7 @@ class IBL : public IVulkanApp
 			setupPrefilterDescriptorSets();
 			setupPrefilterMap();
 			setupPrefilterPass();
+			setupPrefilterSemaphores();
 			createPrefilterFramebuffers();
 			setupPrefilterPipeline();
 			setupPrefilterPassUniforms();

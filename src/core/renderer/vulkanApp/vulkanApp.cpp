@@ -121,6 +121,9 @@ void IVulkanApp::createSyncObjects()
 		{
 			throw std::runtime_error("failed to create semaphores!");
 		}
+		setupDebugObjectName(VK_OBJECT_TYPE_SEMAPHORE, imageAvailableSemaphores[i], "imageAvailableSemaphores[" + std::string{i} + "]");
+		setupDebugObjectName(VK_OBJECT_TYPE_SEMAPHORE, renderFinishedSemaphores[i], "renderFinishedSemaphores[" + std::string{i} + "]");
+		setupDebugObjectName(VK_OBJECT_TYPE_FENCE, inFlightFences[i], "inFlightFences[" + std::string{i} + "]");
 	}
 }
 
