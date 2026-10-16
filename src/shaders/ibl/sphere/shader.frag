@@ -61,7 +61,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 void main()
 {
-	vec3 Albedo = vec3(1., 0., 0.);	
+	vec3 Albedo = vec3(.5, 0., 0.);	
 	vec3 N = normalize(Normal);
 
 	vec3 lightColor = vec3(300.);

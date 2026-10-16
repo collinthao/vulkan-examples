@@ -8,6 +8,11 @@ class IBL : public IVulkanApp
 	IBL() = default;
 	constexpr static int frames = 2;
 	constexpr static int SPHERE_COUNT = 49;
+
+	constexpr static int nrRows = 7;
+	constexpr static int nrColumns= 7;
+	constexpr static float spacing = 2.5;
+
 	Model * model;
 
 	std::vector<Vertex> sphereVertices{};
@@ -104,7 +109,169 @@ class IBL : public IVulkanApp
 	{
 		Texture wood;
 		Texture depth;
+		Texture hdr;
 	} textures;
+
+	void loadHDRImage()
+	{
+		int texWidth, texHeight, texChannels;
+//		float * pixels;
+		stbi_uc * pixels;
+
+		const std::string path{ROOT_DIR + "/resource/textures/hdr/newport_loft.hdr"};		
+		//pixels = stbi_loadf(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);	
+		pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);	
+
+		if (!pixels)
+		{
+			throw std::runtime_error("failed to load texture image!");	
+		};
+
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+		VkDeviceSize layerSize =  imageSize;
+
+		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
+
+		void* data;
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
+
+		memcpy(static_cast<char*>(data), pixels, static_cast<size_t>(layerSize));
+
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
+		stbi_image_free(pixels);
+
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			//.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = static_cast<uint32_t>(mipLevels),
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+		imageInfo.extent.width = static_cast<uint32_t>(texWidth);
+		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.hdr.image) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+			
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.hdr.image, "textures.hdr.image");
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.hdr.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+		
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.hdr.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate image memory!");	
+		};
+		
+		vkBindImageMemory(VulkanConfig::device, textures.hdr.image, textures.hdr.imageMemory, 0);
+		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+		
+		VkImageMemoryBarrier barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = 0,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = textures.hdr.image};
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = static_cast<uint32_t>(mipLevels);
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags dstStage;
+		
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;		
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
+
+		
+		VkBufferImageCopy region{
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+			.imageOffset = {0,0,0},
+			.imageExtent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1}
+		};	
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		vkCmdCopyBufferToImage(
+			commandBuffer,
+			stagingBuffer,
+			textures.hdr.image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region);	
+	
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+
+		// this is transitioning the layout back to shader read
+		Image::generateMipmaps(textures.hdr.image, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels, 1, VulkanConfig::device, VulkanConfig::physicalDevice, VulkanConfig::graphicsAndComputeQueue);
+
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
+
+
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.hdr.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			//.format = VK_FORMAT_R16G16B16A16_SFLOAT,
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = mipLevels;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.hdr.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create texture.depth image view!");
+		};
+	}	
 
 	void setupModelDescriptorSets()
 	{
@@ -1183,27 +1350,34 @@ class IBL : public IVulkanApp
 		};
 
 		// Sphere	
+		glm::mat4 model = glm::mat4(1.);
+		SphereUniform sphereUniform;
 		int sphereIndex = 0;
-		for (size_t x = 0; x < 7; x++)
-		{
-			for (size_t y = 0; y < 7; y++)
-			{
-				glm::vec3 spherePosition{x, y, 0.};
-				SphereUniform sphereUniform;
-				sphereUniform.model = glm::translate(glm::mat4(1.), spherePosition);
-				sphereUniform.model = glm::scale(sphereUniform.model, glm::vec3(.2));
-				sphereUniform.view = camera.getViewMatrix();
-				sphereUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
-				sphereUniform.proj[1][1] *= -1.;
-				
-				sphereUniform.cameraPos = glm::vec4(camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z,1.);
-				sphereUniform.roughness = (sphereIndex*2.)/100.f;
-				sphereUniform.metallic = (sphereIndex*2.)/100.f;
 
-				memcpy(uniformBuffersMapped[currentImage].sphere[sphereIndex], &sphereUniform, sizeof(sphereUniform));
-				sphereIndex++;	
-			};
-		};
+		for (int row = 0; row < nrRows; ++row)
+		{
+		    sphereUniform.metallic = (float)row/(float)nrRows;
+		    for (int col = 0; col < nrColumns; ++col)
+		    {
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, glm::vec3(
+			    (float)(col - (nrColumns / 2)) * spacing,
+			    (float)(row - (nrRows / 2)) * spacing,
+			    0.0f
+			));
+			sphereUniform.model = model;
+//			sphereUniform.model = glm::scale(sphereUniform.model, glm::vec3(.2));
+			sphereUniform.view = camera.getViewMatrix();
+			sphereUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
+			sphereUniform.proj[1][1] *= -1.;
+			
+			sphereUniform.cameraPos = glm::vec4(camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z,1.);
+			sphereUniform.roughness = glm::clamp((float)col/(float)nrColumns, 0.05f, 1.0f);
+
+			memcpy(uniformBuffersMapped[currentImage].sphere[sphereIndex], &sphereUniform, sizeof(sphereUniform));
+			sphereIndex++;	
+		    }
+		}
 	};
 
 	void processInput(GLFWwindow * window)
@@ -1299,6 +1473,11 @@ class IBL : public IVulkanApp
 	void init(GLFWwindow* window)
 	{
 		IVulkanApp::init(window);	
+		
+		{
+			loadHDRImage();	
+		};
+
 		setupSphere();
 		createVertexBuffer(sphereVertices, sphereBuffer, sphereBufferMemory);
 		createSphereIndexBuffer();

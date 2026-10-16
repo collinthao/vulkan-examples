@@ -11,7 +11,6 @@ $GLSL_PATH pingPong/shader.frag -o pingPong/frag.spv
 $GLSL_PATH cubemap/shader.vert -o cubemap/vert.spv
 $GLSL_PATH cubemap/shader.frag -o cubemap/frag.spv
 $GLSL_PATH hdr/shader.vert -o hdr/vert.spv
-$GLSL_PATH hdr/shader.geom -o hdr/geom.spv
 $GLSL_PATH hdr/shader.frag -o hdr/frag.spv
 $GLSL_PATH convoluted/shader.vert -o convoluted/vert.spv
 $GLSL_PATH convoluted/shader.geom -o convoluted/geom.spv
