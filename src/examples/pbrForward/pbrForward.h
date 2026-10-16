@@ -2,10 +2,10 @@
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
 
-class PBR : public IVulkanApp
+class PBRForward : public IVulkanApp
 {
 	public:
-	PBR() = default;
+	PBRForward() = default;
 	constexpr static int frames = 2;
 	constexpr static int SPHERE_COUNT = 49;
 	Model * model;
@@ -20,17 +20,14 @@ class PBR : public IVulkanApp
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	std::vector<VkFramebuffer> offscreenFramebuffers;
 
-	struct DeferredUniform 
-	{
-		alignas(64) glm::vec4 cameraPos;
-	};
-
 	struct SphereUniform
 	{
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
-		alignas(16) glm::vec4 roughnessMetallic;
+		alignas(16) glm::vec4 cameraPos;
+		alignas(16) float roughness;
+		alignas(16) float metallic;
 	};
 
 	struct ObjectUniform
@@ -56,7 +53,6 @@ class PBR : public IVulkanApp
 	struct
 	{
 		VkPipeline quad;
-		VkPipeline sphereDeferred;
 		VkPipeline sphere;
 		VkPipeline model;
 	} pipelines;	
@@ -107,13 +103,7 @@ class PBR : public IVulkanApp
 	struct
 	{
 		Texture wood;
-		Texture roughnessAndMetallic;
-		Texture position;
-		Texture normal;
-		Texture albedo;
-		Texture specular;
 		Texture depth;
-		Texture depthDeferred;
 	} textures;
 
 	void setupModelDescriptorSets()
@@ -143,7 +133,7 @@ class PBR : public IVulkanApp
 		VkAttachmentDescription depthAttachment{
 			.format = VK_FORMAT_D32_SFLOAT,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -303,7 +293,7 @@ class PBR : public IVulkanApp
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
 		{
 			std::array<VkImageView, 2> attachments = { 
-				textures.depthDeferred.imageView,
+				textures.depth.imageView,
 				swapChainImageViews[i]
 			};
 			
@@ -322,7 +312,7 @@ class PBR : public IVulkanApp
 			};
 		}
 	}
-
+/*
 	void createOffscreenFramebuffers()
 	{
 		offscreenFramebuffers.resize(swapChainImageViews.size());
@@ -352,10 +342,9 @@ class PBR : public IVulkanApp
 			};
 		}
 	}
-
+*/
 	void setupUniformBuffers()
 	{
-		VkDeviceSize deferredBufferSize = sizeof(DeferredUniform);	
 		VkDeviceSize sphereBufferSize = sizeof(SphereUniform);	
 
 		//Sphere
@@ -367,11 +356,6 @@ class PBR : public IVulkanApp
 		uniformBuffersMapped[1].sphere.resize(SPHERE_COUNT);
 		for (size_t i = 0; i < frames; i++)
 		{
-			const std::string name{"uniformBuffers[" + std::string{i} + "].deferred"};
-			Buffer::create(deferredBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].deferred, uniformBuffersMemory[i].deferred, VulkanConfig::device, VulkanConfig::physicalDevice);
-			
-			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].deferred, 0, deferredBufferSize, 0, &uniformBuffersMapped[i].deferred);
-			setupDebugObjectName(VK_OBJECT_TYPE_BUFFER, uniformBuffers[i].deferred, name.c_str());
 		};
 
 		for (size_t j = 0; j < SPHERE_COUNT; j++)
@@ -400,404 +384,6 @@ class PBR : public IVulkanApp
 
 		throw std::runtime_error("failed to find a suitable memory type!");
 	}
-
-	void setupRoughnessAndMetallic()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R8G8B8A8_SRGB,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.roughnessAndMetallic.image))
-		{
-			throw std::runtime_error("failed to create albedo image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.roughnessAndMetallic.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.roughnessAndMetallic.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for albedo image!");
-		};
-	
-		vkBindImageMemory(VulkanConfig::device, textures.roughnessAndMetallic.image, textures.roughnessAndMetallic.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.roughnessAndMetallic.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R8G8B8A8_SRGB
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.roughnessAndMetallic.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create color image view!");
-		};
-	};	
-
-	void setupAlbedo()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R8G8B8A8_SRGB,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.albedo.image))
-		{
-			throw std::runtime_error("failed to create albedo image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.albedo.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.albedo.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for albedo image!");
-		};
-	
-		vkBindImageMemory(VulkanConfig::device, textures.albedo.image, textures.albedo.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.albedo.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R8G8B8A8_SRGB
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.albedo.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create color image view!");
-		};
-	};	
-
-	void setupSpecular()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R8G8B8A8_SRGB,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.specular.image))
-		{
-			throw std::runtime_error("failed to create resolved image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.specular.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.specular.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for specular image!");
-		};
-	
-		vkBindImageMemory(VulkanConfig::device, textures.specular.image, textures.specular.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.specular.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R8G8B8A8_SRGB
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.specular.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create color image view!");
-		};
-	};	
-
-	void setupNormal()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.normal.image))
-		{
-			throw std::runtime_error("failed to create resolved image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.normal.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.normal.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for normal image!");
-		};
-	
-		vkBindImageMemory(VulkanConfig::device, textures.normal.image, textures.normal.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.normal.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.normal.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create color image view!");
-		};
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.normal.image, "textures.normal.image");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.normal.imageView, "textures.normal.imageView");
-	};	
-
-	void setupPosition()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT,
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.position.image))
-		{
-			throw std::runtime_error("failed to create resolved image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.position.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.position.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for position image!");
-		};
-	
-		vkBindImageMemory(VulkanConfig::device, textures.position.image, textures.position.imageMemory, 0);
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.position.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_R16G16B16A16_SFLOAT
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.position.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create color image view!");
-		};
-
-	};	
-
-	void setupDepthDeferred()
-	{
-		VkImageCreateInfo imageInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
-			.flags = 0,
-			.imageType = VK_IMAGE_TYPE_2D,
-			.format = VK_FORMAT_D32_SFLOAT,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = VK_SAMPLE_COUNT_1_BIT, 
-			.tiling = VK_IMAGE_TILING_OPTIMAL,
-			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,		 
-			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
-		};
-		
-		imageInfo.extent.width = static_cast<uint32_t>(VulkanConfig::swapChainExtent.width);
-		imageInfo.extent.height = static_cast<uint32_t>(VulkanConfig::swapChainExtent.height);
-		imageInfo.extent.depth = 1;
-
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.depthDeferred.image))
-		{
-			throw std::runtime_error("failed to create image!");
-		};	
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.depthDeferred.image, &memRequirements);
-		
-		VkMemoryAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = memRequirements.size,
-			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		};
-
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.depthDeferred.imageMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to allocate memory for depth image!");
-		};
-	
-		vkBindImageMemory(VulkanConfig::device, textures.depthDeferred.image, textures.depthDeferred.imageMemory, 0);
-	
-		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
-		
-		VkImageMemoryBarrier barrier{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-			.srcAccessMask = 0,
-			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-			.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = textures.depthDeferred.image	
-		};
-
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;	
-		barrier.subresourceRange.baseMipLevel = 0;	
-		barrier.subresourceRange.levelCount = 1;	
-		barrier.subresourceRange.baseArrayLayer  = 0;	
-		barrier.subresourceRange.layerCount = 1;	
-
-		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;	
-		VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;		
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			srcStage, dstStage,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier);	
-
-		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
-	
-		VkImageViewCreateInfo viewInfo{
-			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.depthDeferred.image,
-			.viewType = VK_IMAGE_VIEW_TYPE_2D,
-			.format = VK_FORMAT_D32_SFLOAT,
-		};			
-		
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.depthDeferred.imageView) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create depth image view!");
-		};
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.depthDeferred.image, "textures.depthDeferred.image");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.depthDeferred.imageView, "textures.depthDeferred.imageView");
-	};
 
 	void setupDepth()
 	{
@@ -1178,199 +764,6 @@ class PBR : public IVulkanApp
 		};
 	}	
 
-	void setupQuadDescriptorSets()
-	{
-		VkDescriptorPool descriptorPool;
-
-		VkDescriptorSetLayoutBinding fragmentLayoutBinding
-		{
-			.binding = 0,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding sceneLayoutBinding
-		{
-			.binding = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding albedoLayoutBinding
-		{
-			.binding = 2,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding deferredLayoutBinding
-		{
-			.binding = 3,
-			.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		VkDescriptorSetLayoutBinding roughnessAndMetallicLayoutBinding
-		{
-			.binding = 4,
-			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-			.pImmutableSamplers = nullptr
-		};
-
-		std::array<VkDescriptorSetLayoutBinding, 5> setLayoutBindings{fragmentLayoutBinding, sceneLayoutBinding, albedoLayoutBinding, deferredLayoutBinding, roughnessAndMetallicLayoutBinding};
-		
-		VkDescriptorSetLayoutCreateInfo layoutInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.bindingCount = static_cast<uint32_t>(setLayoutBindings.size()),
-			.pBindings = setLayoutBindings.data()
-		};
-	
-		if (vkCreateDescriptorSetLayout(VulkanConfig::device, &layoutInfo, nullptr, &descriptorSetLayouts.quad))
-		{
-			throw std::runtime_error("Failed to create descriptor set layout!");
-		};	
-		
-		std::array<VkDescriptorPoolSize, 5> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[2].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		poolSizes[4].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[4].descriptorCount = static_cast<uint32_t>(frames) * 2;
-
-		VkDescriptorPoolCreateInfo poolInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = static_cast<uint32_t>(frames) * 2,
-			.poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
-			.pPoolSizes = poolSizes.data()
-		};	
-		
-		if (vkCreateDescriptorPool(VulkanConfig::device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create descriptor pool!");		
-		}
-		
-		std::array<VkDescriptorSetLayout, 1> layouts{};
-		layouts.fill(descriptorSetLayouts.quad);	
-		
-		VkDescriptorSetAllocateInfo allocInfo
-		{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = descriptorPool,
-			.descriptorSetCount = layouts.size(),
-			.pSetLayouts = layouts.data()
-		};
-		
-		for (size_t i = 0; i < frames; i++)
-		{
-			if (vkAllocateDescriptorSets(VulkanConfig::device, &allocInfo, &descriptorSets[i].quad) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to allocate descriptor sets!");
-			};
-
-			const std::string quadDSName{"descriptorSets[" + std::to_string(i) + "].quad"};
-			setupDebugObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSets[i].quad, quadDSName.c_str());
-
-			VkDescriptorBufferInfo deferredInfo
-			{
-				.buffer = uniformBuffers[i].deferred,
-				.offset = 0,
-				.range = sizeof(DeferredUniform)
-			};
-
-			VkDescriptorImageInfo positionInfo
-			{
-				.sampler = sampler,
-				.imageView = textures.position.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-					
-			VkDescriptorImageInfo normalInfo
-			{
-				.sampler = sampler,
-				.imageView = textures.normal.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-
-			VkDescriptorImageInfo albedoInfo
-			{
-				.sampler = sampler,
-				.imageView = textures.albedo.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-
-			VkDescriptorImageInfo roughnessAndMetallicInfo
-			{
-				.sampler = sampler,
-				.imageView = textures.roughnessAndMetallic.imageView,
-				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-			};
-
-			std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i].quad;
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pImageInfo = &positionInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i].quad;
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &normalInfo;
-
-			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = descriptorSets[i].quad;
-			descriptorWrites[2].dstBinding = 2;
-			descriptorWrites[2].dstArrayElement = 0;
-			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[2].descriptorCount = 1;
-			descriptorWrites[2].pImageInfo = &albedoInfo;
-
-			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[3].dstSet = descriptorSets[i].quad;
-			descriptorWrites[3].dstBinding = 3;
-			descriptorWrites[3].dstArrayElement = 0;
-			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			descriptorWrites[3].descriptorCount = 1;
-			descriptorWrites[3].pBufferInfo = &deferredInfo;
-
-			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[4].dstSet = descriptorSets[i].quad;
-			descriptorWrites[4].dstBinding = 4;
-			descriptorWrites[4].dstArrayElement = 0;
-			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[4].descriptorCount = 1;
-			descriptorWrites[4].pImageInfo = &roughnessAndMetallicInfo;
-
-
-			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
-		};
-	}	
-
 	void addShader(const std::string&& path, VkShaderStageFlagBits stage)
 	{
 		auto shaderCode = FileContext::readFile(path);
@@ -1434,179 +827,14 @@ class PBR : public IVulkanApp
 			throw std::runtime_error("failed to create pipeline layout!");
 		};
 	};
-/*
-	void setupSphereDeferredPipeline()
-	{
-		setupSpherePipelineLayout();
-		
-		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/pbr/sphere/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/pbr/sphere/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
-	
-		VkVertexInputBindingDescription bindingDescription{
-			.binding = 0,
-			.stride = sizeof(Vertex),
-			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-		};		
-		
-		std::array<VkVertexInputBindingDescription, 1> bindingDescriptions{bindingDescription};
-		
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
-		
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, normal);
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
-		
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),	
-			.pVertexBindingDescriptions = bindingDescriptions.data(),
-			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-			.pVertexAttributeDescriptions = attributeDescriptions.data()
-		};
-		
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
-			.primitiveRestartEnable = VK_FALSE
-		};
-
-		VkViewport viewport{
-			.x = 0.f,
-			.y = 0.f,
-			.width = (float)VulkanConfig::swapChainExtent.width,
-			.height = (float)VulkanConfig::swapChainExtent.height,
-			.minDepth = 0.f,
-			.maxDepth = 1.f};
-
-		VkPipelineViewportStateCreateInfo viewportState{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 1,
-			.scissorCount = 1};
-
-		// stencil info
-		VkStencilOpState stencilOpState {
-			.failOp = VK_STENCIL_OP_KEEP,
-			.passOp = VK_STENCIL_OP_REPLACE,
-			.depthFailOp = VK_STENCIL_OP_KEEP,
-			.compareOp = VK_COMPARE_OP_ALWAYS,
-			.compareMask = 0xFF,
-			.writeMask = 0xFF,
-			.reference = 1 
-		};
-
-		VkPipelineDepthStencilStateCreateInfo depthStencil {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-			.depthTestEnable = VK_TRUE,
-			.depthWriteEnable = VK_TRUE,
-			.depthCompareOp = VK_COMPARE_OP_LESS,
-			.depthBoundsTestEnable = VK_FALSE,
-			.stencilTestEnable = VK_FALSE,
-			.minDepthBounds = 0.f,
-			.maxDepthBounds = 1.f
-		};
-
-		std::vector<VkDynamicState> dynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-			.pDynamicStates = dynamicStates.data()
-		};
-
-		VkPipelineRasterizationStateCreateInfo rasterizer{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-			.depthClampEnable = VK_FALSE,
-			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_NONE,
-			.frontFace = VK_FRONT_FACE_CLOCKWISE,
-			.depthBiasEnable = VK_FALSE,
-			.depthBiasConstantFactor = 0.f,
-			.depthBiasClamp = 0.f,
-			.depthBiasSlopeFactor = 0.f,
-			.lineWidth = 1.f
-		};
-
-		VkPipelineMultisampleStateCreateInfo multisampling{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			.minSampleShading = 0.2f,
-			.pSampleMask = nullptr,
-			.alphaToCoverageEnable = VK_FALSE,
-			.alphaToOneEnable = VK_FALSE
-		};
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = VK_TRUE,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.colorBlendOp = VK_BLEND_OP_ADD,
-			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-			.alphaBlendOp = VK_BLEND_OP_ADD,
-			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-		};
-
-		std::array<VkPipelineColorBlendAttachmentState, 1> colorBlendAttachments{colorBlendAttachment};
-
-		VkPipelineColorBlendStateCreateInfo colorBlending{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-			.logicOpEnable = VK_FALSE,
-			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 1,
-			.pAttachments = colorBlendAttachments.data(),
-			.blendConstants = {0.f, 0.f, 0.f, 0.f}
-		};
-
-		VkGraphicsPipelineCreateInfo pipelineInfo{
-			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			.stageCount = static_cast<uint32_t>(shaderStages.size()),
-			.pStages = shaderStages.data(),
-			.pVertexInputState = &vertexInputInfo,
-			.pInputAssemblyState = &inputAssembly,
-			.pViewportState = &viewportState,
-			.pRasterizationState = &rasterizer,
-			.pMultisampleState = &multisampling,
-			.pDepthStencilState = &depthStencil,
-			.pColorBlendState = &colorBlending,
-			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.sphere,
-			.renderPass = renderPasses.renderPass,
-			.subpass = 0,
-			.basePipelineHandle = VK_NULL_HANDLE
-		};
-
-		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.sphereDeferred) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create primitive graphics pipeline!");
-		}
-	};
-*/
 
 	void setupSpherePipeline()
 	{
 		setupSpherePipelineLayout();
 		
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/pbr/sphere/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/pbr/sphere/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/pbrForward/sphere/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/pbrForward/sphere/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription{
 			.binding = 0,
@@ -1731,172 +959,6 @@ class PBR : public IVulkanApp
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
 		};
 
-		std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
-
-		VkPipelineColorBlendStateCreateInfo colorBlending{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-			.logicOpEnable = VK_FALSE,
-			.logicOp = VK_LOGIC_OP_COPY,
-			.attachmentCount = 4,
-			.pAttachments = colorBlendAttachments.data(),
-			.blendConstants = {0.f, 0.f, 0.f, 0.f}
-		};
-
-		VkGraphicsPipelineCreateInfo pipelineInfo{
-			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			.stageCount = static_cast<uint32_t>(shaderStages.size()),
-			.pStages = shaderStages.data(),
-			.pVertexInputState = &vertexInputInfo,
-			.pInputAssemblyState = &inputAssembly,
-			.pViewportState = &viewportState,
-			.pRasterizationState = &rasterizer,
-			.pMultisampleState = &multisampling,
-			.pDepthStencilState = &depthStencil,
-			.pColorBlendState = &colorBlending,
-			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.sphere,
-			.renderPass = renderPasses.offscreenPass,
-			.subpass = 0,
-			.basePipelineHandle = VK_NULL_HANDLE
-		};
-
-		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.sphere) != VK_SUCCESS)
-		{
-			throw std::runtime_error("failed to create primitive graphics pipeline!");
-		}
-	};
-
-	void setupQuadPipeline()
-	{
-		setupQuadPipelineLayout();
-
-		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/pbr/postProcessing/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/pbr/postProcessing/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
-	
-		VkVertexInputBindingDescription bindingDescription{
-			.binding = 0,
-			.stride = sizeof(Vertex),
-			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-		};		
-		
-		std::array<VkVertexInputBindingDescription, 1> bindingDescriptions{bindingDescription};
-		
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
-		
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, normal);
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
-		
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),	
-			.pVertexBindingDescriptions = bindingDescriptions.data(),
-			.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-			.pVertexAttributeDescriptions = attributeDescriptions.data()
-		};
-		
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-			.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-			.primitiveRestartEnable = VK_FALSE
-		};
-
-		VkViewport viewport{
-			.x = 0.f,
-			.y = 0.f,
-			.width = (float)VulkanConfig::swapChainExtent.width,
-			.height = (float)VulkanConfig::swapChainExtent.height,
-			.minDepth = 0.f,
-			.maxDepth = 1.f};
-
-		VkPipelineViewportStateCreateInfo viewportState{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			.viewportCount = 1,
-			.scissorCount = 1};
-
-		// stencil info
-		VkStencilOpState stencilOpState {
-			.failOp = VK_STENCIL_OP_KEEP,
-			.passOp = VK_STENCIL_OP_REPLACE,
-			.depthFailOp = VK_STENCIL_OP_KEEP,
-			.compareOp = VK_COMPARE_OP_ALWAYS,
-			.compareMask = 0xFF,
-			.writeMask = 0xFF,
-			.reference = 1 
-		};
-
-		VkPipelineDepthStencilStateCreateInfo depthStencil {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-			.depthTestEnable = VK_FALSE,
-			.depthWriteEnable = VK_FALSE,
-			.depthCompareOp = VK_COMPARE_OP_LESS,
-			.depthBoundsTestEnable = VK_FALSE,
-			.stencilTestEnable = VK_FALSE,
-			//.front = stencilOpState,
-			//.back = stencilOpState,
-			.minDepthBounds = 0.f,
-			.maxDepthBounds = 1.f
-		};
-
-		std::vector<VkDynamicState> dynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR,
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-			.pDynamicStates = dynamicStates.data()
-		};
-
-		VkPipelineRasterizationStateCreateInfo rasterizer{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-			.depthClampEnable = VK_FALSE,
-			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = VK_POLYGON_MODE_FILL,
-			.cullMode = VK_CULL_MODE_NONE,
-			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-			.depthBiasEnable = VK_FALSE,
-			.depthBiasConstantFactor = 0.f,
-			.depthBiasClamp = 0.f,
-			.depthBiasSlopeFactor = 0.f,
-			.lineWidth = 1.f
-		};
-
-		VkPipelineMultisampleStateCreateInfo multisampling{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-			.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
-			.minSampleShading = 0.2f,
-			.pSampleMask = nullptr,
-			.alphaToCoverageEnable = VK_FALSE,
-			.alphaToOneEnable = VK_FALSE
-		};
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{
-			.blendEnable = VK_TRUE,
-			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-			.colorBlendOp = VK_BLEND_OP_ADD,
-			.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-			.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-			.alphaBlendOp = VK_BLEND_OP_ADD,
-			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-		};
-
 		std::array<VkPipelineColorBlendAttachmentState, 1> colorBlendAttachments{colorBlendAttachment};
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{
@@ -1920,13 +982,13 @@ class PBR : public IVulkanApp
 			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = pipelineLayouts.quad,
+			.layout = pipelineLayouts.sphere,
 			.renderPass = renderPasses.renderPass,
 			.subpass = 0,
 			.basePipelineHandle = VK_NULL_HANDLE
 		};
 
-		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.quad) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(VulkanConfig::device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelines.sphere) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create primitive graphics pipeline!");
 		}
@@ -1937,8 +999,8 @@ class PBR : public IVulkanApp
 		setupModelPipelineLayout();
 
 		shaderStages.clear();
-		addShader(SHADER_DIRECTORY + "/deferred/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
-		addShader(SHADER_DIRECTORY + "/deferred/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
+		addShader(SHADER_DIRECTORY + "/pbrForward/object/vert.spv", VK_SHADER_STAGE_VERTEX_BIT);	
+		addShader(SHADER_DIRECTORY + "/pbrForward/object/frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);	
 	
 		VkVertexInputBindingDescription bindingDescription
 		{
@@ -2102,7 +1164,6 @@ class PBR : public IVulkanApp
 	void updateUniformBuffer(uint32_t currentImage)
 	{
 		ObjectUniform uniformData;
-		DeferredUniform deferredUniform;
 		uint32_t index = 0;	
 		for (int x = -1; x < 2; x++)
 		{
@@ -2135,17 +1196,14 @@ class PBR : public IVulkanApp
 				sphereUniform.proj = glm::perspective(glm::radians(45.f), VulkanConfig::swapChainExtent.width / (float)VulkanConfig::swapChainExtent.height, 0.1f, FAR_PLANE);
 				sphereUniform.proj[1][1] *= -1.;
 				
-				sphereUniform.roughnessMetallic = glm::vec4((sphereIndex*2.)/100.f, (sphereIndex*2.)/100.f, 0., 1.);
+				sphereUniform.cameraPos = glm::vec4(camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z,1.);
+				sphereUniform.roughness = (sphereIndex*2.)/100.f;
+				sphereUniform.metallic = (sphereIndex*2.)/100.f;
 
 				memcpy(uniformBuffersMapped[currentImage].sphere[sphereIndex], &sphereUniform, sizeof(sphereUniform));
 				sphereIndex++;	
 			};
 		};
-
-		deferredUniform.cameraPos = glm::vec4(camera.cameraPos.x, camera.cameraPos.y, camera.cameraPos.z, 1.);
-
-		// Post Processing Uniform
-		memcpy(uniformBuffersMapped[currentImage].deferred, &deferredUniform, sizeof(deferredUniform));
 	};
 
 	void processInput(GLFWwindow * window)
@@ -2177,17 +1235,14 @@ class PBR : public IVulkanApp
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = renderPasses.offscreenPass;
-		renderPassInfo.framebuffer = offscreenFramebuffers[imageIndex];
+		renderPassInfo.renderPass = renderPasses.renderPass;
+		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 		renderPassInfo.renderArea.offset = { 0,0 };
 		renderPassInfo.renderArea.extent = VulkanConfig::swapChainExtent;
 
-		std::array<VkClearValue, 5> clearValues{};
+		std::array<VkClearValue, 2> clearValues{};
 		clearValues[0].depthStencil = {1.f, 0};
 		clearValues[1].color = {{.0f, .0f, .0f, 1.f}};
-		clearValues[2].color = {{.0f, .0f, .0f, 1.f}};
-		clearValues[3].color = {{.0f, .0f, .0f, 1.f}};
-		clearValues[4].color = {{.0f, .0f, .0f, 1.f}};
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
@@ -2224,47 +1279,9 @@ class PBR : public IVulkanApp
 		{
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.sphere, 0, 1, &descriptorSets[currentFrame].sphere[i], 0, nullptr);
 
-		//	vkCmdDraw(commandBuffer, static_cast<uint32_t>(sphereVertices.size()), 1, 0, 0);
-
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(sphereIndices.size()), 1, 0, 0, 0);
 		};
-//		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.model);	
 	
-/*
-		for (uint32_t j = 0; j < 9; j++)
-		{
-			for (size_t i = 0; i < model->meshes.size(); i++)
-			{
-				const Mesh mesh = model->meshes[i];
-
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.model, 0, 1, &model->descriptors[currentFrame].sets[j][i], 0, nullptr);
-				
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &model->buffer.buffers[i], offsets);
-				vkCmdBindIndexBuffer(commandBuffer, model->buffer.index[i], 0, VK_INDEX_TYPE_UINT32);
-
-				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-			};
-		};
-*/
-		vkCmdEndRenderPass(commandBuffer);
-
-		blitImage(commandBuffer, textures.depth.image, textures.depthDeferred.image);
-
-		renderPassInfo.renderPass = renderPasses.renderPass;
-		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexCubeBuffers, offsets);
-		
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);		
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines.quad);	
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayouts.quad, 0, 1, &descriptorSets[currentFrame].quad, 0, nullptr);
-
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(PBR::cubeIndices.size()), 1, 0, 0, 0);
-		
 		vkCmdEndRenderPass(commandBuffer);
 
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -2277,13 +1294,6 @@ class PBR : public IVulkanApp
 	{
 		setupSphereDescriptorSets();	
 		setupSpherePipeline();
-		//setupSphereDeferredPipeline();
-	};
-
-	void setupQuadResources()
-	{
-		setupQuadDescriptorSets();	
-		setupQuadPipeline();
 	};
 
 	void init(GLFWwindow* window)
@@ -2292,49 +1302,34 @@ class PBR : public IVulkanApp
 		setupSphere();
 		createVertexBuffer(sphereVertices, sphereBuffer, sphereBufferMemory);
 		createSphereIndexBuffer();
-		setupOffscreenPass();
+//		setupOffscreenPass();
 		setupRenderPass();
 		setupSamplers();
-		loadModel(); //model
+		loadModel();
 		loadTexture();
-		setupPosition();
-		setupRoughnessAndMetallic();
-		setupNormal();
-		setupAlbedo();
-		setupSpecular();
 		setupDepth();
-		setupDepthDeferred();
 		setupImageViews();
 		setupUniformBuffers();
 		setupSphereResources();
-		setupQuadResources();
-		setupModelDescriptorSets(); 
-		setupModelPipeline();
+//		setupModelDescriptorSets(); 
+//		setupModelPipeline();
 		createSwapChainFramebuffers();
-		createOffscreenFramebuffers();
+//		createOffscreenFramebuffers();
 		setupDebugObjectNames();
 	};
 
 	void setupDebugObjectNames()	
 	{
 		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.wood.image, "textures.wood.image");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.position.image, "textures.position.image");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.albedo.image, "textures.albedo.image");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.specular.image, "textures.specular.image");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.depth.image, "textures.depth.image");
 
 		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.wood.imageView, "textures.wood.imageView");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.position.imageView, "textures.position.imageView");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.albedo.imageView, "textures.albedo.imageView");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.specular.imageView, "textures.specular.imageView");
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, textures.depth.imageView, "textures.depth.imageView");
 
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
 		{
-			const std::string offscreenFramebufferName{"offscreenFramebuffers[" + std::to_string(i) + "]"};
+		//	const std::string offscreenFramebufferName{"offscreenFramebuffers[" + std::to_string(i) + "]"};
 			const std::string swapChainFramebufferName{"swapChainFramebufferName[" + std::to_string(i) + "]"};
 
-			setupDebugObjectName(VK_OBJECT_TYPE_FRAMEBUFFER, offscreenFramebuffers[i], offscreenFramebufferName.c_str());
+		//	setupDebugObjectName(VK_OBJECT_TYPE_FRAMEBUFFER, offscreenFramebuffers[i], offscreenFramebufferName.c_str());
 			setupDebugObjectName(VK_OBJECT_TYPE_FRAMEBUFFER, swapChainFramebuffers[i], swapChainFramebufferName.c_str());
 		};
 	};
@@ -2472,17 +1467,9 @@ class PBR : public IVulkanApp
 
 		createSwapChain(window);
 		createImageViews();
-		setupRoughnessAndMetallic();
-		setupPosition();
-		setupNormal();
-		setupAlbedo();
-		setupSpecular();
 		setupDepth();
-		setupDepthDeferred();
 		
-		setupQuadDescriptorSets();
-
-		createOffscreenFramebuffers();
+		//createOffscreenFramebuffers();
 		createSwapChainFramebuffers();
 	}
 

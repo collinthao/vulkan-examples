@@ -45,7 +45,8 @@
 #include "./examples/deferredRendering/deferredRendering.h"
 #include "./examples/projectionMatrix/projectionMatrix.h"
 #include "./examples/ssao/ssao.h"
-#include "./examples/pbr/pbr.h"
+#include "./examples/pbrForward/pbrForward.h"
+#include "./examples/pbrDeferred/pbrDeferred.h"
 #include "./examples/ibl/ibl.h"
 
 int main()
