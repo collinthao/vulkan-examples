@@ -47,6 +47,7 @@ void IVulkanApp::createVertexBuffers()
 
 void IVulkanApp::createIndexBuffer()
 {
+	std::cout << "Creating VulkanApp index buffer\n";
 	VkDeviceSize bufferSize = sizeof(IVulkanApp::cubeIndices[0]) * IVulkanApp::cubeIndices.size();
 
 	VkBuffer stagingBuffer;
