@@ -9,6 +9,8 @@ layout(location = 3) in vec3 cameraPos;
 layout(location = 4) in float roughness;
 layout(location = 5) in float metallic;
 
+layout(binding = 1) uniform samplerCube irradianceMap;
+
 const float PI = 3.14159265359;
 
 vec3 lightPositions[4] = 
@@ -99,7 +101,17 @@ void main()
 		Lo += (kD * Albedo / PI + specular) * radiance * NdotL;	
 	};
 	
-	vec3 ambient = vec3(0.03) * Albedo * 1.0;
+	vec3 kS = fresnelSchlick(max(dot(N,V), 0.), F0);
+	vec3 kD = 1.0 - kS;	
+
+	kD *= 1.0 - metallic;
+
+	vec3 irradiance = texture(irradianceMap, N).rgb;
+
+	vec3 diffuse = irradiance * Albedo;
+
+	vec3 ambient = (kD * diffuse) * 1.0;
+
 	vec3 color = ambient + Lo;
 
 	color = color/(color + vec3(1.));
