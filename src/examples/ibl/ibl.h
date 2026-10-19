@@ -162,9 +162,11 @@ class IBL : public IVulkanApp
 		Texture wood;
 		Texture depth;
 		Texture hdr;
-		Texture offscreen;
-		Texture offscreenDepth;
+		Texture equirectangular;
+		Texture equirectangularDepth;
 		Texture equirectangularCubemap;
+		Texture irradiance;
+		Texture irradianceDepth;
 		Texture irradianceCubemap;
 	} textures;
 
@@ -554,8 +556,8 @@ class IBL : public IVulkanApp
 	void createOffscreenFramebuffers()
 	{
 		std::array<VkImageView, 2> attachments = { 
-			textures.offscreenDepth.imageView,
-			textures.offscreen.imageView,
+			textures.equirectangularDepth.imageView,
+			textures.equirectangular.imageView,
 		};
 		
 		VkFramebufferCreateInfo framebufferInfo{};
@@ -644,8 +646,8 @@ class IBL : public IVulkanApp
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
 		};
 		
-		imageInfo.extent.width = static_cast<uint32_t>(512);
-		imageInfo.extent.height = static_cast<uint32_t>(512);
+		imageInfo.extent.width = static_cast<uint32_t>(32);
+		imageInfo.extent.height = static_cast<uint32_t>(32);
 		imageInfo.extent.depth = 1;
 
 		if (vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.irradianceCubemap.image))
@@ -755,7 +757,71 @@ class IBL : public IVulkanApp
 		};
 	};	
 
-	void setupOffscreenColorAttachment()
+	void setupIrradianceColorAttachment()
+	{
+		VkImageCreateInfo imageInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED	
+		};
+		
+		imageInfo.extent.width = static_cast<uint32_t>(32);
+		imageInfo.extent.height = static_cast<uint32_t>(32);
+		imageInfo.extent.depth = 1;
+
+		if (vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.irradiance.image))
+		{
+			throw std::runtime_error("failed to create resolved image!");
+		};	
+
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.irradiance.image, "textures.irradiance.image");
+
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.irradiance.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.irradiance.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate memory for position image!");
+		};
+	
+		vkBindImageMemory(VulkanConfig::device, textures.irradiance.image, textures.irradiance.imageMemory, 0);
+		VkImageViewCreateInfo viewInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.irradiance.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.irradiance.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create color image view!");
+		};
+	};	
+
+	void setupEquirectangularColorAttachment()
 	{
 		VkImageCreateInfo imageInfo
 		{
@@ -776,15 +842,15 @@ class IBL : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(512);
 		imageInfo.extent.depth = 1;
 
-		if (vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.offscreen.image))
+		if (vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.equirectangular.image))
 		{
 			throw std::runtime_error("failed to create resolved image!");
 		};	
 
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.offscreen.image, "textures.offscreen.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.equirectangular.image, "textures.equirectangular.image");
 
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.offscreen.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.equirectangular.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -793,16 +859,16 @@ class IBL : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.offscreen.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.equirectangular.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for position image!");
 		};
 	
-		vkBindImageMemory(VulkanConfig::device, textures.offscreen.image, textures.offscreen.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.equirectangular.image, textures.equirectangular.imageMemory, 0);
 		VkImageViewCreateInfo viewInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.offscreen.image,
+			.image = textures.equirectangular.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_R8G8B8A8_SRGB
 		};			
@@ -813,13 +879,13 @@ class IBL : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.offscreen.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.equirectangular.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create color image view!");
 		};
 	};	
 
-	void setupOffscreenDepth()
+	void setupIrradianceDepth()
 	{
 		VkImageCreateInfo imageInfo
 		{
@@ -836,18 +902,18 @@ class IBL : public IVulkanApp
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 		};
 		
-		imageInfo.extent.width = 512; 
-		imageInfo.extent.height = 512;
+		imageInfo.extent.width =  32; 
+		imageInfo.extent.height = 32;
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.offscreenDepth.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.irradianceDepth.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 
-		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.offscreenDepth.image, "textures.offscreenDepth.image");
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.irradianceDepth.image, "textures.irradianceDepth.image");
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, textures.offscreenDepth.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.irradianceDepth.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo
 		{
@@ -856,12 +922,12 @@ class IBL : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.offscreenDepth.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.irradianceDepth.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate memory for texture.depth image!");
 		};
 	
-		vkBindImageMemory(VulkanConfig::device, textures.offscreenDepth.image, textures.offscreenDepth.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.irradianceDepth.image, textures.irradianceDepth.imageMemory, 0);
 	
 		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 		
@@ -874,7 +940,7 @@ class IBL : public IVulkanApp
 			.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = textures.offscreenDepth.image
+			.image = textures.irradianceDepth.image
 		};
 
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;	
@@ -899,7 +965,7 @@ class IBL : public IVulkanApp
 		VkImageViewCreateInfo viewInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = textures.offscreenDepth.image,
+			.image = textures.irradianceDepth.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_D32_SFLOAT,
 		};			
@@ -910,7 +976,104 @@ class IBL : public IVulkanApp
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.offscreenDepth.imageView) != VK_SUCCESS)
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.irradianceDepth.imageView) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create texture.depth image view!");
+		};
+	};	
+
+	void setupEquirectangularDepth()
+	{
+		VkImageCreateInfo imageInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,	
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_D32_SFLOAT,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,		 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+		};
+		
+		imageInfo.extent.width = 512; 
+		imageInfo.extent.height = 512;
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.equirectangularDepth.image))
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+
+		setupDebugObjectName(VK_OBJECT_TYPE_IMAGE, textures.equirectangularDepth.image, "textures.equirectangularDepth.image");
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.equirectangularDepth.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.equirectangularDepth.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate memory for texture.depth image!");
+		};
+	
+		vkBindImageMemory(VulkanConfig::device, textures.equirectangularDepth.image, textures.equirectangularDepth.imageMemory, 0);
+	
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+		
+		VkImageMemoryBarrier barrier
+		{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = textures.equirectangularDepth.image
+		};
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;	
+		barrier.subresourceRange.baseMipLevel = 0;	
+		barrier.subresourceRange.levelCount = 1;	
+		barrier.subresourceRange.baseArrayLayer  = 0;	
+		barrier.subresourceRange.layerCount = 1;	
+
+		VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;	
+		VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;		
+
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);	
+
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+	
+		VkImageViewCreateInfo viewInfo
+		{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.equirectangularDepth.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_D32_SFLOAT,
+		};			
+		
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+		
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.equirectangularDepth.imageView) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to create texture.depth image view!");
 		};
@@ -1402,7 +1565,7 @@ class IBL : public IVulkanApp
 			VkDescriptorImageInfo imageInfo
 			{
 				.sampler = sampler,
-				.imageView = textures.equirectangularCubemap.imageView,
+				.imageView = textures.irradianceCubemap.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL	
 			};
 			
@@ -2614,6 +2777,26 @@ class IBL : public IVulkanApp
 
 	void recordIrradiance()
 	{
+		std::array<VkImageView, 2> attachments = 
+		{ 
+			textures.irradianceDepth.imageView,
+			textures.irradiance.imageView,
+		};
+		
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = renderPasses.offscreen;
+		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		framebufferInfo.pAttachments = attachments.data();
+		framebufferInfo.width = 32;
+		framebufferInfo.height = 32;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(VulkanConfig::device, &framebufferInfo, nullptr, &framebuffers.offscreen) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create framebuffer!");
+		};
+
 		for (int i = 0; i < 6; i++)
 		{
 			VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
@@ -2697,7 +2880,7 @@ class IBL : public IVulkanApp
 				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
-				.image = textures.offscreen.image
+				.image = textures.irradiance.image
 			};			
 			
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2773,13 +2956,13 @@ class IBL : public IVulkanApp
 			copyRegion.dstSubresource.layerCount = 1;
 			copyRegion.dstOffset = { 0, 0, 0 };
 
-			copyRegion.extent.width = static_cast<uint32_t>(512);
-			copyRegion.extent.height = static_cast<uint32_t>(512);
+			copyRegion.extent.width = static_cast<uint32_t>(32);
+			copyRegion.extent.height = static_cast<uint32_t>(32);
 			copyRegion.extent.depth = 1;
 
 			vkCmdCopyImage(
 				commandBuffer,
-				textures.offscreen.image,
+				textures.irradiance.image,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				textures.irradianceCubemap.image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -2800,7 +2983,7 @@ class IBL : public IVulkanApp
 				.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
-				.image = textures.offscreen.image
+				.image = textures.irradiance.image
 			};			
 			
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2946,7 +3129,7 @@ class IBL : public IVulkanApp
 				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
-				.image = textures.offscreen.image
+				.image = textures.equirectangular.image
 			};			
 			
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -3028,7 +3211,7 @@ class IBL : public IVulkanApp
 
 			vkCmdCopyImage(
 				commandBuffer,
-				textures.offscreen.image,
+				textures.equirectangular.image,
 				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 				textures.equirectangularCubemap.image,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -3049,7 +3232,7 @@ class IBL : public IVulkanApp
 				.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
 				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,	
-				.image = textures.offscreen.image
+				.image = textures.equirectangular.image
 			};			
 			
 			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -3074,7 +3257,6 @@ class IBL : public IVulkanApp
 			// Transition cubemap to shader read
 			commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
 
-			std::cout << "Fix this barrier \n";
 			barrier = 
 			{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -3211,26 +3393,29 @@ class IBL : public IVulkanApp
 
 		{
 			loadHDRImage();	
-			setupOffscreenDepth();
-			setupOffscreenColorAttachment();
+			setupEquirectangularDepth();
+			setupEquirectangularColorAttachment();
 			setupEquirectangularCubemap();
 			setupOffscreenPass();
 			createOffscreenFramebuffers();
 			setupEquirectangularCubeDescriptorSets();
 			setupEquirectangularCubePipeline();
 			recordEquirectangularToCubemap();
-			setupEquirectangularCubemapDescriptorSets();
-			setupEquirectangularCubemapPipeline();
 		};
 
 		{
-//			setupIrradianceCubemap();	
-//			setupIrradianceDescriptorSets();
-//			setupIrradiancePipeline();
-//			recordIrradiance();
+			setupIrradianceColorAttachment();
+			setupIrradianceDepth();
+			setupIrradianceCubemap();	
+			setupIrradianceDescriptorSets();
+			setupIrradiancePipeline();
+			recordIrradiance();
 //			setupIrradianceCubemapDescriptorSets();
 //			setupIrradianceCubemapPipeline();
 		};
+
+		setupEquirectangularCubemapDescriptorSets();
+		setupEquirectangularCubemapPipeline();
 
 		createVertexBuffer(sphereVertices, sphereBuffer, sphereBufferMemory);
 		createSphereIndexBuffer();
