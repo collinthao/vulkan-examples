@@ -12,9 +12,8 @@ $GLSL_PATH cubemap/shader.vert -o cubemap/vert.spv
 $GLSL_PATH cubemap/shader.frag -o cubemap/frag.spv
 $GLSL_PATH hdr/shader.vert -o hdr/vert.spv
 $GLSL_PATH hdr/shader.frag -o hdr/frag.spv
-$GLSL_PATH convoluted/shader.vert -o convoluted/vert.spv
-$GLSL_PATH convoluted/shader.geom -o convoluted/geom.spv
-$GLSL_PATH convoluted/shader.frag -o convoluted/frag.spv
+$GLSL_PATH irradiance/shader.vert -o irradiance/vert.spv
+$GLSL_PATH irradiance/shader.frag -o irradiance/frag.spv
 $GLSL_PATH prefilter/shader.vert -o prefilter/vert.spv
 $GLSL_PATH prefilter/shader.geom -o prefilter/geom.spv
 $GLSL_PATH prefilter/shader.frag -o prefilter/frag.spv
