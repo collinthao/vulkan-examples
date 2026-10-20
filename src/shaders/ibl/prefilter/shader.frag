@@ -3,10 +3,10 @@
 layout(location = 0) out vec4 FragColor;
 layout(location = 0) in vec3 inPosition;
 
-layout(binding=0) uniform  HDRUniformData
+layout(binding = 0) uniform  UniformData
 {
-	mat4 view[6];
 	mat4 model;
+	mat4 view;
 	mat4 proj;
 	float roughness;
 } ud;
