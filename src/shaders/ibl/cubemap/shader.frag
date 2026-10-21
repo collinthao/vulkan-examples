@@ -8,8 +8,8 @@ layout(binding = 1) uniform samplerCube cubemap;
 
 void main()
 {
-	vec3 cubemapTexture = texture(cubemap, inPosition).rgb;
-//	vec3 cubemapTexture = textureLod(cubemap, inPosition, 0.0).rgb;
+//	vec3 cubemapTexture = texture(cubemap, inPosition).rgb;
+	vec3 cubemapTexture = textureLod(cubemap, inPosition, 1.2).rgb;
 //	cubemapTexture = cubemapTexture/ (cubemapTexture + vec3(1.0));
 //	cubemapTexture = pow(cubemapTexture, vec3(1.0/2.2));
 	FragColor = vec4(cubemapTexture, 1.);

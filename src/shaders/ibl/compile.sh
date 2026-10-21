@@ -16,3 +16,5 @@ $GLSL_PATH irradiance/shader.vert -o irradiance/vert.spv
 $GLSL_PATH irradiance/shader.frag -o irradiance/frag.spv
 $GLSL_PATH prefilter/shader.vert -o prefilter/vert.spv
 $GLSL_PATH prefilter/shader.frag -o prefilter/frag.spv
+$GLSL_PATH brdfLUT/shader.vert -o brdfLUT/vert.spv
+$GLSL_PATH brdfLUT/shader.frag -o brdfLUT/frag.spv

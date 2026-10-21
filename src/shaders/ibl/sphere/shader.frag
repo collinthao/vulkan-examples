@@ -10,6 +10,8 @@ layout(location = 4) in float roughness;
 layout(location = 5) in float metallic;
 
 layout(binding = 1) uniform samplerCube irradianceMap;
+layout(binding = 2) uniform samplerCube prefilterMap;
+layout(binding = 3) uniform sampler2D brdfLUT;
 
 const float PI = 3.14159265359;
 
@@ -20,6 +22,11 @@ vec3 lightPositions[4] =
 	vec3(-10., -10., 10.),
 	vec3(10., -10., 10.)
 };
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}   
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0)
 {
@@ -65,10 +72,13 @@ void main()
 {
 	vec3 Albedo = vec3(.5, 0., 0.);	
 	vec3 N = normalize(Normal);
+	vec3 V = normalize(cameraPos - FragPos);
+
+	vec3 R = reflect(-V, N);
 
 	vec3 lightColor = vec3(300.);
 	vec3 Lo = vec3(0.);	
-	vec3 V = normalize(cameraPos - FragPos);
+
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, Albedo, metallic);
 
@@ -100,17 +110,23 @@ void main()
 		float NdotL = max(dot(N, L), 0.);
 		Lo += (kD * Albedo / PI + specular) * radiance * NdotL;	
 	};
-	
-	vec3 kS = fresnelSchlick(max(dot(N,V), 0.), F0);
-	vec3 kD = 1.0 - kS;	
 
+	vec3 F = fresnelSchlickRoughness(max(dot(N,V), 0.), F0, roughness);
+	
+	vec3 kS = F;
+	vec3 kD = 1.0 - kS;	
 	kD *= 1.0 - metallic;
 
 	vec3 irradiance = texture(irradianceMap, N).rgb;
-
 	vec3 diffuse = irradiance * Albedo;
 
-	vec3 ambient = (kD * diffuse) * 1.0;
+	const float MAX_REFLECTION_LOD = 4.0;
+
+	vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+	vec2 brdf = texture(brdfLUT, vec2(max(dot(N,V), 0.), roughness)).rg;
+	vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+	vec3 ambient = (kD * diffuse + specular) * 1.0;
 
 	vec3 color = ambient + Lo;
 
