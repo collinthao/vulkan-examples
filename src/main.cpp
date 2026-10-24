@@ -4,8 +4,10 @@
 #include <assimp/postprocess.h>
 #include "./core/engine/engine.h"
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_NO_THREAD_LOCALS
 #include <stb_image.h>
+#include <stb_image_write.h>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <chrono>
 
@@ -48,10 +50,11 @@
 #include "./examples/pbrForward/pbrForward.h"
 #include "./examples/pbrDeferred/pbrDeferred.h"
 #include "./examples/ibl/ibl.h"
+#include "./examples/raytracer/raytracer.h"
 
 int main()
 {
-	Engine<IBL, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<Raytracer, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();
