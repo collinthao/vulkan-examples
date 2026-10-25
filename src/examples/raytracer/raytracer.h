@@ -136,11 +136,35 @@ class Raytracer : public IVulkanApp
 	{
 		const std::string raytrace_png = ROOT_DIR + "/resource/textures/raytrace_example.png";
 	
-		const uint32_t dim = 1;
+		const uint32_t dim = 256;
 
-		stbi_uc * rayTraceData = (stbi_uc*)"33333333333333333333333333333333333333333333333333333333333333\n3333333333333333333333333333333333333333333333\n3333333333333333333333333333333333333333333\n333333333333333333333333333333333333333333333\n11111111111111111111111111111111111111111111111111111111111111111111111111111\n";
+		constexpr int PIXEL_COUNT = 256 * 256 * 3;
 
-		stbi_write_png(raytrace_png.c_str(), VulkanConfig::swapChainExtent.width, VulkanConfig::swapChainExtent.height, 3, rayTraceData, sizeof(float) * dim);
+		unsigned char rayTracePixels[PIXEL_COUNT];
+		
+		uint32_t index = -1;
+		for (int j = 0; j < dim; j++)
+		{
+			std::cout << "\rScanlines remaining: " << dim - j << '\n';
+			for (int i = 0; i < dim; i++)
+			{
+				auto r = double(i)/(dim - 1);	
+				auto g = double(j)/(dim - 1);	
+				auto b = 0;	
+				
+				int ir = int(255.999 * r);
+				int ig = int(255.999 * g);
+				int ib = int(255.999 * b);
+				
+				rayTracePixels[++index] = ir;
+				rayTracePixels[++index] = ig;
+				rayTracePixels[++index] = ib;
+				std::cout << ir << '|' << ig << '|' << ib << '\n';
+			};
+			std::cout << "\rDone.             \n";
+		};
+		
+		stbi_write_png(raytrace_png.c_str(), 256, 256, 3, rayTracePixels, 256 * 3);
 
 		const std::string path = ROOT_DIR + "/resource/textures/container.png";
 		int texWidth, texHeight, texChannels;
@@ -150,6 +174,8 @@ class Raytracer : public IVulkanApp
 			throw std::runtime_error("failed to load texture image!");	
 		};
 		
+		std::cout << "First pixel color: " << pixels << '\n';
+
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
 	

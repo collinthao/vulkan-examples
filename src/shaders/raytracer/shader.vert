@@ -16,6 +16,6 @@ layout(location = 0) out vec2 texCoords;
 
 void main()
 {
-	gl_Position = ud.proj * ud.view * ud.model * vec4(inPosition, 1.);
+	gl_Position = vec4(inPosition.x, inPosition.y, inPosition.z + 1., 1.);
 	texCoords = inTexCoord;
 }
