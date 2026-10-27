@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
+#include "./ray.h"
 
 class Raytracer : public IVulkanApp
 {
@@ -8,6 +9,10 @@ class Raytracer : public IVulkanApp
 	Raytracer() = default;
 		
 	constexpr static int frames = 2;
+	constexpr static auto aspect_ratio = 16.0/9.0;
+
+	constexpr static int PIXEL_COUNT = 400 * (int(400/(16.0/9.0))) * 3;
+	unsigned char rayTracePixels[PIXEL_COUNT];
 	
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;	
 	struct UniformData
@@ -132,39 +137,89 @@ class Raytracer : public IVulkanApp
 		throw std::runtime_error("failed to find a suitable memory type!");
 	}
 
+	glm::vec3 ray_color(const ray& r)
+	{
+		if (hit_sphere(glm::vec3(0., 0., -1.), 0.5, r))
+		{
+			return glm::vec3(1., 0., 0.);
+		};
+		
+		glm::vec3 unit_direction(glm::normalize(r.direction()));
+		auto a = 0.5*(unit_direction.y + 1.0);
+		return (1.0 - a) * glm::vec3(1.) + a * glm::vec3(0.5, 0.7, 1.);
+	};
+	
+	void write_color(uint32_t& index, const glm::vec3 pixel_color)
+	{
+		auto r = pixel_color.r; 
+		auto g = pixel_color.g;
+		auto b = pixel_color.b;
+		
+		int ir = int(255.999 * r);
+		int ig = int(255.999 * g);
+		int ib = int(255.999 * b);
+		
+		rayTracePixels[++index] = ir;
+		rayTracePixels[++index] = ig;
+		rayTracePixels[++index] = ib;
+//		std::cout << ir << '|' << ig << '|' << ib << '\n';
+	};
+
+	// Explanation on this in notebook; maybe make this digital at some point or make a visual
+	bool hit_sphere(const glm::vec3& center, double radius, const ray& r) const
+	{
+		glm::vec3 direction 	= r.direction();
+		glm::vec3 origin 	= r.origin();
+		glm::vec3 oc = center - origin;
+		auto a = glm::dot(direction, direction);
+		auto b = -2 * glm::dot(direction, (center - origin));
+		auto c = glm::dot(oc, oc) - radius*radius;
+		auto discriminant = b*b - 4*a*c;
+		
+		return (discriminant >= 0);	
+	};
+
 	void loadTexture()
 	{
 		const std::string raytrace_png = ROOT_DIR + "/resource/textures/raytrace_example.png";
 	
-		const uint32_t dim = 256;
+		const int image_width = 400;
+		int image_height = int(image_width/aspect_ratio);
+		image_height = (image_height < 1) ? 1 : image_height;
 
-		constexpr int PIXEL_COUNT = 256 * 256 * 3;
-
-		unsigned char rayTracePixels[PIXEL_COUNT];
+		auto focal_length = 1.0;
+		auto viewport_height = 2.;
+		auto viewport_width = viewport_height * ((double(image_width)/image_height));
+		auto camera_center = glm::vec3(0.);
 		
+		auto viewport_u = glm::vec3(viewport_width, 0., 0.);
+		auto viewport_v = glm::vec3(0., -viewport_height, 0.);
+
+		auto pixel_delta_u = viewport_u/image_width;
+		auto pixel_delta_v = viewport_v/image_height;
+	
+		auto viewport_upper_left = camera_center - glm::vec3(0,0, focal_length) - viewport_u/2 - viewport_v/2;;
+		auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
 		uint32_t index = -1;
-		for (int j = 0; j < dim; j++)
+		for (int j = 0; j < image_height; j++)
 		{
-			std::cout << "\rScanlines remaining: " << dim - j << '\n';
-			for (int i = 0; i < dim; i++)
+//			std::cout << "\rScanlines remaining: " << image_height - j << '\n';
+			for (int i = 0; i < image_width; i++)
 			{
-				auto r = double(i)/(dim - 1);	
-				auto g = double(j)/(dim - 1);	
-				auto b = 0;	
-				
-				int ir = int(255.999 * r);
-				int ig = int(255.999 * g);
-				int ib = int(255.999 * b);
-				
-				rayTracePixels[++index] = ir;
-				rayTracePixels[++index] = ig;
-				rayTracePixels[++index] = ib;
-				std::cout << ir << '|' << ig << '|' << ib << '\n';
+				auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+				auto ray_direction = pixel_center - camera_center;;
+				ray r(camera_center, ray_direction);
+
+				glm::vec3 pixel_color{ray_color(r)};
+
+				write_color(index, pixel_color);
+//				std::cout << "Index: " << index << '\n';
 			};
 			std::cout << "\rDone.             \n";
 		};
 		
-		stbi_write_png(raytrace_png.c_str(), 256, 256, 3, rayTracePixels, 256 * 3);
+		stbi_write_png(raytrace_png.c_str(), image_width, image_height, 3, rayTracePixels, image_width * 3);
 
 		const std::string path = ROOT_DIR + "/resource/textures/container.png";
 		int texWidth, texHeight, texChannels;
@@ -174,8 +229,6 @@ class Raytracer : public IVulkanApp
 			throw std::runtime_error("failed to load texture image!");	
 		};
 		
-		std::cout << "First pixel color: " << pixels << '\n';
-
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
 	
