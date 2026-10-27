@@ -139,10 +139,13 @@ class Raytracer : public IVulkanApp
 
 	glm::vec3 ray_color(const ray& r)
 	{
-		if (hit_sphere(glm::vec3(0., 0., -1.), 0.5, r))
+		auto t = hit_sphere(glm::vec3(0., 0., -1.), 0.5, r);
+		if (t > 0.0)
 		{
-			return glm::vec3(1., 0., 0.);
-		};
+			glm::vec3 N = glm::normalize(r.at(t) - glm::vec3(0., 0., -1.));;
+			// map to [0, 1] for color mapping 
+			return 0.5* glm::vec3(N.x + 1., N.y + 1., N.z + 1.);
+		}
 		
 		glm::vec3 unit_direction(glm::normalize(r.direction()));
 		auto a = 0.5*(unit_direction.y + 1.0);
@@ -166,7 +169,7 @@ class Raytracer : public IVulkanApp
 	};
 
 	// Explanation on this in notebook; maybe make this digital at some point or make a visual
-	bool hit_sphere(const glm::vec3& center, double radius, const ray& r) const
+	double hit_sphere(const glm::vec3& center, double radius, const ray& r) const
 	{
 		glm::vec3 direction 	= r.direction();
 		glm::vec3 origin 	= r.origin();
@@ -176,7 +179,14 @@ class Raytracer : public IVulkanApp
 		auto c = glm::dot(oc, oc) - radius*radius;
 		auto discriminant = b*b - 4*a*c;
 		
-		return (discriminant >= 0);	
+		if (discriminant < 0)
+		{
+			return -1.0;
+		}
+		else
+		{
+			return (-b - std::sqrt(discriminant))/(2.0 * a);
+		};
 	};
 
 	void loadTexture()
