@@ -1,0 +1,51 @@
+#pragma once
+
+#include "hittable.h"
+
+class sphere : public hittable
+{
+	public:
+	sphere(const glm::vec3& center, double radius) 
+	: center(center), radius(std::fmax(0, radius)) {};
+	
+	bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override
+	{
+		glm::vec3 direction 	= r.direction();
+		glm::vec3 origin 	= r.origin();
+		glm::vec3 oc = center - origin;
+
+		auto a = glm::dot(direction, direction);
+		auto h = glm::dot(direction, (center - origin));
+		auto c = glm::dot(oc, oc) - radius*radius;
+
+		auto discriminant = h*h - a*c;
+		
+		if (discriminant < 0)
+		{
+			return false;
+		};
+		
+		auto sqrtd = std::sqrt(discriminant);
+		
+		auto root = (h - sqrtd)/a;
+		if (root <= ray_tmin || ray_tmax <= root)
+		{
+			root = (h + sqrtd)/a;
+			if (root <= ray_tmin || ray_tmax <= root)
+			{
+				return false;
+			};
+		};
+		
+		rec.t = root;
+		rec.p = r.at(rec.t);
+		glm::vec3 outward_normal = (rec.p - center)/radius; 
+		rec.set_face_normal(r, outward_normal);
+		
+		return true;
+	};
+	
+	private:
+	glm::vec3 center;
+	double radius;
+};

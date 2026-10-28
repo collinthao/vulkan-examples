@@ -1,7 +1,10 @@
 #pragma once
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
-#include "./ray.h"
+#include "rtweekend.h"
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
 
 class Raytracer : public IVulkanApp
 {
@@ -137,16 +140,14 @@ class Raytracer : public IVulkanApp
 		throw std::runtime_error("failed to find a suitable memory type!");
 	}
 
-	glm::vec3 ray_color(const ray& r)
+	glm::vec3 ray_color(const ray& r, const hittable& world)
 	{
-		auto t = hit_sphere(glm::vec3(0., 0., -1.), 0.5, r);
-		if (t > 0.0)
+		hit_record rec;
+		if (world.hit(r, 0, infinity, rec))
 		{
-			glm::vec3 N = glm::normalize(r.at(t) - glm::vec3(0., 0., -1.));;
-			// map to [0, 1] for color mapping 
-			return 0.5* glm::vec3(N.x + 1., N.y + 1., N.z + 1.);
-		}
-		
+			return 0.5 * (rec.normal + glm::vec3(1.));
+		};
+	
 		glm::vec3 unit_direction(glm::normalize(r.direction()));
 		auto a = 0.5*(unit_direction.y + 1.0);
 		return (1.0 - a) * glm::vec3(1.) + a * glm::vec3(0.5, 0.7, 1.);
@@ -175,9 +176,9 @@ class Raytracer : public IVulkanApp
 		glm::vec3 origin 	= r.origin();
 		glm::vec3 oc = center - origin;
 		auto a = glm::dot(direction, direction);
-		auto b = -2 * glm::dot(direction, (center - origin));
+		auto h = glm::dot(direction, (center - origin));
 		auto c = glm::dot(oc, oc) - radius*radius;
-		auto discriminant = b*b - 4*a*c;
+		auto discriminant = h*h - a*c;
 		
 		if (discriminant < 0)
 		{
@@ -185,7 +186,7 @@ class Raytracer : public IVulkanApp
 		}
 		else
 		{
-			return (-b - std::sqrt(discriminant))/(2.0 * a);
+			return (h - std::sqrt(discriminant))/a;
 		};
 	};
 
@@ -197,6 +198,12 @@ class Raytracer : public IVulkanApp
 		int image_height = int(image_width/aspect_ratio);
 		image_height = (image_height < 1) ? 1 : image_height;
 
+		// World
+		hittable_list world;
+		world.add(make_shared<sphere>(glm::vec3(0., 0., -1.), 0.5));
+		world.add(make_shared<sphere>(glm::vec3(0., -100.5, -1.), 100.));
+
+		// Camera
 		auto focal_length = 1.0;
 		auto viewport_height = 2.;
 		auto viewport_width = viewport_height * ((double(image_width)/image_height));
@@ -221,12 +228,12 @@ class Raytracer : public IVulkanApp
 				auto ray_direction = pixel_center - camera_center;;
 				ray r(camera_center, ray_direction);
 
-				glm::vec3 pixel_color{ray_color(r)};
+				glm::vec3 pixel_color{ray_color(r, world)};
 
 				write_color(index, pixel_color);
 //				std::cout << "Index: " << index << '\n';
 			};
-			std::cout << "\rDone.             \n";
+//			std::cout << "\rDone.             \n";
 		};
 		
 		stbi_write_png(raytrace_png.c_str(), image_width, image_height, 3, rayTracePixels, image_width * 3);
