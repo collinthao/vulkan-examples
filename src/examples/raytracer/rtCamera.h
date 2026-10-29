@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hittable.h"
+#include <thread>
 
 class rtCamera
 {
@@ -9,6 +10,7 @@ class rtCamera
 	int image_width = 100;
 	int image_height;
 	int samples_per_pixel = 10;
+	int rayIndex = 0;
 	
 	std::vector<unsigned char> rayTracePixels;
 	
@@ -19,7 +21,7 @@ class rtCamera
 		uint32_t index = -1;
 		for (int j = 0; j < image_height; j++)
 		{
-//			std::cout << "\rScanlines remaining: " << image_height - j << '\n';
+			//std::cout << "\rScanlines remaining: " << image_height - j << '\n';
 			for (int i = 0; i < image_width; i++)
 			{
 				glm::vec3 pixel_color{0.};
@@ -30,7 +32,6 @@ class rtCamera
 				};
 
 				write_color(index, pixel_samples_scale * pixel_color);
-//				std::cout << index << '\n';
 			};
 //			std::cout << "\rDone.             \n";
 		};
@@ -68,7 +69,7 @@ class rtCamera
 		pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 	};
 	
-	ray get_ray(int i, int j) const
+	ray get_ray(int i, int j)
 	{
 		auto offset = sample_square();
 		auto pixel_sample = pixel00_loc 
@@ -86,12 +87,13 @@ class rtCamera
 		return glm::vec3(random_double() - 0.5, random_double() - 0.5, 0.);
 	};
 
-	glm::vec3 ray_color(const ray& r, const hittable& world) const
+	glm::vec3 ray_color(const ray& r, const hittable& world)
 	{
 		hit_record rec;
 		if (world.hit(r, interval(0, infinity), rec))
 		{
-			return 0.5 * (rec.normal + glm::vec3(1.));
+			glm::vec3 direction = glm_ext::random_on_hemisphere(rec.normal);
+			return 0.5 * ray_color(ray(rec.p, direction), world);
 		};
 	
 		glm::vec3 unit_direction(glm::normalize(r.direction()));
@@ -110,10 +112,6 @@ class rtCamera
 		int ig = int(256 * intensity.clamp(g));
 		int ib = int(256 * intensity.clamp(b));
 		
-//		int ir = int(255.99 * r);
-//		int ig = int(255.99 * g);
-//		int ib = int(255.99 * b);
-
 		rayTracePixels[++index] = ir;
 		rayTracePixels[++index] = ig;
 		rayTracePixels[++index] = ib;
