@@ -6,11 +6,11 @@
 class rtCamera
 {
 	public:
-	double aspect_ratio = 1.;
-	int image_width = 100;
+	double aspect_ratio 	= 1.;
+	int image_width 	= 100;
 	int image_height;
-	int samples_per_pixel = 10;
-	int rayIndex = 0;
+	int samples_per_pixel 	= 10;
+	int max_depth 		= 10;
 	
 	std::vector<unsigned char> rayTracePixels;
 	
@@ -28,7 +28,7 @@ class rtCamera
 				for (int sample = 0; sample < samples_per_pixel; sample++)
 				{
 					ray r = get_ray(i, j);
-					pixel_color += ray_color(r, world);
+					pixel_color += ray_color(r, max_depth, world);
 				};
 
 				write_color(index, pixel_samples_scale * pixel_color);
@@ -87,13 +87,18 @@ class rtCamera
 		return glm::vec3(random_double() - 0.5, random_double() - 0.5, 0.);
 	};
 
-	glm::vec3 ray_color(const ray& r, const hittable& world)
+	glm::vec3 ray_color(const ray& r, int depth, const hittable& world)
 	{
+		if (depth <= 0)
+		{
+			return glm::vec3(0.);
+		};
+	
 		hit_record rec;
-		if (world.hit(r, interval(0, infinity), rec))
+		if (world.hit(r, interval(0.001, infinity), rec))
 		{
 			glm::vec3 direction = glm_ext::random_on_hemisphere(rec.normal);
-			return 0.5 * ray_color(ray(rec.p, direction), world);
+			return 0.5 * ray_color(ray(rec.p, direction), depth - 1, world);
 		};
 	
 		glm::vec3 unit_direction(glm::normalize(r.direction()));
