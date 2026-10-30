@@ -21,7 +21,6 @@ class rtCamera
 		uint32_t index = -1;
 		for (int j = 0; j < image_height; j++)
 		{
-			//std::cout << "\rScanlines remaining: " << image_height - j << '\n';
 			for (int i = 0; i < image_width; i++)
 			{
 				glm::vec3 pixel_color{0.};
@@ -31,6 +30,7 @@ class rtCamera
 					pixel_color += ray_color(r, max_depth, world);
 				};
 
+				std::cout << "\rLoading: " << double((double)index / (double)(image_height * image_width * 3)) * 100.;
 				write_color(index, pixel_samples_scale * pixel_color);
 			};
 //			std::cout << "\rDone.             \n";
@@ -106,12 +106,25 @@ class rtCamera
 		return (1.0 - a) * glm::vec3(1.) + a * glm::vec3(0.5, 0.7, 1.);
 	};
 
+	double linear_to_gamma(double linear_component)
+	{
+		if (linear_component > 0)
+		{
+			return std::sqrt(linear_component);
+		};
+		return 0;
+	};
+	
 	void write_color(uint32_t& index, const glm::vec3 pixel_color)
 	{
 		auto r = pixel_color.r; 
 		auto g = pixel_color.g;
 		auto b = pixel_color.b;
 		
+		r = linear_to_gamma(r); 
+		g = linear_to_gamma(g);
+		b = linear_to_gamma(b);
+
 		static const interval intensity(0.000, 0.999);
 		int ir = int(256 * intensity.clamp(r));
 		int ig = int(256 * intensity.clamp(g));
