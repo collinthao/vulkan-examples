@@ -1,10 +1,13 @@
 #pragma once
 
+class material;
+
 class hit_record
 {
 	public:
 	glm::vec3 p;
 	glm::vec3 normal;
+	shared_ptr<material> mat;
 	double t;
 	bool front_face;
 

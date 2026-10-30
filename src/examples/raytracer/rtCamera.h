@@ -97,8 +97,14 @@ class rtCamera
 		hit_record rec;
 		if (world.hit(r, interval(0.001, infinity), rec))
 		{
-			glm::vec3 direction = rec.normal + glm_ext::random_unit_vector();
-			return 0.5 * ray_color(ray(rec.p, direction), depth - 1, world);
+			ray scattered;
+			glm::vec3 attenuation;
+			if (rec.mat->scatter(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color(scattered, depth - 1, world);
+			};
+		
+			return glm::vec3(0.);
 		};
 	
 		glm::vec3 unit_direction(glm::normalize(r.direction()));

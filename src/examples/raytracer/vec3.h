@@ -2,6 +2,13 @@
 
 namespace glm_ext
 {
+	bool near_zero(glm::vec3& e)
+	{
+		auto s = 1e-8;
+		
+		return (std::fabs(e[0]) < s && (std::fabs(e[1]) < s) && (std::fabs(e[2]) < s));
+	};
+		
 	glm::vec3 random()
 	{
 		return glm::vec3(random_double(), random_double(), random_double());
@@ -39,4 +46,10 @@ namespace glm_ext
 			return -on_unit_sphere;
 		};
 	};
+	
+	glm::vec3 reflect(const glm::vec3& v, const glm::vec3& n)
+	{
+		return v - 2*(glm::dot(v,n)*n);
+	};
 };
+
