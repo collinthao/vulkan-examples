@@ -97,7 +97,7 @@ class rtCamera
 		hit_record rec;
 		if (world.hit(r, interval(0.001, infinity), rec))
 		{
-			glm::vec3 direction = glm_ext::random_on_hemisphere(rec.normal);
+			glm::vec3 direction = rec.normal + glm_ext::random_unit_vector();
 			return 0.5 * ray_color(ray(rec.p, direction), depth - 1, world);
 		};
 	
