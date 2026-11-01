@@ -9,6 +9,11 @@ namespace glm_ext
 		return (std::fabs(e[0]) < s && (std::fabs(e[1]) < s) && (std::fabs(e[2]) < s));
 	};
 		
+	float length_squared(glm::vec3& e)
+	{
+		return e[0] * e[0] + e[1] * e[1] + e[2] * e[2];
+	};
+
 	glm::vec3 random()
 	{
 		return glm::vec3(random_double(), random_double(), random_double());
@@ -51,5 +56,14 @@ namespace glm_ext
 	{
 		return v - 2*(glm::dot(v,n)*n);
 	};
+
+	glm::vec3 refract(const glm::vec3& uv, const glm::vec3& n, double etai_over_etat)
+	{
+		auto cos_theta = std::fmin(glm::dot(-uv, n), 1.0);
+		glm::vec3 r_out_perp = etai_over_etat * (uv + cos_theta * n);
+		glm::vec3 r_out_parallel = -sqrt(std::fabs(1. - glm_ext::length_squared(r_out_perp))) * n;
+		return r_out_perp + r_out_parallel;
+	};
+
 };
 
