@@ -448,6 +448,7 @@ int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
 	VkPhysicalDeviceFeatures deviceFeatures;
+
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 	
 	int score = 0;
@@ -516,6 +517,7 @@ bool IVulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
 	for (const auto& extension : availableExtensions)
 	{
+		std::cout << extension.extensionName << '\n';
 		requiredExtensions.erase(extension.extensionName);
 	}
 
@@ -540,15 +542,22 @@ void IVulkanApp::createLogicalDevice()
 	queueCreateInfos.push_back(queueCreateInfo);
 	}
 
+	VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures
+	{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,
+		.dynamicRendering = VK_TRUE
+	};
+
 	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{};
 	extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
 	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
-	extendedDynamicStateFeatures.pNext = nullptr;
+	extendedDynamicStateFeatures.pNext = &dynamicRenderingFeatures;
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 	deviceFeatures.geometryShader = VK_TRUE;
+	
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

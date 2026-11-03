@@ -161,6 +161,7 @@ namespace std
 const std::vector<const char*> deviceExtensions =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
 };
 
 const std::vector<const char*> validationLayers =
@@ -302,6 +303,30 @@ class IVulkanApp
 		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
 		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	};	
+
+	static void vkCmdEndRenderingKHR(VkInstance instance, VkCommandBuffer& commandBuffer)
+	{
+		auto func = (PFN_vkCmdEndRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdEndRenderingKHR");
+
+		if (func != nullptr)
+		{
+			return func(commandBuffer);
+		}
+	};
+
+	static void vkCmdBeginRenderingKHR(VkInstance& instance, VkCommandBuffer& commandBuffer, const VkRenderingInfo* renderingInfo)
+	{
+		auto func  = (PFN_vkCmdBeginRenderingKHR)vkGetInstanceProcAddr(instance, "vkCmdBeginRenderingKHR");
+
+		if (func != nullptr)
+		{
+			return func(commandBuffer, renderingInfo);
+		}
+		else
+		{
+			throw std::runtime_error("Failed to enable khr extension!");
+		};
+	};
 
 	static VkResult CreateDebugUtilsObjectNameEXT(
 			VkInstance instance, 

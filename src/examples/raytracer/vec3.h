@@ -38,7 +38,19 @@ namespace glm_ext
 			};
 		};
 	};
-	
+
+	glm::vec3 random_in_unit_disk()
+	{
+		while(true)
+		{
+			auto p = glm::vec3(random_double(-1, 1), random_double(-1, 1), 0);
+			if (glm_ext::length_squared(p) < 1)
+			{
+				return p;
+			};
+		};
+	};
+
 	glm::vec3 random_on_hemisphere(const glm::vec3& normal)
 	{
 		glm::vec3 on_unit_sphere = random_unit_vector();

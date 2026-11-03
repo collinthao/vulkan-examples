@@ -51,10 +51,11 @@
 #include "./examples/pbrDeferred/pbrDeferred.h"
 #include "./examples/ibl/ibl.h"
 #include "./examples/raytracer/raytracer.h"
+#include "./examples/dynamicRendering/dynamicRendering.h"
 
 int main()
 {
-	Engine<Raytracer, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<DynamicRendering, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

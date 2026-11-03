@@ -144,24 +144,73 @@ class Raytracer : public IVulkanApp
 	
 		// World
 		hittable_list world;
+		auto R = std::cos(pi/4);
 
-		auto material_ground 	= 	make_shared<lambertian>(glm::vec3(0.8, 0.8,  0.0));
+		auto material_ground 	= 	make_shared<lambertian>(glm::vec3(0.5, 0.5,  0.5));
 		auto material_center 	= 	make_shared<lambertian>(glm::vec3(0.1, 0.2,  0.5));
-		auto material_left 	= 	make_shared<dielectric>(1./1.33);
+		auto material_left 	= 	make_shared<dielectric>(1.5);
+		auto material_bubble    = 	make_shared<dielectric>(1./1.5);
 		auto material_right 	= 	make_shared<metal>(glm::vec3(0.8, 0.6, 0.2), 1.0);
 
-		world.add(make_shared<sphere>(glm::vec3( 0., -100.5,  -1.),  100., material_ground));
-		world.add(make_shared<sphere>(glm::vec3( 0.,      0., -1.2), 0.5,  material_center));
-		world.add(make_shared<sphere>(glm::vec3(-1.,      0., -1.),  0.5, material_left));
-		world.add(make_shared<sphere>(glm::vec3( 1.,      0., -1.),  0.5, material_right));
-	
+		for (int a = -11; a < 11; a++)
+		{
+			for (int b = -11; b < 11; b++)
+			{
+				auto choose_mat = random_double();
+				glm::vec3 center(a + 0.9*random_double(), 0.2, b + 0.9*random_double());
+				
+				if ((center - glm::vec3(4, 0.2, 0)).length() > 0.9)
+				{
+					shared_ptr<material> sphere_material;
+					
+					if (choose_mat < 0.8)
+					{
+						auto albedo = glm::vec3(random_double(0., 1.), random_double(0., 1.), random_double(0., 1.))
+						* glm::vec3(random_double(0., 1.), random_double(0., 1.), random_double(0., 1.));
+						
+						sphere_material = make_shared<lambertian>(albedo);
+						world.add(make_shared<sphere>(center, 0.2, sphere_material));
+					}
+					else if (choose_mat < 0.95)
+					{
+						auto albedo = glm::vec3(random_double(0.5, 1.), random_double(0.5, 1.), random_double(0.5, 1.));
+						auto fuzz = random_double(0., 0.5);
+						sphere_material = make_shared<metal>(albedo, fuzz);
+						world.add(make_shared<sphere>(center, 0.2, sphere_material));
+					}
+					else
+					{
+						sphere_material = make_shared<dielectric>(1.5);
+						world.add(make_shared<sphere>(center, 0.2, sphere_material));
+					};
+				};
+			};
+		};
+
+		auto material1 = make_shared<dielectric>(1.5);
+		world.add(make_shared<sphere>(glm::vec3(0., 1., 0.), 1., material1));
+
+		auto material2 = make_shared<lambertian>(glm::vec3(0.4, 0.2, 0.1));
+		world.add(make_shared<sphere>(glm::vec3(-4., 1., 0.), 1., material2));
+
+		auto material3 = make_shared<metal>(glm::vec3(0.7, 0.6, 0.5), 0.0);
+		world.add(make_shared<sphere>(glm::vec3(4., 1., 0.), 1., material3));
+
 		rtCamera cam;
 	
 		cam.aspect_ratio = 16./9.;
-		cam.image_width  = 400;
-		cam.samples_per_pixel = 100;
+		cam.image_width  = 1200;
+		cam.samples_per_pixel = 3;
 		cam.max_depth = 50;
+
+		cam.vfov = 20;
+		cam.lookfrom 	= glm::vec3(13., 2., 3.);
+		cam.lookat 	= glm::vec3(0., 0., 0.);
+		cam.vup 	= glm::vec3(0., 1., 0.);
 		
+		cam.defocus_angle = 0.6;
+		cam.focus_dist = 10.0;
+
 		cam.render(world);
 
 		stbi_write_png(raytrace_png.c_str(), cam.image_width, cam.image_height, 3, cam.rayTracePixels.data(), cam.image_width * 3);
