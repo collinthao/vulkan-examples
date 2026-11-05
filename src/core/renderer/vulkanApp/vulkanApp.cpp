@@ -461,7 +461,6 @@ int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 
 	if (!deviceFeatures.geometryShader) 
 	{
-		std::cout << "Geometry shader not supported!\n";
 		return 0;
 	};
 
@@ -517,7 +516,6 @@ bool IVulkanApp::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
 	for (const auto& extension : availableExtensions)
 	{
-		std::cout << extension.extensionName << '\n';
 		requiredExtensions.erase(extension.extensionName);
 	}
 
@@ -618,7 +616,6 @@ void IVulkanApp::createSurface(GLFWwindow * window)
 {
 	VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
 
-	std::cout << "Glfw result" << result << '\n';
 
 	if (result != VK_SUCCESS)
 	{
@@ -706,11 +703,6 @@ void IVulkanApp::createInstance()
 		createInfo.pNext = nullptr;
 	}
 
-	for (const auto& extension : extensions)
-	{
-		std::cout << "Extension: " << extension << '\n';
-	};
-
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) throw std::runtime_error("failed to create instance!");
 };
 
@@ -793,7 +785,7 @@ void IVulkanApp::drawFrame(GLFWwindow * window)
 	updateUniformBuffer(currentFrame);
 
 	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.waitSemaphoreCount = 1;
