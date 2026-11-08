@@ -52,10 +52,11 @@
 #include "./examples/ibl/ibl.h"
 #include "./examples/raytracer/raytracer.h"
 #include "./examples/dynamicRendering/dynamicRendering.h"
+#include "./examples/accelerationStructures/accelerationStructures.h"
 
 int main()
 {
-	Engine<DynamicRendering, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<AccelerationStructures, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

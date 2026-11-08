@@ -706,8 +706,6 @@ class DynamicRendering : public IVulkanApp
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
 
-//		vkResetCommandBuffer(CommandBuffer::commandBuffers[currentFrame], 0);
-
 		recordCommandBuffer(CommandBuffer::commandBuffers[currentFrame], imageIndex);
 
 		updateUniformBuffer(currentFrame);

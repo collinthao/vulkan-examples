@@ -458,6 +458,7 @@ int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 	score += deviceProperties.limits.maxImageDimension2D;
 	
 	deviceFeatures.geometryShader = VK_TRUE;
+	
 
 	if (!deviceFeatures.geometryShader) 
 	{
@@ -546,25 +547,35 @@ void IVulkanApp::createLogicalDevice()
 		.dynamicRendering = VK_TRUE
 	};
 
+	// Structure chaining for extra extensions
 	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeatures{};
 	extendedDynamicStateFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
 	extendedDynamicStateFeatures.extendedDynamicState = VK_TRUE;
 	extendedDynamicStateFeatures.pNext = &dynamicRenderingFeatures;
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
+	VkPhysicalDeviceFeatures2 deviceFeatures2{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+	VkPhysicalDeviceVulkan12Features deviceFeatures12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+
+	deviceFeatures12.bufferDeviceAddress = VK_TRUE;
+
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 	deviceFeatures.geometryShader = VK_TRUE;
-	
+
+	deviceFeatures2.pNext = &deviceFeatures12;
+	deviceFeatures2.features = deviceFeatures;
+
+	deviceFeatures12.pNext = &extendedDynamicStateFeatures;
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-	createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.pEnabledFeatures = VK_NULL_HANDLE;
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-	createInfo.pNext = &extendedDynamicStateFeatures;
+	createInfo.pNext = &deviceFeatures2;
 
 	if (vkCreateDevice(VulkanConfig::physicalDevice, &createInfo, nullptr, &VulkanConfig::device) != VK_SUCCESS)
 	{
@@ -599,12 +610,16 @@ void IVulkanApp::pickPhysicalDevice()
 		}
 	}
 
+	if (candidates.empty())
+	{
+		throw std::runtime_error("failed to find a suitable GPU");
+	};
+
 	if (candidates.rbegin()->first > 0)
 	{
 		VulkanConfig::physicalDevice = candidates.rbegin()->second;
 		
 		VulkanConfig::msaaSamples = getMaxUsableSampleCount();
-		//VulkanConfig::msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	}
 	else
 	{
@@ -638,6 +653,7 @@ std::vector<const char*> IVulkanApp::getRequiredExtensions()
 	}
 
 	extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+	extensions.push_back(VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME);
 
 	return extensions;
 }

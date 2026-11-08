@@ -24,12 +24,5 @@ public:
 		this->vertices = vertices;
 		this->indices = indices;
 		this->textures = textures;
-
-		setupMesh();
-	}
-
-	void setupMesh()
-	{
-	
 	}
 };

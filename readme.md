@@ -109,4 +109,6 @@ XDG_SESSION_TYPE=x11
 		
 		CommandBuffer::endSingleTimeCommands(commandBufferIT, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
 
+**Known debug issues**
+- If you get a segfault when dealing with something device related (i.e enabling logical or physical device extensions), it could be that you're putting the extension on a logical device instead of a physical and vice versa
 

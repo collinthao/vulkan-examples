@@ -8,6 +8,7 @@ class DeferredRendering : public IVulkanApp
 	DeferredRendering() = default;
 	constexpr static int frames = 2;
 	constexpr static int LIGHT_COUNT = 5;
+
 	Model * model;
 
 	std::array<glm::vec3, LIGHT_COUNT> lightColors

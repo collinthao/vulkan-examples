@@ -101,7 +101,7 @@ void Model::setupBuffers(const Mesh& mesh, const int& index)
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
 	
 	void * data;
 	vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);	
