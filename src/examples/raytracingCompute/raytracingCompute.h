@@ -1095,7 +1095,7 @@ class RaytracingCompute : public IVulkanApp
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayouts.compute, 0, 1, &computeDescriptorSets[currentFrame], 0, 0);
 	
-		vkCmdDispatch(commandBuffer, 32, 1, 1);
+		vkCmdDispatch(commandBuffer, 100, 100, 1);
 
 		int texWidth 	= VulkanConfig::swapChainExtent.width;
 		int texHeight	= VulkanConfig::swapChainExtent.height;
