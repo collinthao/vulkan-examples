@@ -130,6 +130,7 @@ class AccelerationStructures : public IVulkanApp
 			createSphereIndexBuffer();
 			setupSphereResources();
 		};
+		createBottomLevelAccelerationStructures();
 		setupDepth();
 	};
 
@@ -712,14 +713,14 @@ class AccelerationStructures : public IVulkanApp
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 		void* data;
 		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, bufferSize, 0, &data);
 		memcpy(data, sphereIndices.data(), (size_t)bufferSize);
 		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sphereIndexBuffer, sphereIndexBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sphereIndexBuffer, sphereIndexBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
 		copyBuffer(stagingBuffer, sphereIndexBuffer, bufferSize);
 		
 		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
@@ -1191,13 +1192,109 @@ class AccelerationStructures : public IVulkanApp
 			.buffer = buffer
 		};
 		
-		uint64_t deviceAddress = vkGetBufferDeviceAddressKHR(VulkanConfig::device, &bufferDeviceAI);
+		uint64_t deviceAddress = vkGetBufferDeviceAddressKHR(instance, VulkanConfig::device, &bufferDeviceAI);
 		
 		return deviceAddress;
 	};
 	
-	void createBottomLevelAccelerationStructure()
+	void createBottomLevelAccelerationStructures()
 	{
-		VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{getBufferAddress(model->buffer.buffers[0])};
+		VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{getBufferAddress(sphereBuffer)};
+		VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{getBufferAddress(sphereIndexBuffer)};
+	
+		std::cout << "vertex address: " << getBufferAddress(sphereBuffer) << '\n';
+		std::cout << "index address: " << getBufferAddress(sphereIndexBuffer) << '\n';
+		
+		uint32_t numTriangles = static_cast<uint32_t>(sphereIndices.size())/3;
+		std::cout << "Num triangles: " << numTriangles << '\n';
+		
+		auto trianglesData = VkAccelerationStructureGeometryTrianglesDataKHR
+		{
+			.sType	      = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
+			.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
+			.vertexData   = vertexBufferDeviceAddress,
+			.vertexStride = sizeof(Vertex),
+			.maxVertex    = sphereVertices.size() - 1,
+			.indexType    = VK_INDEX_TYPE_UINT32,
+			.indexData    = indexBufferDeviceAddress,
+		};
+
+		VkAccelerationStructureGeometryDataKHR geometryData(trianglesData);
+	
+		geometryData.triangles = trianglesData;
+
+		VkAccelerationStructureGeometryKHR blasGeometry
+		{
+			.sType 	      = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+			.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
+			.geometry     = geometryData,
+			.flags        = VK_GEOMETRY_OPAQUE_BIT_KHR
+		};
+		
+		VkAccelerationStructureBuildGeometryInfoKHR blasBuildGeometryInfo
+		{
+			.sType 		= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+			.type 		= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
+			.flags 		= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR,
+			.geometryCount 	= 1,
+			.pGeometries 	= &blasGeometry
+		};
+
+		VkAccelerationStructureBuildSizesInfoKHR blasBuildSizes
+		{
+			.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
+			.pNext = VK_NULL_HANDLE,
+			.accelerationStructureSize = 0,
+			.updateScratchSize = 0,
+			.buildScratchSize = 0,
+		};
+		
+		std::cout << "Segfault HERE BROOO\n";
+		vkGetAccelerationStructureBuildSizesKHR(instance, VulkanConfig::device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &blasBuildGeometryInfo, &numTriangles, &blasBuildSizes);
+
+/*
+		for (size_t i = 0; i < model->meshes.size(); i++)
+		{
+			VkDeviceOrHostAddressConstKHR vertexBufferDeviceAddress{getBufferAddress(model->buffer.buffers[i])};
+			VkDeviceOrHostAddressConstKHR indexBufferDeviceAddress{getBufferAddress(model->buffer.index[i])};
+		
+			uint32_t numTriangles = static_cast<uint32_t>(model->indexSizes[i])/3;
+			
+			auto trianglesData = VkAccelerationStructureGeometryTrianglesDataKHR
+			{
+				.sType	      = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
+				.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
+				.vertexData   = vertexBufferDeviceAddress,
+				.vertexStride = sizeof(Vertex),
+				.maxVertex    = model->vertexSize - 1,
+				.indexType    = VK_INDEX_TYPE_UINT32,
+				.indexData    = indexBufferDeviceAddress,
+			};
+
+			VkAccelerationStructureGeometryDataKHR geometryData(trianglesData);
+			
+			VkAccelerationStructureGeometryKHR blasGeometry
+			{
+				.sType 	      = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+				.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
+				.geometry     = geometryData,
+				.flags        = VK_GEOMETRY_OPAQUE_BIT_KHR
+			};
+			
+			VkAccelerationStructureBuildGeometryInfoKHR blasBuildGeometryInfo
+			{
+				.sType 		= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+				.type 		= VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
+				.flags 		= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
+//				.mode 		= VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
+				.geometryCount 	= 1,
+				.pGeometries 	= &blasGeometry
+			};
+
+			VkAccelerationStructureBuildSizesInfoKHR blasBuildSizes{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
+
+			vkGetAccelerationStructureBuildSizesKHR(instance, VulkanConfig::device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &blasBuildGeometryInfo, &numTriangles, &blasBuildSizes);
+		};
+*/
 	};
 };

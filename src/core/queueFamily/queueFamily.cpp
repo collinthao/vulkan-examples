@@ -13,26 +13,26 @@ QueueFamilyIndices QueueFamily::findQueueFamilies(VkPhysicalDevice device, VkSur
 	int i = 0;
 	for (const auto& queueFamily : queueFamilies)
 	{
-	if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-	{
-		indices.graphicsAndComputeFamily = i;
-	}
+		if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT))
+		{
+			indices.graphicsAndComputeFamily = i;
+		}
 
-	VkBool32 presentSupport = false;
-	vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-	if (presentSupport)
-	{
-	indices.presentFamily = i;
-	}
+		if (presentSupport)
+		{
+		indices.presentFamily = i;
+		}
 
 
-	if (indices.isComplete())
-	{
-		break;
-	}
+		if (indices.isComplete())
+		{
+			break;
+		}
 
-	i++;
+		i++;
 	}
 	
 	return indices;

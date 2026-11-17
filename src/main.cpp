@@ -53,10 +53,12 @@
 #include "./examples/raytracer/raytracer.h"
 #include "./examples/dynamicRendering/dynamicRendering.h"
 #include "./examples/accelerationStructures/accelerationStructures.h"
+#include "./examples/computeShader/computeShader.h"
+#include "./examples/raytracingCompute/raytracingCompute.h"
 
 int main()
 {
-	Engine<AccelerationStructures, GLFWWindowContext, VulkanRenderer> engine{};
+	Engine<RaytracingCompute, GLFWWindowContext, VulkanRenderer> engine{};
 	try
 	{
 		engine.start();

@@ -41,6 +41,7 @@ public:
 	std::array<Uniform, 9> uniforms; 
 	std::array<DescriptorInfo, 9> descriptors; 
 	std::vector<Mesh> meshes;
+	std::vector<uint32_t> indexSizes;
 	std::vector<Texture> textures_loaded;
 	std::unordered_map<std::string, TextureInfo> textures_mapped;
 	std::string directory;

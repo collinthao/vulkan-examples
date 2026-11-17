@@ -72,11 +72,12 @@ void Model::setupIndexBuffers(const Mesh& mesh, const int& index)
 		VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();				
 		
 		indexSize += bufferSize;
+		indexSizes[index] = mesh.indices.size();
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
 		
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);
 		
 		void * data;
 		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);	
@@ -84,7 +85,7 @@ void Model::setupIndexBuffers(const Mesh& mesh, const int& index)
 		memcpy(data, mesh.indices.data(), (size_t)bufferSize);
 
 		vkUnmapMemory(device, stagingBufferMemory);
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer.index[index], buffer.indexMemory[index], device, physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, buffer.index[index], buffer.indexMemory[index], device, physicalDevice);
 		
 		Buffer::copyBuffer(stagingBuffer, buffer.index[index], bufferSize);
 		
@@ -108,7 +109,7 @@ void Model::setupBuffers(const Mesh& mesh, const int& index)
 
 	memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
 	vkUnmapMemory(device, stagingBufferMemory);
-	Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer.buffers[index], buffer.memory[index], device, physicalDevice);
+	Buffer::create(bufferSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer.buffers[index], buffer.memory[index], device, physicalDevice);
 	
 	Buffer::copyBuffer(stagingBuffer, buffer.buffers[index], bufferSize);
 	
@@ -168,7 +169,7 @@ void Model::setupImagesEmbedded(const int& index)
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	
-	Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
+	Buffer::create(imageSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, physicalDevice);		
 	
 	void * data;
 	vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -510,6 +511,7 @@ void Model::setupModelData()
 	buffer.indexMemory.resize(meshCount);
 	buffer.buffers.resize(meshCount);	
 	buffer.memory.resize(meshCount);	
+	indexSizes.resize(meshCount);
 
 	texture.imageView.resize(meshCount);		
 	texture.imageMemory.resize(meshCount);		
@@ -617,6 +619,7 @@ Mesh Model::processMesh(aiMesh*mesh, const aiScene * scene)
 			textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 		}	
 	}
+	
 	return Mesh(vertices, indices, textures);
 };
 

@@ -167,7 +167,7 @@ const std::vector<const char*> deviceExtensions =
 	VK_KHR_MULTIVIEW_EXTENSION_NAME,
 	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 	VK_KHR_DEVICE_GROUP_EXTENSION_NAME,
-	VK_KHR_MAINTENANCE2_EXTENSION_NAME
+	VK_KHR_MAINTENANCE2_EXTENSION_NAME,
 };
 
 const std::vector<const char*> validationLayers =
@@ -295,14 +295,14 @@ class IVulkanApp
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 		void* data;
 		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, bufferSize, 0, &data);
 		memcpy(data, vertices.data(), (size_t)bufferSize);
 		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
 
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, VulkanConfig::device, VulkanConfig::physicalDevice);
+		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, memory, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 		copyBuffer(stagingBuffer, buffer, bufferSize);
 
@@ -331,6 +331,36 @@ class IVulkanApp
 		else
 		{
 			throw std::runtime_error("Failed to enable khr extension!");
+		};
+	};
+
+	static void vkGetAccelerationStructureBuildSizesKHR(VkInstance& instance, VkDevice& device, VkAccelerationStructureBuildTypeKHR buildType, const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo, const uint32_t* pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR* pSizeInfo)
+	{
+		// Can be made device level pointer in the future as to not go through instance dispatch table
+		auto func  = reinterpret_cast<PFN_vkGetAccelerationStructureBuildSizesKHR>(vkGetInstanceProcAddr(instance, "vkGetAccelerationStructureBuildSizesKHR"));
+
+		if (func != nullptr)
+		{
+			std::cout << "Here?\n";
+			return func(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo);
+		}
+		else
+		{
+			throw std::runtime_error("Failed to enable buffer address khr extension!");
+		};
+	};
+
+	static uint64_t vkGetBufferDeviceAddressKHR(VkInstance& instance, VkDevice& device, VkBufferDeviceAddressInfo* bufferDeviceAI)
+	{
+		auto func  = (PFN_vkGetBufferDeviceAddressKHR)vkGetInstanceProcAddr(instance, "vkGetBufferDeviceAddressKHR");
+
+		if (func != nullptr)
+		{
+			return func(device, bufferDeviceAI);
+		}
+		else
+		{
+			throw std::runtime_error("Failed to enable buffer address khr extension!");
 		};
 	};
 
