@@ -459,7 +459,7 @@ int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 	score += deviceProperties.limits.maxImageDimension2D;
 	
 	deviceFeatures.geometryShader = VK_TRUE;
-	
+	deviceFeatures.shaderFloat64 = VK_TRUE;
 
 	if (!deviceFeatures.geometryShader) 
 	{
@@ -563,6 +563,7 @@ void IVulkanApp::createLogicalDevice()
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.sampleRateShading = VK_TRUE;
 	deviceFeatures.geometryShader = VK_TRUE;
+	deviceFeatures.shaderFloat64 = VK_TRUE;
 
 	deviceFeatures2.pNext = &deviceFeatures12;
 	deviceFeatures2.features = deviceFeatures;

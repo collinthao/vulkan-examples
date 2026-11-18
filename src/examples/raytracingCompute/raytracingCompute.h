@@ -9,20 +9,8 @@ class RaytracingCompute : public IVulkanApp
 	~RaytracingCompute(){};
 
 	constexpr static int frames 		= 2;
-	constexpr static int WIDTH 		= 800;
-	constexpr static int HEIGHT 		= 600;
-	constexpr static int SPHERE_COUNT 	= 1;
-	constexpr static int PARTICLE_COUNT 	= 8192;
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-
-	std::vector<Vertex> 	sphereVertices{};
-	std::vector<uint32_t> 	sphereIndices{};
-
-	VkBuffer 		sphereBuffer;
-	VkDeviceMemory 		sphereBufferMemory;
-	VkBuffer 		sphereIndexBuffer;
-	VkDeviceMemory 		sphereIndexBufferMemory;
 
 	//compute
 	VkCommandPool 				computeCommandPool;
@@ -34,46 +22,11 @@ class RaytracingCompute : public IVulkanApp
 
 	struct
 	{
-		VkSampler sampler;
-		VkImageView imageView;
-		VkImage     image;
+		VkImage        image;
+		VkImageView    imageView;
+		VkSampler      sampler;
 		VkDeviceMemory imageMemory;
 	} texture;		
-
-	struct Particle
-	{
-		glm::vec2 position;	
-		glm::vec2 velocity;	
-		glm::vec4 color;
-
-		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions()
-		{
-			std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[0].offset = offsetof(Particle, position);
-
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Particle, color);
-
-			return attributeDescriptions;
-		}    
-
-		static VkVertexInputBindingDescription getBindingDesciption()
-		{
-			VkVertexInputBindingDescription bindingDescription{};
-		    
-			bindingDescription.binding = 0;
-			bindingDescription.stride = sizeof(Particle);
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-	    
-			return bindingDescription;
-		}
-	};
 
 	struct
 	{
@@ -83,6 +36,17 @@ class RaytracingCompute : public IVulkanApp
 	struct ParameterUBO 
 	{
 		float deltaTime;
+	};
+
+	struct Sphere
+	{
+		alignas(16) glm::vec4 center;
+		alignas(16) double    radius;
+	};
+
+	struct WorldInfo
+	{
+		alignas(64) Sphere spheres[4];
 	};
 
 	struct UniformData
@@ -112,35 +76,32 @@ class RaytracingCompute : public IVulkanApp
 	struct
 	{
 		VkDescriptorSetLayout cube;
-		VkDescriptorSetLayout sphere;
-		VkDescriptorSetLayout particle;
+		VkDescriptorSetLayout compute;
 	} descriptorSetLayouts;
 
 	struct DescriptorSets
 	{
 		VkDescriptorSet cube;		
-		VkDescriptorSet particle;		
-		std::vector<VkDescriptorSet> sphere;
 	}; 
 
 	std::array<DescriptorSets, frames> descriptorSets;
 
 	struct UniformBuffers
 	{
-		VkBuffer scene;
-		VkBuffer particle;
+		VkBuffer compute;
+		VkBuffer world;
 	};
 
 	struct UniformBuffersMapped
 	{
-		void * scene;
-		void * particle;
+		void * compute;
+		void * world;
 	};
 
 	struct UniformBuffersMemory
 	{
-		VkDeviceMemory scene;
-		VkDeviceMemory particle;
+		VkDeviceMemory compute;
+		VkDeviceMemory world;
 	};
 
 	std::array<UniformBuffers, frames> uniformBuffers;
@@ -149,14 +110,17 @@ class RaytracingCompute : public IVulkanApp
 	
 	void setupUniformBuffers()
 	{
-		VkDeviceSize bufferSize = sizeof(UniformData);
+		VkDeviceSize bufferSize = sizeof(WorldInfo);
 		VkDeviceSize computeBufferSize = sizeof(ParameterUBO);
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(computeBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].particle, uniformBuffersMemory[i].particle, VulkanConfig::device, VulkanConfig::physicalDevice);
+			Buffer::create(computeBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].compute, uniformBuffersMemory[i].compute, VulkanConfig::device, VulkanConfig::physicalDevice);
 
-			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].particle, 0, computeBufferSize, 0, &uniformBuffersMapped[i].particle);
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].compute, 0, computeBufferSize, 0, &uniformBuffersMapped[i].compute);
+			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].world, uniformBuffersMemory[i].world, VulkanConfig::device, VulkanConfig::physicalDevice);
+
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].world, 0, bufferSize, 0, &uniformBuffersMapped[i].world);
 		}	
 	};
 
@@ -164,11 +128,6 @@ class RaytracingCompute : public IVulkanApp
 	{
 		IVulkanApp::init(window);	
 		setupUniformBuffers();
-		{
-			setupSphere();
-			createVertexBuffer(sphereVertices, sphereBuffer, sphereBufferMemory);
-			createSphereIndexBuffer();
-		};
 		setupSampler();
 		loadTexture();
 		setupImageView();
@@ -206,7 +165,13 @@ class RaytracingCompute : public IVulkanApp
 		ParameterUBO computeUBO;
 		computeUBO.deltaTime = lastFrameTime * 2.f;	
 
-		memcpy(uniformBuffersMapped[currentImage].particle, &computeUBO, sizeof(computeUBO));
+		memcpy(uniformBuffersMapped[currentImage].compute, &computeUBO, sizeof(computeUBO));
+	
+		WorldInfo world;
+		world.spheres[0].center = glm::vec4(0.,0.,-1., 1.);
+		world.spheres[0].radius = 0.5;
+		
+		memcpy(uniformBuffersMapped[currentImage].world, &world, sizeof(world));
 	};
 
 	void processInput(GLFWwindow * window)
@@ -403,11 +368,9 @@ class RaytracingCompute : public IVulkanApp
 
 		for (size_t i = 0; i < frames; i++)
 		{
-			vkDestroyBuffer(VulkanConfig::device, uniformBuffers[i].scene, nullptr);
-			vkFreeMemory(VulkanConfig::device, uniformBuffersMemory[i].scene, nullptr);
+			vkDestroyBuffer(VulkanConfig::device, uniformBuffers[i].compute, nullptr);
+			vkFreeMemory(VulkanConfig::device, uniformBuffersMemory[i].compute, nullptr);
 		}		
-
-		vkDestroyDescriptorSetLayout(VulkanConfig::device, descriptorSetLayouts.sphere, nullptr);
 
 		vkDestroyBuffer(VulkanConfig::device, indexBuffer, nullptr);
 		vkFreeMemory(VulkanConfig::device, indexBufferMemory, nullptr);
@@ -672,13 +635,19 @@ class RaytracingCompute : public IVulkanApp
 	{
 		VkDescriptorPool descriptorPool;
 
-		std::array<VkDescriptorSetLayoutBinding, 1> layoutBindings{};
+		std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings{};
 		
 		layoutBindings[0].binding 		= 0;
 		layoutBindings[0].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
 		layoutBindings[0].descriptorType 	= VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		layoutBindings[0].descriptorCount 	= 1;
 		layoutBindings[0].pImmutableSamplers 	= nullptr;
+
+		layoutBindings[1].binding 		= 1;
+		layoutBindings[1].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
+		layoutBindings[1].descriptorType 	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		layoutBindings[1].descriptorCount 	= 1;
+		layoutBindings[1].pImmutableSamplers 	= nullptr;
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo
 		{
@@ -692,9 +661,11 @@ class RaytracingCompute : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 1> poolSizes{};
+		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -727,6 +698,13 @@ class RaytracingCompute : public IVulkanApp
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
 
+			VkDescriptorBufferInfo bufferInfo
+			{
+				.buffer = uniformBuffers[i].world,
+				.offset = 0,
+				.range 	= sizeof(WorldInfo)
+			};
+
 			VkDescriptorImageInfo storageImageInfo
 			{
 				.sampler = texture.sampler,
@@ -734,7 +712,7 @@ class RaytracingCompute : public IVulkanApp
 				.imageLayout = VK_IMAGE_LAYOUT_GENERAL
 			};
 	
-			std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 			
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = computeDescriptorSets[i];
@@ -744,84 +722,23 @@ class RaytracingCompute : public IVulkanApp
 			descriptorWrites[0].descriptorCount = 1;
 			descriptorWrites[0].pImageInfo = &storageImageInfo;
 
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = computeDescriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pBufferInfo = &bufferInfo;
+
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
 
 	void setupCubeResources()
 	{
-			std::cout << "or here\n";
 		setupCubeDescriptorSets();	
 		setupCubePipeline();
 	};
-
-	void setupSphere()
-	{
-		std::vector<unsigned int> indices;
-
-		const unsigned int X_SEGMENTS = 64;
-		const unsigned int Y_SEGMENTS = 64;
-		const float PI = 3.14159265359f;
-		for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-		{
-		    for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
-		    {
-			float xSegment = (float)x / (float)X_SEGMENTS;
-			float ySegment = (float)y / (float)Y_SEGMENTS;
-			float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-			float yPos = std::cos(ySegment * PI);
-			float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
-
-			sphereVertices.emplace_back(
-				glm::vec3{xPos, yPos, zPos}, 
-				glm::vec3{1.0, 1.0, 1.0}, 
-				glm::vec3{xPos, yPos, zPos}, 
-				glm::vec2{xSegment, ySegment});
-		    };
-		}
-
-		bool oddRow = false;
-		for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
-		{
-		    if (!oddRow) // even rows: y == 0, y == 2; and so on
-		    {
-			for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-			{
-			    sphereIndices.push_back(y * (X_SEGMENTS + 1) + x);
-			    sphereIndices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-			}
-		    }
-		    else
-		    {
-			for (int x = X_SEGMENTS; x >= 0; --x)
-			{
-			    sphereIndices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-			    sphereIndices.push_back(y * (X_SEGMENTS + 1) + x);
-			}
-		    }
-		    oddRow = !oddRow;
-		}
-	};
-
-	void createSphereIndexBuffer()
-	{
-		VkDeviceSize bufferSize = sizeof(sphereIndices[0]) * sphereIndices.size();
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
-
-		void* data;
-		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, sphereIndices.data(), (size_t)bufferSize);
-		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
-
-		Buffer::create(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sphereIndexBuffer, sphereIndexBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);
-		copyBuffer(stagingBuffer, sphereIndexBuffer, bufferSize);
-		
-		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
-		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
-	}
 
 	void addShader(const std::string&& path, VkShaderStageFlagBits stage)
 	{

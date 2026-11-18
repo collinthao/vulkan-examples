@@ -1,20 +1,87 @@
 #version 450 core 
 
-struct WorldInfo
+struct Sphere
 {
-	vec4 color;
+	vec3 center;
+	double radius;
 };
 
 layout(binding = 0, rgba8) uniform writeonly image2D outputImage;
+layout(binding = 1) uniform WorldInfo
+{
+	Sphere spheres[4];
+} world;
 
 layout (local_size_x = 8, local_size_y = 6, local_size_z = 1) in;
 
+int ux = int(gl_GlobalInvocationID.x);
+int uy = int(gl_GlobalInvocationID.y);
+
+float 	image_width 	= 800;
+
+vec3 	camera_center 	= vec3(0., 0., 0.);
+
+float 	aspect_ratio 	= 16./9.;
+float 	focal_length 	= 1.0;
+float 	viewport_height = 2.0;
+float 	image_height 	= image_width/aspect_ratio;
+double 	viewport_width  = viewport_height * (double(image_width)/image_height);
+
+vec3 viewport_u 	= vec3(viewport_width, 0, 0);
+vec3 viewport_v 	= vec3(0, -viewport_height, 0);
+
+vec3 pixel_delta_u     = viewport_u / image_width;	
+vec3 pixel_delta_v     = viewport_v / image_height;	
+
+vec3 viewport_upper_left = camera_center - vec3(0,0,focal_length) - viewport_u/2 - viewport_v/2;
+
+vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u) + 0.5 * ( pixel_delta_v);
+
+double hit_sphere(vec3 center, double radius, vec3 direction, vec3 origin)
+{
+	vec3 oc = center - origin;
+	float a = length(direction) * length(direction);
+	float h = dot(direction, oc);
+	double c = length(oc) * length(oc) - radius*radius;
+	double discriminant = h*h - a*c;
+	
+	if (discriminant < 0)
+	{
+		return -1.;
+	}
+	else
+	{
+		return (h - sqrt(discriminant))/a;
+	};
+}
+
+vec3 at(vec3 d, double t)
+{
+	vec3 td = vec3(d.x * t, d.y * t, d.z * t);
+	vec3 p = camera_center + td;	
+	return p;
+}
+
+vec3 ray_color(vec3 direction, vec3 origin)
+{
+	double t = hit_sphere(world.spheres[0].center.xyz, world.spheres[0].radius, direction, origin);
+	if (t > 0.0)
+	{
+		vec3 N = (at(direction, t) - vec3(0,0,-1.));
+		return 0.5*vec3(N.r+1, N.y+1, N.z+1);
+	};
+
+	vec3 unit_direction = normalize(direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
 void main()
 {
-	uint ux = gl_GlobalInvocationID.x;
-	uint uy = gl_GlobalInvocationID.y;
-	
-//	vec3 pixel = imageLoad(inputImage, ivec2(gl_GlobalInvocationID.xy)).rgb;
-	
-	imageStore(outputImage, ivec2(gl_GlobalInvocationID.xy), vec4(ux/800.f, uy/600.f, 0., 1.));
+	vec3 pixel_center = pixel00_loc + (ux * pixel_delta_u) + (uy * pixel_delta_v);
+	vec3 ray_direction = pixel_center - camera_center;
+
+	vec3 final_output = ray_color(ray_direction, camera_center);
+
+	imageStore(outputImage, ivec2(gl_GlobalInvocationID.xy), vec4(final_output, 1.));
 }
