@@ -167,10 +167,25 @@ class RaytracingCompute : public IVulkanApp
 
 		memcpy(uniformBuffersMapped[currentImage].compute, &computeUBO, sizeof(computeUBO));
 	
+		glm::mat4 model = glm::mat4(1.);
+		glm::mat4 view = camera.getViewMatrix();
+		glm::mat4 proj = glm::perspective(glm::radians(45.f), float(800./600.), 0.1f, FAR_PLANE);
+		proj[1][1] *= 1.;
+
 		WorldInfo world;
+/*
+		world.spheres[0].center = proj * view *  model * glm::vec4(0.,0.,-1., 1.);
+		world.spheres[0].radius = 0.5;
+
+		world.spheres[1].center = proj * view *  model * glm::vec4(0.,-100.5,-1., 1.);
+		world.spheres[1].radius = 100.;
+*/	
 		world.spheres[0].center = glm::vec4(0.,0.,-1., 1.);
 		world.spheres[0].radius = 0.5;
-		
+
+		world.spheres[1].center = glm::vec4(0.,-100.5,-1., 1.);
+		world.spheres[1].radius = 100.;
+
 		memcpy(uniformBuffersMapped[currentImage].world, &world, sizeof(world));
 	};
 
@@ -1042,107 +1057,9 @@ class RaytracingCompute : public IVulkanApp
 	// Raytracing
 	void loadTexture()
 	{
-/*
-		const std::string raytrace_png = ROOT_DIR + "/resource/textures/raytrace_example.png";
-	
-		// World
-		hittable_list world;
-		auto R = std::cos(pi/4);
-
-		auto material_ground 	= 	make_shared<lambertian>(glm::vec3(0.5, 0.5,  0.5));
-		auto material_center 	= 	make_shared<lambertian>(glm::vec3(0.1, 0.2,  0.5));
-		auto material_left 	= 	make_shared<dielectric>(1.5);
-		auto material_bubble    = 	make_shared<dielectric>(1./1.5);
-		auto material_right 	= 	make_shared<metal>(glm::vec3(0.8, 0.6, 0.2), 1.0);
-
-		for (int a = -11; a < 11; a++)
-		{
-			for (int b = -11; b < 11; b++)
-			{
-				auto choose_mat = random_double();
-				glm::vec3 center(a + 0.9*random_double(), 0.2, b + 0.9*random_double());
-				
-				if ((center - glm::vec3(4, 0.2, 0)).length() > 0.9)
-				{
-					shared_ptr<material> sphere_material;
-					
-					if (choose_mat < 0.8)
-					{
-						auto albedo = glm::vec3(random_double(0., 1.), random_double(0., 1.), random_double(0., 1.))
-						* glm::vec3(random_double(0., 1.), random_double(0., 1.), random_double(0., 1.));
-						
-						sphere_material = make_shared<lambertian>(albedo);
-						world.add(make_shared<sphere>(center, 0.2, sphere_material));
-					}
-					else if (choose_mat < 0.95)
-					{
-						auto albedo = glm::vec3(random_double(0.5, 1.), random_double(0.5, 1.), random_double(0.5, 1.));
-						auto fuzz = random_double(0., 0.5);
-						sphere_material = make_shared<metal>(albedo, fuzz);
-						world.add(make_shared<sphere>(center, 0.2, sphere_material));
-					}
-					else
-					{
-						sphere_material = make_shared<dielectric>(1.5);
-						world.add(make_shared<sphere>(center, 0.2, sphere_material));
-					};
-				};
-			};
-		};
-
-		auto material1 = make_shared<dielectric>(1.5);
-		world.add(make_shared<sphere>(glm::vec3(0., 1., 0.), 1., material1));
-
-		auto material2 = make_shared<lambertian>(glm::vec3(0.4, 0.2, 0.1));
-		world.add(make_shared<sphere>(glm::vec3(-4., 1., 0.), 1., material2));
-
-		auto material3 = make_shared<metal>(glm::vec3(0.7, 0.6, 0.5), 0.0);
-		world.add(make_shared<sphere>(glm::vec3(4., 1., 0.), 1., material3));
-
-		rtCamera cam;
-	
-		cam.aspect_ratio = 16./9.;
-		cam.image_width  = 1200;
-		cam.samples_per_pixel = 3;
-		cam.max_depth = 50;
-
-		cam.vfov = 20;
-		cam.lookfrom 	= glm::vec3(13., 2., 3.);
-		cam.lookat 	= glm::vec3(0., 0., 0.);
-		cam.vup 	= glm::vec3(0., 1., 0.);
+		int texWidth 	= 800;
+		int texHeight	= 600;		
 		
-		cam.defocus_angle = 0.6;
-		cam.focus_dist = 10.0;
-
-		cam.render(world);
-
-		stbi_write_png(raytrace_png.c_str(), cam.image_width, cam.image_height, 3, cam.rayTracePixels.data(), cam.image_width * 3);
-
-		int texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load(raytrace_png.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
-		if (!pixels)
-		{
-			throw std::runtime_error("failed to load texture image!");	
-		};
-		
-		VkDeviceSize imageSize = texWidth * texHeight * 4;
-		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
-	
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		
-		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);		
-		void * data;
-		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
-		
-		memcpy(data, pixels, static_cast<size_t>(imageSize));	
-		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
-		
-		//stbi_image_free(pixels);
-	*/	
-		int texWidth 	= VulkanConfig::swapChainExtent.width;
-		int texHeight	= VulkanConfig::swapChainExtent.height;
-
 		VkImageCreateInfo imageInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.flags = 0,
@@ -1180,7 +1097,7 @@ class RaytracingCompute : public IVulkanApp
 		};
 		
 		vkBindImageMemory(VulkanConfig::device, texture.image, texture.imageMemory, 0);
-}	
+	}	
 
 	void setupImageView()
 	{
@@ -1334,6 +1251,7 @@ class RaytracingCompute : public IVulkanApp
 		loadTexture();
 		setupImageView();
 		setupComputeDescriptorSets();
+		setupCubeDescriptorSets();
 	}
 	
 };
