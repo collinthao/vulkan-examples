@@ -36,3 +36,638 @@ XDG_SESSION_TYPE=x11
 **Known debug issues**
 - If you get a segfault when dealing with something device related (i.e enabling logical or physical device extensions), it could be that you're putting the extension on a logical device instead of a physical and vice versa
 
+#version 450 core 
+
+#define INFINITY 1.0/0.
+#define PI 3.14592653
+
+struct Material
+{
+	vec3 color;
+	int type;
+};
+
+struct Ray
+{
+	vec3 origin;
+	vec3 direction;
+};
+
+struct Sphere
+{
+	vec4 center;
+	vec4 color;
+	double radius;
+	int type;
+};
+
+struct HitRecord
+{
+	Material mat;
+	vec3 p;
+	vec3 normal;
+	double t;
+	bool front_face;
+};
+
+struct Interval
+{
+	double min, max;
+};
+
+layout(binding = 0, rgba8) uniform writeonly image2D outputImage;
+layout(binding = 1) uniform WorldInfo
+{
+	Sphere spheres[4];
+} world;
+
+layout(binding = 2) uniform sampler2D perlinNoise;
+
+layout(binding = 3) uniform RandomVec 
+{
+	vec4 randomPos[480000];
+} rvb;
+
+layout (local_size_x = 8, local_size_y = 6, local_size_z = 1) in;
+
+int ux = int(gl_GlobalInvocationID.x);
+int uy = int(gl_GlobalInvocationID.y);
+
+int lx = int(gl_LocalInvocationID.x);
+int ly = int(gl_LocalInvocationID.y);
+
+int sampleIndex = 0;
+int bounceIndex = uy * 800 + ux + lx + ly;
+
+float fx = gl_GlobalInvocationID.x/800.f;
+float fy = gl_GlobalInvocationID.y/600.f;
+
+vec3 ran = texture(perlinNoise, vec2(fx, fy)).rgb;
+
+float 	image_width 	= 800;
+
+vec3 	camera_center 	= vec3(0., 0., 0.);
+
+float 	aspect_ratio 		= 16./9.;
+float 	focal_length 		= 1.0;
+float 	viewport_height 	= 2.0;
+float 	image_height 		= image_width/aspect_ratio;
+int 	samples_per_pixel 	= 100;
+double pixel_samples_scale      = 1./samples_per_pixel;
+double 	viewport_width  	= viewport_height * (double(image_width)/image_height);
+
+vec3 viewport_u 	= vec3(-viewport_width, 0, 0);
+vec3 viewport_v 	= vec3(0, -viewport_height, 0);
+
+vec3 pixel_delta_u     = viewport_u / image_width;	
+vec3 pixel_delta_v     = viewport_v / image_height;	
+
+vec3 viewport_upper_left = camera_center - vec3(0,0,focal_length) - viewport_u/2 - viewport_v/2;
+
+vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u) + 0.5 * ( pixel_delta_v);
+
+Interval empty = Interval(INFINITY, -INFINITY);
+Interval universe = Interval(-INFINITY, INFINITY);
+
+vec3 at(Ray r, double t);
+
+void set_face_normal(Ray r, inout HitRecord record, vec3 outward_normal);
+
+bool hit_sphere(Sphere sphere, Ray r, inout HitRecord record, Interval ray_t);
+
+bool hit(Ray r, inout HitRecord rec, Interval ray_t);
+
+vec3 ray_color_d0 (Ray r);
+vec3 ray_color_d1 (Ray r);
+vec3 ray_color_d2 (Ray r);
+vec3 ray_color_d3 (Ray r);
+vec3 ray_color_d4 (Ray r);
+vec3 ray_color_d5 (Ray r);
+vec3 ray_color_d6 (Ray r);
+vec3 ray_color_d7 (Ray r);
+vec3 ray_color_d8 (Ray r);
+vec3 ray_color_d9 (Ray r);
+vec3 ray_color_d10(Ray r);
+
+double interval_size(Interval i);
+
+bool interval_contains(double x, Interval i);
+
+bool interval_surrounds(double x, Interval i);
+
+double random_double(vec2 uv);
+
+double random_double(double min, double max, vec2 ran);
+
+Ray get_ray(int i, int j);
+
+vec3 random(double min, double max, vec2 ran);
+
+vec3 random(vec2 ran);
+
+vec3 sample_square(double rd);
+
+vec3 random_on_hemisphere(vec3 normal);
+
+bool vec_near_zero(vec3 v);
+
+bool scatter_lambertian(in Ray r, inout HitRecord rec, inout vec3 attenuation, inout Ray scattered);
+bool scatter_metal(in Ray r, inout HitRecord rec, inout vec3 attenuation, inout Ray scattered);
+
+void main()
+{
+	vec3 pixel_center = pixel00_loc + (ux * pixel_delta_u) + (uy * pixel_delta_v);
+
+	vec3 ray_direction = pixel_center - camera_center;
+
+	vec3 final_output = vec3(0.);
+
+	for (int s = 0; s < samples_per_pixel; s++)
+	{
+		Ray r = get_ray(ux, uy);
+		final_output += ray_color_d0(r);
+	};
+
+	imageStore(outputImage, ivec2(gl_GlobalInvocationID.xy), vec4((pixel_samples_scale * final_output), 1.));
+}
+
+bool scatter_metal(in Ray r, inout HitRecord rec, inout vec3 attenuation, inout Ray scattered)
+{
+	vec3 reflected = reflect(r.direction, rec.normal);
+	scattered = Ray(rec.p, reflected);
+	attenuation = rec.mat.color;
+	
+	return true;
+}
+
+bool scatter_lambertian(in Ray r, inout HitRecord rec, inout vec3 attenuation, inout Ray scattered)
+{
+	vec3 scatter_direction = rec.normal + rvb.randomPos[++bounceIndex].xyz;
+	
+	if (vec_near_zero(scatter_direction)) 
+	{
+		scatter_direction = rec.normal;
+	}; 
+	
+	scattered = Ray(rec.p, scatter_direction);
+	attenuation = rec.mat.color;
+	
+	return true;
+}
+
+bool vec_near_zero(vec3 v)
+{
+	double s = 1e-8;
+	return (abs(v.x) < s && abs(v.y) < s && abs(v.z) < s);
+}
+
+vec3 random_on_hemisphere(vec3 normal)
+{
+	vec3 on_unit_sphere = rvb.randomPos[uy * 800 + ux].xyz;
+	
+	if (dot(on_unit_sphere, normal) > 0.0)
+	{
+		return on_unit_sphere;
+	}
+	else
+	{
+		return -on_unit_sphere;
+	};
+}
+
+vec3 random(double min, double max, vec2 ran)
+{
+	return vec3(random_double(min, max, ran), random_double(min, max, ran), random_double(min, max, ran));
+}
+
+vec3 random()
+{
+	return rvb.randomPos[uy * 800 - ux - lx + ly].xyz;
+}
+
+vec3 sample_square()
+{
+	return rvb.randomPos[uy * 800 + ux + lx + ly - (++sampleIndex)].xyz/2.;
+}
+
+Ray get_ray(int i, int j)
+{
+	vec3 offset = sample_square();
+	vec3 pixel_sample = pixel00_loc + ((i + offset.x) * pixel_delta_u) + ((j + offset.y) * pixel_delta_v);
+		
+	vec3 ray_origin = camera_center;
+	vec3 ray_direction = pixel_sample - ray_origin;
+	
+	return Ray(ray_origin, ray_direction);
+}
+
+double random_double(double min, double max, vec2 s)
+{
+	return min + (max-min) * random_double(s);
+}
+
+double random_double(vec2 uv)
+{
+	return fract(sin(dot(uv, vec2(0.23297, 10267.297))) * 21708.1968) - 1.;
+}
+
+double interval_size(Interval i)
+{
+	return i.max - i.min;
+}
+
+bool interval_contains(double x, Interval i)
+{
+	return i.min <= x && x <= i.max;
+}
+
+bool interval_surrounds(double x, Interval i)
+{
+	return i.min < x && x < i.max;
+}
+
+bool hit(Ray r, inout HitRecord rec, Interval ray_t)
+{
+	HitRecord temp_rec;
+	bool hit_anything = false;
+	
+	double closest_so_far = ray_t.max;
+	
+	for (int i = 0; i < 2; i++)
+	{
+		if (hit_sphere(world.spheres[i], r, temp_rec, Interval(ray_t.min, closest_so_far)))
+		{
+			hit_anything = true;
+			closest_so_far = temp_rec.t;
+			rec = temp_rec;
+		};
+	};
+		
+	return hit_anything;
+}
+
+bool hit_sphere(Sphere sphere, Ray r, inout HitRecord record, Interval ray_t)
+{
+	vec3 oc = sphere.center.xyz - r.origin;
+	float a = pow(float(length(r.direction)), 2.);
+	float h = dot(r.direction, oc);
+	double c = pow(float(length(oc)), 2.) - pow(float(sphere.radius), 2.);
+	double discriminant = h*h - a*c;
+	
+	if (discriminant < 0)
+	{
+		return false;
+	}
+		
+	double sqrtd = sqrt(discriminant);
+	double root = (h - sqrtd)/a;
+
+	if (!interval_surrounds(root, ray_t))
+	{
+		root = (h + sqrtd)/a;
+		if (!interval_surrounds(root, ray_t))
+		{
+			return false;
+		};
+	};
+
+	record.t = root;
+	record.p = at(r, root);
+	record.mat = Material(sphere.color.rgb, sphere.type);
+	vec3 outward_normal = (record.p - sphere.center.xyz)/float(sphere.radius);	
+	set_face_normal(r, record, outward_normal);
+
+	return true;
+}
+
+vec3 at(Ray r, double t)
+{
+	vec3 d = r.direction;
+	vec3 td = vec3(d.x * t, d.y * t, d.z * t);
+	vec3 p = r.origin + td;	
+	return p;
+}
+
+void set_face_normal(Ray r, inout HitRecord record, vec3 outward_normal)
+{
+	record.front_face = dot(r.direction, outward_normal) < 0;
+	record.normal = record.front_face ? outward_normal : -outward_normal;
+}
+
+vec3 ray_color_d10(Ray r)
+{
+	return vec3(0.);
+}
+
+vec3 ray_color_d9(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d10(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d10(scattered);
+			};
+			break;
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d8(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d9(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d9(scattered);
+			};
+			break;
+
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d7(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d8(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d8(scattered);
+			};
+			break;
+
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+vec3 ray_color_d6(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d7(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d7(scattered);
+			};
+			break;
+
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+vec3 ray_color_d5(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d6(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d6(scattered);
+			};
+			break;
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d4(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d5(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d5(scattered);
+			};
+			break;
+
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d3(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d4(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d4(scattered);
+			};
+			break;
+
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d2(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d3(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d3(scattered);
+			};
+			break;
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d1(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d2(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d2(scattered);
+			};
+			break;
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}
+
+vec3 ray_color_d0(Ray r)
+{
+	HitRecord rec;
+
+	if (hit(r, rec, Interval(0.001, INFINITY)))
+	{
+		Ray scattered;
+		vec3 attenuation;
+		switch(rec.mat.type)
+		{
+			case 0:
+			if(scatter_lambertian(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d1(scattered);
+			};
+			break;
+			case 1:
+			if(scatter_metal(r, rec, attenuation, scattered))
+			{
+				return attenuation * ray_color_d1(scattered);
+			};
+			break;
+		};
+		return vec3(0.);
+	};
+
+	vec3 unit_direction = normalize(r.direction);
+	float a = 0.5*(unit_direction.y + 1.);
+	return (1.0 - a) * vec3(1.) + a*vec3(.5, 0.7, 1.);
+}

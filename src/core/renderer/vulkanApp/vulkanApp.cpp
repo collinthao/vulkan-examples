@@ -448,6 +448,8 @@ int IVulkanApp::rateDeviceSuitability(VkPhysicalDevice device)
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
+	std::cout << deviceProperties.limits.minUniformBufferOffsetAlignment << '\n';
+
 	VkPhysicalDeviceFeatures deviceFeatures;
 
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core/renderer/vulkanApp/vulkanApp.h"
+#include <random>
 
 class RaytracingCompute : public IVulkanApp
 {
@@ -9,6 +10,7 @@ class RaytracingCompute : public IVulkanApp
 	~RaytracingCompute(){};
 
 	constexpr static int frames 		= 2;
+	bool 		 loaded 		= false;
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 
@@ -20,33 +22,41 @@ class RaytracingCompute : public IVulkanApp
 	VkDescriptorSetLayout 			computeDescriptorSetLayout;
 	std::array<VkDescriptorSet, frames> 	computeDescriptorSets;
 
-	struct
+	VkSampler      sampler;
+	struct Texture
 	{
 		VkImage        image;
 		VkImageView    imageView;
-		VkSampler      sampler;
 		VkDeviceMemory imageMemory;
-	} texture;		
+	};
+
+	struct
+	{
+		Texture compute;
+		Texture perlinNoise;
+	} textures;		
 
 	struct
 	{
 		std::array<vk::Buffer, frames> shaderStorageBuffer;
 	} buffers;
 
-	struct ParameterUBO 
+	struct RandomVectorBuffer
 	{
-		float deltaTime;
+		std::array<glm::vec4, 480000> vectors;
 	};
 
 	struct Sphere
 	{
-		alignas(16) glm::vec4 center;
-		alignas(16) double    radius;
+		alignas(16) glm::vec4 	center;
+		alignas(16) glm::vec4 	color;	
+		alignas(8) double    	radius;
+		alignas(4) int 	type;
 	};
 
 	struct WorldInfo
 	{
-		alignas(64) Sphere spheres[4];
+		alignas(256) Sphere spheres[4];
 	};
 
 	struct UniformData
@@ -89,18 +99,21 @@ class RaytracingCompute : public IVulkanApp
 	struct UniformBuffers
 	{
 		VkBuffer compute;
+		VkBuffer randomPos;
 		VkBuffer world;
 	};
 
 	struct UniformBuffersMapped
 	{
 		void * compute;
+		void * randomPos;;
 		void * world;
 	};
 
 	struct UniformBuffersMemory
 	{
 		VkDeviceMemory compute;
+		VkDeviceMemory randomPos;
 		VkDeviceMemory world;
 	};
 
@@ -111,16 +124,17 @@ class RaytracingCompute : public IVulkanApp
 	void setupUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(WorldInfo);
-		VkDeviceSize computeBufferSize = sizeof(ParameterUBO);
+		VkDeviceSize ranVecBufferSize = sizeof(RandomVectorBuffer);
 		
 		for (size_t i = 0; i < frames; i++)
 		{
-			Buffer::create(computeBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].compute, uniformBuffersMemory[i].compute, VulkanConfig::device, VulkanConfig::physicalDevice);
-
-			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].compute, 0, computeBufferSize, 0, &uniformBuffersMapped[i].compute);
 			Buffer::create(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].world, uniformBuffersMemory[i].world, VulkanConfig::device, VulkanConfig::physicalDevice);
 
 			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].world, 0, bufferSize, 0, &uniformBuffersMapped[i].world);
+			Buffer::create(ranVecBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].randomPos, uniformBuffersMemory[i].randomPos, VulkanConfig::device, VulkanConfig::physicalDevice);
+
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].randomPos, 0, ranVecBufferSize, 0, &uniformBuffersMapped[i].randomPos);
+
 		}	
 	};
 
@@ -128,10 +142,12 @@ class RaytracingCompute : public IVulkanApp
 	{
 		IVulkanApp::init(window);	
 		setupUniformBuffers();
+		updateRandomPositions();
 		setupSampler();
 		loadTexture();
-		setupImageView();
-
+		loadPerlinNoiseImage();
+		setupPerlinNoiseImageView();
+		setupComputeImageView();
 		setupRaytracing();
 		setupComputeCommandBuffer();
 		setupComputeDescriptorSets();
@@ -162,29 +178,55 @@ class RaytracingCompute : public IVulkanApp
 
 	void updateUniformBuffer(uint32_t currentImage)
 	{
-		ParameterUBO computeUBO;
-		computeUBO.deltaTime = lastFrameTime * 2.f;	
-
-		memcpy(uniformBuffersMapped[currentImage].compute, &computeUBO, sizeof(computeUBO));
-	
 		glm::mat4 model = glm::mat4(1.);
 		glm::mat4 view = camera.getViewMatrix();
-		glm::mat4 proj = glm::perspective(glm::radians(45.f), float(800./600.), 0.1f, FAR_PLANE);
+		glm::mat4 proj = glm::perspective(glm::radians(90.f), float(800./600.), 0.1f, FAR_PLANE);
 		proj[1][1] *= 1.;
 
 		WorldInfo world;
 /*
-		world.spheres[0].center = proj * view *  model * glm::vec4(0.,0.,-1., 1.);
-		world.spheres[0].radius = 0.5;
+		world.spheres[0].center =  proj * view * model * glm::vec4(0.f, -100.5f, 0.f, 1.f);
+		world.spheres[0].color  = glm::vec4(.8f, 0.8f, 0.0f, 1.f);
+		world.spheres[0].radius = 100.f;
+		world.spheres[0].type   = 0;
+		
 
-		world.spheres[1].center = proj * view *  model * glm::vec4(0.,-100.5,-1., 1.);
-		world.spheres[1].radius = 100.;
-*/	
-		world.spheres[0].center = glm::vec4(0.,0.,-1., 1.);
-		world.spheres[0].radius = 0.5;
+		world.spheres[1].center = proj * view * model * glm::vec4(0.f,0.f,-1.2f, 1.f);
+		world.spheres[1].color  = glm::vec4(0.1f, .2f, 0.5f, 1.f);
+		world.spheres[1].radius = 0.5f;
+		world.spheres[1].type   = 0;
 
-		world.spheres[1].center = glm::vec4(0.,-100.5,-1., 1.);
-		world.spheres[1].radius = 100.;
+		world.spheres[2].center = proj * view * model * glm::vec4(-1.f,0.f,-1.f, 1.f);
+		world.spheres[2].color  = glm::vec4(0.8f, .8f, 0.8f, 1.f);
+		world.spheres[2].radius = 0.5f;
+		world.spheres[2].type   = 1;
+
+		world.spheres[3].center = proj * view * model * glm::vec4(1.f,0.f,-1.f, 1.f);
+		world.spheres[3].color  = glm::vec4(0.8f, .6f, 0.2f, 1.f);
+		world.spheres[3].radius = 0.5f;
+		world.spheres[3].type   = 1;
+*/
+
+		world.spheres[0].center = glm::vec4(0.f, -100.5f, 0.f, 1.f);
+		world.spheres[0].color  = glm::vec4(.8f, 0.8f, 0.0f, 1.f);
+		world.spheres[0].radius = 100.f;
+		world.spheres[0].type   = 0;
+		
+
+		world.spheres[1].center = glm::vec4(0.f,0.f,-1.2f, 1.f);
+		world.spheres[1].color  = glm::vec4(0.1f, .2f, 0.5f, 1.f);
+		world.spheres[1].radius = 0.5f;
+		world.spheres[1].type   = 0;
+
+		world.spheres[2].center = glm::vec4(-1.f,0.f,-1.f, 1.f);
+		world.spheres[2].color  = glm::vec4(0.8f, .8f, 0.8f, 1.f);
+		world.spheres[2].radius = 0.5f;
+		world.spheres[2].type   = 1;
+
+		world.spheres[3].center = glm::vec4(1.f,0.f,-1.f, 1.f);
+		world.spheres[3].color  = glm::vec4(0.8f, .6f, 0.2f, 1.f);
+		world.spheres[3].radius = 0.5f;
+		world.spheres[3].type   = 1;
 
 		memcpy(uniformBuffersMapped[currentImage].world, &world, sizeof(world));
 	};
@@ -194,10 +236,10 @@ class RaytracingCompute : public IVulkanApp
 		camera.cameraSpeed = 10.f * lastFrameTime;
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		{
-			camera.move(FORWARD);
+			camera.move(BACKWARD);
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			camera.move(BACKWARD);
+			camera.move(FORWARD);
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 			camera.move(LEFT);
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
@@ -234,7 +276,7 @@ class RaytracingCompute : public IVulkanApp
 			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = texture.image};
+			.image = textures.compute.image};
 
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
 		barrier.subresourceRange.baseMipLevel = 0;
@@ -650,7 +692,7 @@ class RaytracingCompute : public IVulkanApp
 	{
 		VkDescriptorPool descriptorPool;
 
-		std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings{};
+		std::array<VkDescriptorSetLayoutBinding, 4> layoutBindings{};
 		
 		layoutBindings[0].binding 		= 0;
 		layoutBindings[0].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
@@ -664,6 +706,18 @@ class RaytracingCompute : public IVulkanApp
 		layoutBindings[1].descriptorCount 	= 1;
 		layoutBindings[1].pImmutableSamplers 	= nullptr;
 
+		layoutBindings[2].binding 		= 2;
+		layoutBindings[2].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
+		layoutBindings[2].descriptorType 	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		layoutBindings[2].descriptorCount 	= 1;
+		layoutBindings[2].pImmutableSamplers 	= nullptr;
+
+		layoutBindings[3].binding 		= 3;
+		layoutBindings[3].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
+		layoutBindings[3].descriptorType 	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		layoutBindings[3].descriptorCount 	= 1;
+		layoutBindings[3].pImmutableSamplers 	= nullptr;
+
 		VkDescriptorSetLayoutCreateInfo layoutInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -676,11 +730,15 @@ class RaytracingCompute : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		std::array<VkDescriptorPoolSize, 4> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -713,6 +771,13 @@ class RaytracingCompute : public IVulkanApp
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
 
+			VkDescriptorBufferInfo randomVecInfo
+			{
+				.buffer = uniformBuffers[i].randomPos,
+				.offset = 0,
+				.range 	= sizeof(RandomVectorBuffer)
+			};
+
 			VkDescriptorBufferInfo bufferInfo
 			{
 				.buffer = uniformBuffers[i].world,
@@ -720,14 +785,21 @@ class RaytracingCompute : public IVulkanApp
 				.range 	= sizeof(WorldInfo)
 			};
 
+			VkDescriptorImageInfo imageInfo
+			{
+				.sampler = sampler,
+				.imageView = textures.perlinNoise.imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			};
+
 			VkDescriptorImageInfo storageImageInfo
 			{
-				.sampler = texture.sampler,
-				.imageView = texture.imageView,
+				.sampler = sampler,
+				.imageView = textures.compute.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_GENERAL
 			};
 	
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+			std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 			
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = computeDescriptorSets[i];
@@ -744,6 +816,22 @@ class RaytracingCompute : public IVulkanApp
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[2].dstSet = computeDescriptorSets[i];
+			descriptorWrites[2].dstBinding = 2;
+			descriptorWrites[2].dstArrayElement = 0;
+			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[2].descriptorCount = 1;
+			descriptorWrites[2].pImageInfo = &imageInfo;
+
+			descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[3].dstSet = computeDescriptorSets[i];
+			descriptorWrites[3].dstBinding = 3;
+			descriptorWrites[3].dstArrayElement = 0;
+			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[3].descriptorCount = 1;
+			descriptorWrites[3].pBufferInfo = &randomVecInfo;
 
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
@@ -997,7 +1085,7 @@ class RaytracingCompute : public IVulkanApp
 			.newLayout = VK_IMAGE_LAYOUT_GENERAL,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = texture.image};
+			.image = textures.compute.image};
 
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
 		barrier.subresourceRange.baseMipLevel = 0;
@@ -1054,6 +1142,155 @@ class RaytracingCompute : public IVulkanApp
 		throw std::runtime_error("failed to find a suitable memory type!");
 	}
 
+	void loadPerlinNoiseImage()
+	{
+		const std::string path = ROOT_DIR + "/resource/textures/perlin_noise";
+		int texWidth, texHeight, texChannels;
+		stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		
+		
+		if (!pixels)
+		{
+			throw std::runtime_error("failed to load texture image!");	
+		};
+		
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+		int mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;	
+	
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		
+		Buffer::create(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, VulkanConfig::device, VulkanConfig::physicalDevice);		
+		
+		void * data;
+		vkMapMemory(VulkanConfig::device, stagingBufferMemory, 0, imageSize, 0, &data);
+		
+		memcpy(data, pixels, static_cast<size_t>(imageSize));	
+		vkUnmapMemory(VulkanConfig::device, stagingBufferMemory);
+		
+		stbi_image_free(pixels);
+		
+		VkImageCreateInfo imageInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			.flags = 0,
+			.imageType = VK_IMAGE_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB,
+			.mipLevels = static_cast<uint32_t>(mipLevels),
+			.arrayLayers = 1,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.tiling = VK_IMAGE_TILING_OPTIMAL,
+			.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,	 
+			.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+
+		imageInfo.extent.width = static_cast<uint32_t>(texWidth);
+		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+		imageInfo.extent.depth = 1;
+
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.perlinNoise.image))
+		{
+			throw std::runtime_error("failed to create image!");
+		};	
+		
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.perlinNoise.image, &memRequirements);
+		
+		VkMemoryAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = memRequirements.size,
+			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+		};
+		
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.perlinNoise.imageMemory) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to allocate image memory!");	
+		};
+		
+		vkBindImageMemory(VulkanConfig::device, textures.perlinNoise.image, textures.perlinNoise.imageMemory, 0);
+		
+		VkCommandBuffer commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);		
+		
+		VkImageMemoryBarrier barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = 0,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = textures.perlinNoise.image};
+
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; 
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags dstStage;
+		
+		barrier.srcAccessMask = 0;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+		srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;		
+		vkCmdPipelineBarrier(
+			commandBuffer,
+			srcStage, dstStage,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
+		
+		VkBufferImageCopy region{
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+			.imageOffset = {0,0,0},
+			.imageExtent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1}
+		};	
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		vkCmdCopyBufferToImage(
+			commandBuffer,
+			stagingBuffer,
+			textures.perlinNoise.image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region);	
+	
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);
+
+		commandBuffer = CommandBuffer::beginSingleTimeCommands(VulkanConfig::device);	
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		
+		srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;	
+		dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;	
+		vkCmdPipelineBarrier(
+		commandBuffer,
+		srcStage, dstStage,
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier);	
+		
+		CommandBuffer::endSingleTimeCommands(commandBuffer, VulkanConfig::graphicsAndComputeQueue, VulkanConfig::device);		
+
+		vkDestroyBuffer(VulkanConfig::device, stagingBuffer, nullptr);
+		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
+	}	
+
 	// Raytracing
 	void loadTexture()
 	{
@@ -1077,13 +1314,13 @@ class RaytracingCompute : public IVulkanApp
 		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
 		imageInfo.extent.depth = 1;
 
-		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &texture.image))
+		if(vkCreateImage(VulkanConfig::device, &imageInfo, nullptr, &textures.compute.image))
 		{
 			throw std::runtime_error("failed to create image!");
 		};	
 		
 		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(VulkanConfig::device, texture.image, &memRequirements);
+		vkGetImageMemoryRequirements(VulkanConfig::device, textures.compute.image, &memRequirements);
 		
 		VkMemoryAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -1091,19 +1328,39 @@ class RaytracingCompute : public IVulkanApp
 			.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 		};
 		
-		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &texture.imageMemory) != VK_SUCCESS)
+		if (vkAllocateMemory(VulkanConfig::device, &allocInfo, nullptr, &textures.compute.imageMemory) != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to allocate image memory!");	
 		};
 		
-		vkBindImageMemory(VulkanConfig::device, texture.image, texture.imageMemory, 0);
+		vkBindImageMemory(VulkanConfig::device, textures.compute.image, textures.compute.imageMemory, 0);
 	}	
 
-	void setupImageView()
+	void setupPerlinNoiseImageView()
 	{
 		VkImageViewCreateInfo viewInfo{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-			.image = texture.image,
+			.image = textures.perlinNoise.image,
+			.viewType = VK_IMAGE_VIEW_TYPE_2D,
+			.format = VK_FORMAT_R8G8B8A8_SRGB};		
+
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.perlinNoise.imageView))
+		{
+			throw std::runtime_error("failed to create image view!");	
+		};
+	};
+
+	void setupComputeImageView()
+	{
+		VkImageViewCreateInfo viewInfo{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+			.image = textures.compute.image,
 			.viewType = VK_IMAGE_VIEW_TYPE_2D,
 			.format = VK_FORMAT_R8G8B8A8_UNORM};		
 
@@ -1113,7 +1370,7 @@ class RaytracingCompute : public IVulkanApp
 			viewInfo.subresourceRange.baseArrayLayer = 0;
 			viewInfo.subresourceRange.layerCount = 1;
 
-		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &texture.imageView))
+		if (vkCreateImageView(VulkanConfig::device, &viewInfo, nullptr, &textures.compute.imageView))
 		{
 			throw std::runtime_error("failed to create image view!");	
 		};
@@ -1143,7 +1400,7 @@ class RaytracingCompute : public IVulkanApp
 			.unnormalizedCoordinates = VK_FALSE
 		};		
 		
-		if (vkCreateSampler(VulkanConfig::device, &samplerInfo, nullptr, &texture.sampler))
+		if (vkCreateSampler(VulkanConfig::device, &samplerInfo, nullptr, &sampler))
 		{
 			throw std::runtime_error("failed to create sampler!");	
 		};
@@ -1210,8 +1467,8 @@ class RaytracingCompute : public IVulkanApp
 		
 			VkDescriptorImageInfo imageInfo
 			{
-				.sampler = texture.sampler,
-				.imageView = texture.imageView,
+				.sampler = sampler,
+				.imageView = textures.compute.imageView,
 				.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 			};
 			
@@ -1228,6 +1485,35 @@ class RaytracingCompute : public IVulkanApp
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
 	}	
+
+	void updateRandomPositions()
+	{
+		if (!loaded)
+		{
+			RandomVectorBuffer rvb;
+			
+			std::random_device dev;
+			std::mt19937 rng(dev());
+			std::uniform_real_distribution<> dist6(-1.f, 1.f);
+			
+			for (int i = 0; i < 480000; i++)
+			{
+				double lsqr = 0.9;
+				glm::vec4   rv;
+				while (1e-160 < lsqr && lsqr <= 1.)
+				{
+					rv = glm::vec4(dist6(rng), dist6(rng), dist6(rng), 0.);
+					lsqr = rv.x * rv.x + rv.y * rv.y + rv.z * rv.z;
+				};
+				rvb.vectors[i] = glm::normalize(rv);
+			};
+			
+			memcpy(uniformBuffersMapped[0].randomPos, &rvb, sizeof(rvb));
+			memcpy(uniformBuffersMapped[1].randomPos, &rvb, sizeof(rvb));
+
+			loaded = true;
+		};
+	};
 
 	void recreateSwapChain(GLFWwindow * window)
 	{
@@ -1249,7 +1535,7 @@ class RaytracingCompute : public IVulkanApp
 		createFramebuffers();
 		setupRaytracing();
 		loadTexture();
-		setupImageView();
+		setupComputeImageView();
 		setupComputeDescriptorSets();
 		setupCubeDescriptorSets();
 	}
