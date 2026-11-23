@@ -10,6 +10,7 @@ class RaytracingCompute : public IVulkanApp
 	~RaytracingCompute(){};
 
 	constexpr static int frames 		= 2;
+	constexpr static int SPHERE_COUNT 	= 488;
 	bool 		 loaded 		= false;
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
@@ -51,19 +52,20 @@ class RaytracingCompute : public IVulkanApp
 		alignas(16) glm::vec4 	center;
 		alignas(16) glm::vec4 	color;	
 		alignas(8) double    	radius;
+		alignas(8) double    	fuzz;
+		alignas(8) double    	refraction_index;
 		alignas(4) int 	type;
 	};
 
 	struct WorldInfo
 	{
-		alignas(256) Sphere spheres[4];
+		alignas(256) Sphere spheres[SPHERE_COUNT];
 	};
 
 	struct UniformData
 	{
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
+		alignas(16) glm::vec3 lookFrom;
+		alignas(16) glm::vec3 lookAt;
 	};
 	
 	struct 
@@ -101,6 +103,7 @@ class RaytracingCompute : public IVulkanApp
 		VkBuffer compute;
 		VkBuffer randomPos;
 		VkBuffer world;
+		VkBuffer uniform;
 	};
 
 	struct UniformBuffersMapped
@@ -108,6 +111,7 @@ class RaytracingCompute : public IVulkanApp
 		void * compute;
 		void * randomPos;;
 		void * world;
+		void * uniform;
 	};
 
 	struct UniformBuffersMemory
@@ -115,6 +119,7 @@ class RaytracingCompute : public IVulkanApp
 		VkDeviceMemory compute;
 		VkDeviceMemory randomPos;
 		VkDeviceMemory world;
+		VkDeviceMemory uniform;
 	};
 
 	std::array<UniformBuffers, frames> uniformBuffers;
@@ -124,6 +129,7 @@ class RaytracingCompute : public IVulkanApp
 	void setupUniformBuffers()
 	{
 		VkDeviceSize bufferSize = sizeof(WorldInfo);
+		VkDeviceSize uniformBufferSize = sizeof(UniformData);
 		VkDeviceSize ranVecBufferSize = sizeof(RandomVectorBuffer);
 		
 		for (size_t i = 0; i < frames; i++)
@@ -135,6 +141,9 @@ class RaytracingCompute : public IVulkanApp
 
 			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].randomPos, 0, ranVecBufferSize, 0, &uniformBuffersMapped[i].randomPos);
 
+			Buffer::create(uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i].uniform, uniformBuffersMemory[i].uniform, VulkanConfig::device, VulkanConfig::physicalDevice);
+
+			vkMapMemory(VulkanConfig::device, uniformBuffersMemory[i].uniform, 0, uniformBufferSize, 0, &uniformBuffersMapped[i].uniform);
 		}	
 	};
 
@@ -143,6 +152,7 @@ class RaytracingCompute : public IVulkanApp
 		IVulkanApp::init(window);	
 		setupUniformBuffers();
 		updateRandomPositions();
+		updateSpherePositions();
 		setupSampler();
 		loadTexture();
 		loadPerlinNoiseImage();
@@ -176,59 +186,99 @@ class RaytracingCompute : public IVulkanApp
 		vkFreeMemory(VulkanConfig::device, stagingBufferMemory, nullptr);
 	};	
 
-	void updateUniformBuffer(uint32_t currentImage)
+	void updateSpherePositions()
 	{
+		int sphere_index = 0;
+		std::random_device dev;
+		std::mt19937 rng(dev());
+		std::uniform_real_distribution<> random_double(-1.f, 1.f);
+		std::uniform_real_distribution<> random_double2(0.f, .5f);
+		std::uniform_real_distribution<> random_color(0.f, 1.f);
+		std::uniform_real_distribution<> random_color2(.5f, 1.f);
+
 		glm::mat4 model = glm::mat4(1.);
 		glm::mat4 view = camera.getViewMatrix();
 		glm::mat4 proj = glm::perspective(glm::radians(90.f), float(800./600.), 0.1f, FAR_PLANE);
 		proj[1][1] *= 1.;
 
 		WorldInfo world;
-/*
-		world.spheres[0].center =  proj * view * model * glm::vec4(0.f, -100.5f, 0.f, 1.f);
-		world.spheres[0].color  = glm::vec4(.8f, 0.8f, 0.0f, 1.f);
-		world.spheres[0].radius = 100.f;
-		world.spheres[0].type   = 0;
-		
 
-		world.spheres[1].center = proj * view * model * glm::vec4(0.f,0.f,-1.2f, 1.f);
-		world.spheres[1].color  = glm::vec4(0.1f, .2f, 0.5f, 1.f);
-		world.spheres[1].radius = 0.5f;
-		world.spheres[1].type   = 0;
+		world.spheres[sphere_index].center = glm::vec4(0.f, -1000.f, 0.f, 1.f);
+		world.spheres[sphere_index].color  = glm::vec4(.5f, 0.5f, 0.5f, 1.f);
+		world.spheres[sphere_index].radius = 1000.f;
+		world.spheres[sphere_index].type   = 0;
+		sphere_index++;
 
-		world.spheres[2].center = proj * view * model * glm::vec4(-1.f,0.f,-1.f, 1.f);
-		world.spheres[2].color  = glm::vec4(0.8f, .8f, 0.8f, 1.f);
-		world.spheres[2].radius = 0.5f;
-		world.spheres[2].type   = 1;
+		for (int a = -11; a < 11; a++)
+		{
+			for (int b = -11; b < 11; b++)
+			{
+				auto choose_mat = random_double(rng);
+				glm::vec4 center = glm::vec4(a + 0.9 * random_double(rng), 0.2, b + 0.9*random_double(rng), 1.);
 
-		world.spheres[3].center = proj * view * model * glm::vec4(1.f,0.f,-1.f, 1.f);
-		world.spheres[3].color  = glm::vec4(0.8f, .6f, 0.2f, 1.f);
-		world.spheres[3].radius = 0.5f;
-		world.spheres[3].type   = 1;
-*/
+				if ((glm::vec3(center) - glm::vec3(4, 0.2, 0)).length() > 0.9)
+				{
+					if (choose_mat < 0.8)
+					{
+						glm::vec4 albedo = glm::vec4(random_color(rng), random_color(rng), random_color(rng), 1.) * glm::vec4(random_color(rng), random_color(rng), random_color(rng), 1.);
+						world.spheres[sphere_index].center = center;
+						world.spheres[sphere_index].color  = glm::vec4(albedo.r, albedo.g, albedo.b, 1.);
+						world.spheres[sphere_index].radius = 0.2f;
+						world.spheres[sphere_index].type   = 0;
+						sphere_index++;
+					}
+					else if (choose_mat < 0.95)
+					{	
+						glm::vec4 albedo = glm::vec4(random_color2(rng), random_color2(rng), random_color2(rng), 1.) * glm::vec4(random_color2(rng), random_color2(rng), random_color2(rng), 1.);
+						double fuzz = random_double2(rng);
 
-		world.spheres[0].center = glm::vec4(0.f, -100.5f, 0.f, 1.f);
-		world.spheres[0].color  = glm::vec4(.8f, 0.8f, 0.0f, 1.f);
-		world.spheres[0].radius = 100.f;
-		world.spheres[0].type   = 0;
-		
+						world.spheres[sphere_index].center = center;
+						world.spheres[sphere_index].color  = albedo;
+						world.spheres[sphere_index].radius = 0.2f;
+						world.spheres[sphere_index].fuzz   = fuzz;
+						world.spheres[sphere_index].type   = 1;
+						sphere_index++;
+					}
+					else
+					{
+						world.spheres[sphere_index].center = center;
+						world.spheres[sphere_index].radius = 0.2f;
+						world.spheres[sphere_index].refraction_index 	= 1.5;
+						world.spheres[sphere_index].type   = 2;
+						sphere_index++;
+					};
+				};
+			};
+		};
 
-		world.spheres[1].center = glm::vec4(0.f,0.f,-1.2f, 1.f);
-		world.spheres[1].color  = glm::vec4(0.1f, .2f, 0.5f, 1.f);
-		world.spheres[1].radius = 0.5f;
-		world.spheres[1].type   = 0;
+		world.spheres[sphere_index].center = glm::vec4(0., 1., 0., 1.);
+		world.spheres[sphere_index].refraction_index 	= 1.5;
+		world.spheres[sphere_index].radius = 1.f;
+		world.spheres[sphere_index].type   = 2;
+		sphere_index++;
 
-		world.spheres[2].center = glm::vec4(-1.f,0.f,-1.f, 1.f);
-		world.spheres[2].color  = glm::vec4(0.8f, .8f, 0.8f, 1.f);
-		world.spheres[2].radius = 0.5f;
-		world.spheres[2].type   = 1;
+		world.spheres[sphere_index].center = glm::vec4(-4., 1., 0., 1.);
+		world.spheres[sphere_index].color  = glm::vec4(0.4, 0.2, 0.1, 1.);
+		world.spheres[sphere_index].radius = 1.f;
+		world.spheres[sphere_index].type   = 0;
+		sphere_index++;
 
-		world.spheres[3].center = glm::vec4(1.f,0.f,-1.f, 1.f);
-		world.spheres[3].color  = glm::vec4(0.8f, .6f, 0.2f, 1.f);
-		world.spheres[3].radius = 0.5f;
-		world.spheres[3].type   = 1;
+		world.spheres[sphere_index].center = glm::vec4(4, 1., 0., 1.);
+		world.spheres[sphere_index].color  = glm::vec4(0.7, 0.6, 0.5, 1.);
+		world.spheres[sphere_index].radius = 1.f;
+		world.spheres[sphere_index].type   = 1;
 
-		memcpy(uniformBuffersMapped[currentImage].world, &world, sizeof(world));
+		memcpy(uniformBuffersMapped[0].world, &world, sizeof(world));
+		memcpy(uniformBuffersMapped[1].world, &world, sizeof(world));
+	};
+
+	void updateUniformBuffer(uint32_t currentImage)
+	{
+		UniformData ud;
+		ud.lookFrom = camera.cameraPos;
+		ud.lookAt   = camera.cameraFront;
+
+		memcpy(uniformBuffersMapped[currentImage].uniform, &ud, sizeof(ud));
 	};
 
 	void processInput(GLFWwindow * window)
@@ -692,7 +742,7 @@ class RaytracingCompute : public IVulkanApp
 	{
 		VkDescriptorPool descriptorPool;
 
-		std::array<VkDescriptorSetLayoutBinding, 4> layoutBindings{};
+		std::array<VkDescriptorSetLayoutBinding, 5> layoutBindings{};
 		
 		layoutBindings[0].binding 		= 0;
 		layoutBindings[0].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
@@ -718,6 +768,12 @@ class RaytracingCompute : public IVulkanApp
 		layoutBindings[3].descriptorCount 	= 1;
 		layoutBindings[3].pImmutableSamplers 	= nullptr;
 
+		layoutBindings[4].binding 		= 4;
+		layoutBindings[4].stageFlags 		= VK_SHADER_STAGE_COMPUTE_BIT;
+		layoutBindings[4].descriptorType 	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		layoutBindings[4].descriptorCount 	= 1;
+		layoutBindings[4].pImmutableSamplers 	= nullptr;
+
 		VkDescriptorSetLayoutCreateInfo layoutInfo
 		{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -730,7 +786,7 @@ class RaytracingCompute : public IVulkanApp
 			throw std::runtime_error("Failed to create descriptor set layout!");
 		};	
 		
-		std::array<VkDescriptorPoolSize, 4> poolSizes{};
+		std::array<VkDescriptorPoolSize, 5> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(frames) * 2;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -739,6 +795,8 @@ class RaytracingCompute : public IVulkanApp
 		poolSizes[2].descriptorCount = static_cast<uint32_t>(frames) * 2;
 		poolSizes[3].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[3].descriptorCount = static_cast<uint32_t>(frames) * 2;
+		poolSizes[4].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[4].descriptorCount = static_cast<uint32_t>(frames) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo
 		{
@@ -771,6 +829,13 @@ class RaytracingCompute : public IVulkanApp
 				throw std::runtime_error("failed to allocate descriptor sets!");
 			};
 
+			VkDescriptorBufferInfo uniformBufferInfo 
+			{
+				.buffer = uniformBuffers[i].uniform,
+				.offset = 0,
+				.range 	= sizeof(UniformData)
+			};
+
 			VkDescriptorBufferInfo randomVecInfo
 			{
 				.buffer = uniformBuffers[i].randomPos,
@@ -799,7 +864,7 @@ class RaytracingCompute : public IVulkanApp
 				.imageLayout = VK_IMAGE_LAYOUT_GENERAL
 			};
 	
-			std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+			std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 			
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = computeDescriptorSets[i];
@@ -832,6 +897,14 @@ class RaytracingCompute : public IVulkanApp
 			descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrites[3].descriptorCount = 1;
 			descriptorWrites[3].pBufferInfo = &randomVecInfo;
+
+			descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[4].dstSet = computeDescriptorSets[i];
+			descriptorWrites[4].dstBinding = 4;
+			descriptorWrites[4].dstArrayElement = 0;
+			descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[4].descriptorCount = 1;
+			descriptorWrites[4].pBufferInfo = &uniformBufferInfo;
 
 			vkUpdateDescriptorSets(VulkanConfig::device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),0, nullptr);	
 		};
